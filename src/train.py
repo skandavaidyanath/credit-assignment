@@ -56,12 +56,13 @@ def train(args):
         os.makedirs(checkpoint_path, exist_ok=True)
 
     # Wandb Initialization
-    wandb.init(
-        name=exp_name,
-        project=args.env_name,
-        config=vars(args),
-        entity="svaidyan",
-    )
+    if not args.disable_wandb:
+        wandb.init(
+            name=exp_name,
+            project=args.env_name,
+            config=vars(args),
+            entity="svaidyan",
+        )
 
     # Agent
     agent = PPO(state_dim, action_dim, args.lr, continuous, device, args)
@@ -134,17 +135,18 @@ def train(args):
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
-            wandb.log(
-                {
-                    "training/avg_rewards": avg_reward,
-                    "training/avg_success": avg_success,
-                    "training/total_loss": np.mean(total_losses),
-                    "training/action_loss": np.mean(action_losses),
-                    "training/value_loss": np.mean(value_losses),
-                    "training/entropy": np.mean(entropies),
-                },
-                step=episode,
-            )
+            if not args.disable_wandb:
+                wandb.log(
+                    {
+                        "training/avg_rewards": avg_reward,
+                        "training/avg_success": avg_success,
+                        "training/total_loss": np.mean(total_losses),
+                        "training/action_loss": np.mean(action_losses),
+                        "training/value_loss": np.mean(value_losses),
+                        "training/entropy": np.mean(entropies),
+                    },
+                    step=episode,
+                )
 
             print(
                 f"Episode: {episode} \t\t Average Reward: {avg_reward:.4f} \t\t Average Success: {avg_success:.4f}"
@@ -221,6 +223,9 @@ if __name__ == "__main__":
         default="maps/test.txt",
         help="gridworld textfile to use (default: maps/test.txt)",
     )
+
+    parser.add_argument(
+        "--disable_wandb", type=bool, default=False, help="whether to disable wandb logging (default: False)")
 
     parser.add_argument("--sparse", type=bool, default=False, help="make environment sparse (default:False)")
 
