@@ -10,13 +10,14 @@ INVERSE_TILE_MAPPING = {0: ".", 1: "S", 2: "G", 3: "*", 4: "R", 5: "F", 6: "A"}
 ACTION_MAPPING = {0: [0, 1], 1: [0, -1], 2: [1, 0], 3: [-1, 0]}
 REWARD_MAPPING = {"F": -100, "*": +10}
 
-# sparse?, different sizes?, sacrifice to achieve higher reward
+# sacrifice to achieve higher reward
 
 
 class GridWorld(Env):
-    def __init__(self, filename, max_steps=50):
+    def __init__(self, filename, sparse=True, max_steps=50):
         gridmap = open(filename, "r").read()
 
+        self.sparse = sparse
         self.max_steps = max_steps
         self.current_steps = 0
 
@@ -30,6 +31,9 @@ class GridWorld(Env):
             [self.start_location[0][0], self.start_location[1][0]]
         )
         self.agent_location = self.start_location.copy()
+
+        # set episode reward to 0
+        self.episode_reward = 0
 
         # observation and action spaces
         self.observation_space = MultiDiscrete(7 * np.ones((self.R, self.C)))
@@ -46,13 +50,14 @@ class GridWorld(Env):
     def get_state(self):
         map = self.current_map.copy()
         map[self.agent_location[0], self.agent_location[1]] = TILE_MAPPING["A"]
-        return map
+        return map.flatten()
 
     def reset(self):
         self.current_map = self.gridmap.copy()
         # set agent to start state
         self.agent_location = self.start_location.copy()
         self.current_steps = 0
+        self.episode_reward = 0
         return self.get_state()
 
     def next_state(self, action):
@@ -82,7 +87,12 @@ class GridWorld(Env):
         if next_state == TILE_MAPPING["G"]:
             done = True
             reward = -1
-        return self.get_state(), reward, done, {}
+
+        if self.sparse:
+            self.episode_reward += reward
+            reward = 0
+
+        return self.get_state(), reward, done, {"success": 0}
 
     def render(self):
         out = [
