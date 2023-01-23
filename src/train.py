@@ -7,30 +7,15 @@ import itertools
 import torch
 from tqdm import tqdm
 import wandb
-from transformers import DistilBertTokenizer
-from transformers import DistilBertModel
 
-from utils import get_lang_embedding
-from gym_nav2d.envs import NewNav2dEnv
+from gridworld import GridWorld
 from ppo import PPO
 from replay_buffer import RolloutBuffer
 
 
 def train(args):
-    if args.method in ["easy_lang", "feedback"]:
-        setattr(args, "use_lang", True)
-
     # Environment
-    env = NewNav2dEnv(
-        args.start_positions, args.goal_positions, args.use_lang, args.sparse
-    )
-
-    if args.use_lang:
-        ## initialize the LM stuff
-        tokenizer = DistilBertTokenizer.from_pretrained(
-            "distilbert-base-uncased"
-        )
-        lm = DistilBertModel.from_pretrained("distilbert-base-uncased")
+    env = GridWorld(args.gw_filepath)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -42,12 +27,7 @@ def train(args):
     else:
         action_dim = env.action_space.n
 
-    if args.use_lang:
-        state_dim = (
-            env.observation_space["observation"].shape[0] + 768
-        )  ## 768 for lang embedding
-    else:
-        state_dim = env.observation_space.shape[0]
+    state_dim = env.observation_space.shape[0]
 
     if args.seed:
         print(
@@ -73,12 +53,6 @@ def train(args):
 
     if args.save_model_freq:
         checkpoint_path = f"checkpoints/{exp_name}_"
-        if args.method.startswith("lisa"):
-            if args.no_vq:
-                checkpoint_path += f"no-vq_"
-            checkpoint_path += (
-                f"H={args.H}_N={args.num_messages}_D={args.message_dim}_"
-            )
         checkpoint_path += f"{datetime.datetime.now().replace(microsecond=0)}"
         setattr(args, "savedir", checkpoint_path)
         os.makedirs(checkpoint_path, exist_ok=True)
@@ -113,14 +87,7 @@ def train(args):
     )
 
     for episode in range(1, args.max_training_episodes + 1):
-
-        if args.use_lang:
-            state = env.reset()
-            state, lang = state["state"], state["lang"]
-            lang_emb = get_lang_embedding(lang, tokenizer, lm, device)
-            state = np.append(lang_emb, state)
-        else:
-            state = env.reset()
+        state = env.reset()
         current_ep_reward = 0
         done = False
 
@@ -139,8 +106,6 @@ def train(args):
 
             # Step in env
             state, reward, done, info = env.step(action)
-            if args.use_lang:
-                state = np.append(lang_emb, state["state"])
 
             # saving reward and terminals
             rewards.append(float(reward))
@@ -244,13 +209,19 @@ def train(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Coach RL Training Args")
+    parser = argparse.ArgumentParser(description="CA Based Exploration RL Training Args")
     ### Environment params
     parser.add_argument(
         "--env-name",
         "-env",
-        default="Nav2D",
-        help="gym environment to use (default: Nav2D)",
+        default="GridWorld-Default",
+        help="gym environment to use (default: GridWorld-Default)",
+    )
+
+    parser.add_argument(
+        "--gw_filepath",
+        default="maps/test.txt",
+        help="gridworld environment to use (default: test.txt)",
     )
 
     ## Training params
@@ -263,14 +234,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         type=str,
-        default="lisa",
+        default="ppo",
         choices=[
-            "easy",
-            "easy_lang",
-            "no_feedback",
-            "feedback",
-        ],  ## no_feedback and feedback will be on random start and goal positions
-        help="Method we are running: one of easy, easy_lang, no_feedback, feedback (default: easy)",
+            "ppo",
+            "ppo_ca",
+        ],  
+        help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )
     parser.add_argument(
         "--cuda", type=bool, default=True, help="run on CUDA (default: True)"
@@ -333,12 +302,6 @@ if __name__ == "__main__":
         help="number of hidden layers (default: 2)",
     )
     parser.add_argument(
-        "--n-layers-listener",
-        type=int,
-        default=0,
-        help="number of hidden layers (default: 0)",
-    )
-    parser.add_argument(
         "--hidden-size",
         type=int,
         default=64,
@@ -377,3 +340,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     train(args)
+    
