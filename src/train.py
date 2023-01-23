@@ -56,7 +56,7 @@ def train(args):
         os.makedirs(checkpoint_path, exist_ok=True)
 
     # Wandb Initialization
-    if not args.disable_wandb:
+    if args.wandb:
         wandb.init(
             name=exp_name,
             project=args.env_name,
@@ -135,7 +135,7 @@ def train(args):
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
-            if not args.disable_wandb:
+            if args.wandb:
                 wandb.log(
                     {
                         "training/avg_rewards": avg_reward,
@@ -224,8 +224,7 @@ if __name__ == "__main__":
         help="gridworld textfile to use (default: maps/test.txt)",
     )
 
-    parser.add_argument(
-        "--disable_wandb", type=bool, default=False, help="whether to disable wandb logging (default: False)")
+    parser.add_argument("--wandb", type=bool, default=False, help="whether to use wandb logging (default: False)")
 
     parser.add_argument("--sparse", type=bool, default=False, help="make environment sparse (default:False)")
 
