@@ -3,9 +3,7 @@ import datetime
 import os
 import gym
 import numpy as np
-import itertools
 import torch
-from tqdm import tqdm
 import wandb
 
 from gridworld import GridWorld
@@ -15,7 +13,7 @@ from replay_buffer import RolloutBuffer
 
 def train(args):
     # Environment
-    env = GridWorld(args.gw_filepath)
+    env = GridWorld(args.gw_filepath, sparse=args.sparse)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -221,8 +219,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--gw_filepath",
         default="maps/test.txt",
-        help="gridworld environment to use (default: test.txt)",
+        help="gridworld textfile to use (default: maps/test.txt)",
     )
+
+    parser.add_argument("--sparse", type=bool, default=False, help="make environment sparse (default:False)")
 
     ## Training params
     parser.add_argument(
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )
     parser.add_argument(
-        "--cuda", type=bool, default=True, help="run on CUDA (default: True)"
+        "--cuda", type=bool, default=False, help="run on CUDA (default: False)"
     )
     parser.add_argument(
         "--max-training-episodes",

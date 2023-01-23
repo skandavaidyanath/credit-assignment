@@ -1,0 +1,26 @@
+2023-01-23 11:54:40,351 INFO    MainThread:54838 [wandb_setup.py:_flush():68] Configure stats pid to 54838
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_setup.py:_flush():68] Loading settings from /Users/skanda/.config/wandb/settings
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_setup.py:_flush():68] Loading settings from /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/settings
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_setup.py:_flush():68] Loading settings from environment variables: {'_require_service': 'True'}
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_setup.py:_flush():68] Inferring run settings from compute environment: {'program_relpath': 'src/train.py', 'program': '/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py'}
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_init.py:_log_setup():476] Logging user logs to /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_115440-2aht4901/logs/debug.log
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_init.py:_log_setup():477] Logging internal logs to /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_115440-2aht4901/logs/debug-internal.log
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_init.py:init():516] calling init triggers
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_init.py:init():519] wandb.init called with sweep_config: {}
+config: {'env_name': 'GridWorld-Default', 'gw_filepath': 'maps/test.txt', 'seed': 0, 'method': 'ppo', 'cuda': False, 'max_training_episodes': 500000, 'update_every': 20, 'ppo_epochs': 20, 'eps_clip': 0.2, 'gamma': 0.99, 'lamda': 0.95, 'entropy_coeff': 0.0, 'value_loss_coeff': 0.25, 'use_gae': True, 'n_layers': 2, 'hidden_size': 64, 'lr': 0.0003, 'log_freq': 2500, 'save_model_freq': 0, 'checkpoint': ''}
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_init.py:init():569] starting backend
+2023-01-23 11:54:40,352 INFO    MainThread:54838 [wandb_init.py:init():573] setting up manager
+2023-01-23 11:54:40,355 INFO    MainThread:54838 [backend.py:_multiprocessing_setup():102] multiprocessing start_methods=spawn,fork,forkserver, using: spawn
+2023-01-23 11:54:40,359 INFO    MainThread:54838 [wandb_init.py:init():580] backend started and connected
+2023-01-23 11:54:40,365 INFO    MainThread:54838 [wandb_init.py:init():658] updated telemetry
+2023-01-23 11:54:40,386 INFO    MainThread:54838 [wandb_init.py:init():693] communicating run to backend with 60 second timeout
+2023-01-23 11:54:40,610 INFO    MainThread:54838 [wandb_run.py:_on_init():2000] communicating current version
+2023-01-23 11:54:40,699 INFO    MainThread:54838 [wandb_run.py:_on_init():2004] got version response upgrade_message: "wandb version 0.13.9 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2023-01-23 11:54:40,700 INFO    MainThread:54838 [wandb_init.py:init():728] starting run threads in backend
+2023-01-23 11:54:42,231 INFO    MainThread:54838 [wandb_run.py:_console_start():1980] atexit reg
+2023-01-23 11:54:42,231 INFO    MainThread:54838 [wandb_run.py:_redirect():1838] redirect: SettingsConsole.WRAP_RAW
+2023-01-23 11:54:42,231 INFO    MainThread:54838 [wandb_run.py:_redirect():1903] Wrapping output streams.
+2023-01-23 11:54:42,231 INFO    MainThread:54838 [wandb_run.py:_redirect():1925] Redirects installed.
+2023-01-23 11:54:42,231 INFO    MainThread:54838 [wandb_init.py:init():765] run started, returning control to user process
+2023-01-23 11:54:48,692 WARNING MsgRouterThr:54838 [router.py:message_loop():77] message_loop has been closed

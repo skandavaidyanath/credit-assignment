@@ -1,0 +1,661 @@
+2023-01-23 12:20:00,772 INFO    StreamThr :56413 [internal.py:wandb_internal():88] W&B internal server running at pid: 56413, started at: 2023-01-23 12:20:00.771321
+2023-01-23 12:20:00,774 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: status
+2023-01-23 12:20:00,775 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: status
+2023-01-23 12:20:00,776 DEBUG   SenderThread:56413 [sender.py:send():303] send: header
+2023-01-23 12:20:00,776 INFO    WriterThread:56413 [datastore.py:open_for_write():75] open: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/run-2gbh1svy.wandb
+2023-01-23 12:20:00,792 DEBUG   SenderThread:56413 [sender.py:send():303] send: run
+2023-01-23 12:20:01,428 INFO    SenderThread:56413 [dir_watcher.py:__init__():216] watching files in: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files
+2023-01-23 12:20:01,428 INFO    SenderThread:56413 [sender.py:_start_run_threads():928] run started: 2gbh1svy with start time 1674505200.763608
+2023-01-23 12:20:01,428 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:01,428 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: check_version
+2023-01-23 12:20:01,429 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:01,429 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: check_version
+2023-01-23 12:20:01,522 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: run_start
+2023-01-23 12:20:01,531 DEBUG   HandlerThread:56413 [system_info.py:__init__():31] System info init
+2023-01-23 12:20:01,532 DEBUG   HandlerThread:56413 [system_info.py:__init__():46] System info init done
+2023-01-23 12:20:01,532 INFO    HandlerThread:56413 [system_monitor.py:start():150] Starting system monitor
+2023-01-23 12:20:01,532 INFO    SystemMonitor:56413 [system_monitor.py:_start():116] Starting system asset monitoring threads
+2023-01-23 12:20:01,532 INFO    HandlerThread:56413 [system_monitor.py:probe():168] Collecting system info
+2023-01-23 12:20:01,533 INFO    SystemMonitor:56413 [interfaces.py:start():168] Started cpu
+2023-01-23 12:20:01,533 DEBUG   HandlerThread:56413 [system_info.py:probe():195] Probing system
+2023-01-23 12:20:01,533 INFO    SystemMonitor:56413 [interfaces.py:start():168] Started disk
+2023-01-23 12:20:01,535 INFO    SystemMonitor:56413 [interfaces.py:start():168] Started gpuapple
+2023-01-23 12:20:01,537 INFO    SystemMonitor:56413 [interfaces.py:start():168] Started memory
+2023-01-23 12:20:01,540 INFO    SystemMonitor:56413 [interfaces.py:start():168] Started network
+2023-01-23 12:20:01,543 DEBUG   HandlerThread:56413 [system_info.py:_probe_git():180] Probing git
+2023-01-23 12:20:01,572 DEBUG   HandlerThread:56413 [system_info.py:_probe_git():188] Probing git done
+2023-01-23 12:20:01,572 DEBUG   HandlerThread:56413 [system_info.py:probe():241] Probing system done
+2023-01-23 12:20:01,572 DEBUG   HandlerThread:56413 [system_monitor.py:probe():177] {'os': 'macOS-13.1-arm64-arm-64bit', 'python': '3.9.12', 'heartbeatAt': '2023-01-23T20:20:01.533652', 'startedAt': '2023-01-23T20:20:00.748000', 'docker': None, 'cuda': None, 'args': ('--save-model-freq', '0', '--log-freq', '100'), 'state': 'running', 'program': '/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py', 'codePath': 'src/train.py', 'git': {'remote': 'https://github.com/skandavaidyanath/ca-exploration.git', 'commit': '8fe564fd4c066bf0122c8197c83e60d8ad4edd66'}, 'email': 'skandavaidyanath98@gmail.com', 'root': '/Users/skanda/Desktop/Stanford/Research/ca-exploration', 'host': 'Skandas-MacBook-Air.local', 'username': 'skanda', 'executable': '/Users/skanda/anaconda3/envs/rl/bin/python', 'cpu_count': 8, 'cpu_count_logical': 8, 'disk': {'total': 460.4317207336426, 'used': 8.258594512939453}, 'gpuapple': {'type': 'arm', 'vendor': 'Apple'}, 'memory': {'total': 16.0}}
+2023-01-23 12:20:01,572 INFO    HandlerThread:56413 [system_monitor.py:probe():178] Finished collecting system info
+2023-01-23 12:20:01,572 INFO    HandlerThread:56413 [system_monitor.py:probe():181] Publishing system info
+2023-01-23 12:20:01,572 DEBUG   HandlerThread:56413 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2023-01-23 12:20:01,573 DEBUG   HandlerThread:56413 [system_info.py:_save_pip():67] Saving pip packages done
+2023-01-23 12:20:01,573 DEBUG   HandlerThread:56413 [system_info.py:_save_conda():74] Saving list of conda packages installed into the current environment
+2023-01-23 12:20:02,434 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_created():275] file/dir created: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/conda-environment.yaml
+2023-01-23 12:20:02,434 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_created():275] file/dir created: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/requirements.txt
+2023-01-23 12:20:02,434 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_created():275] file/dir created: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:03,048 DEBUG   HandlerThread:56413 [system_info.py:_save_conda():86] Saving conda packages done
+2023-01-23 12:20:03,049 INFO    HandlerThread:56413 [system_monitor.py:probe():183] Finished publishing system info
+2023-01-23 12:20:03,051 DEBUG   SenderThread:56413 [sender.py:send():303] send: files
+2023-01-23 12:20:03,051 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-metadata.json with policy now
+2023-01-23 12:20:03,054 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: stop_status
+2023-01-23 12:20:03,054 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: stop_status
+2023-01-23 12:20:03,438 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/conda-environment.yaml
+2023-01-23 12:20:03,438 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_created():275] file/dir created: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-metadata.json
+2023-01-23 12:20:03,447 INFO    Thread-16 :56413 [upload_job.py:push():143] Uploaded file /var/folders/9n/8lzmq1_n0pd92qkkt9krd_n00000gn/T/tmp7y8x4bmywandb/2g08rh3w-wandb-metadata.json
+2023-01-23 12:20:04,214 DEBUG   SenderThread:56413 [sender.py:send():303] send: telemetry
+2023-01-23 12:20:04,280 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:04,443 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_created():275] file/dir created: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:06,040 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:06,041 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:06,041 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:06,042 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:06,449 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:06,449 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:07,851 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:07,852 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:07,852 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:07,852 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:08,459 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:08,459 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:09,675 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:09,676 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:09,676 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:09,676 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:10,469 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:10,469 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:11,468 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:11,469 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:11,469 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:11,470 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:11,474 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:12,479 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:13,284 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:13,285 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:13,285 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:13,285 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:13,480 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:14,485 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:15,060 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:15,061 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:15,061 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:15,061 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:15,490 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:16,495 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:16,889 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:16,890 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:16,890 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:16,890 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:17,496 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:18,501 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:18,690 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:18,691 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:18,691 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:18,691 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:19,216 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: stop_status
+2023-01-23 12:20:19,216 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: stop_status
+2023-01-23 12:20:19,507 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:20,509 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:20,513 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:20,513 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:20,513 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:20,514 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:21,514 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:22,345 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:22,346 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:22,346 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:22,346 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:22,519 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:22,520 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:24,158 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:24,159 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:24,159 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:24,159 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:24,529 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:24,529 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:25,957 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:25,957 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:25,957 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:25,958 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:26,539 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:26,539 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:27,788 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:27,788 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:27,788 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:27,789 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:28,549 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:28,550 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:29,621 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:29,621 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:29,622 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:29,622 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:30,555 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:30,556 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:31,455 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:31,455 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:31,570 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:31,571 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:32,562 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/config.yaml
+2023-01-23 12:20:32,562 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:32,562 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:33,257 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:33,257 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:33,257 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:33,258 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:33,563 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:34,329 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: stop_status
+2023-01-23 12:20:34,329 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: stop_status
+2023-01-23 12:20:34,568 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:35,096 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:35,096 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:35,096 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:35,097 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:35,577 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:36,579 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:36,931 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:36,931 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:36,931 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:36,931 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:37,583 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:38,588 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:38,765 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:38,766 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:38,766 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:38,766 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:39,592 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:40,570 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:40,570 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:40,570 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:40,571 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:40,597 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:40,597 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:42,405 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:42,406 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:42,406 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:42,406 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:42,607 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:42,607 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:44,223 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:44,223 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:44,224 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:44,224 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:44,617 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:44,617 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:45,960 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:45,961 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:45,961 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:45,962 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:46,627 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:46,627 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:47,208 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:47,209 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:47,209 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:47,209 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:47,521 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:47,521 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:47,521 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:47,522 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:47,632 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:47,815 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:47,815 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:47,815 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:47,815 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:48,107 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:48,108 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:48,108 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:48,108 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:48,428 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:48,429 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:48,429 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:48,429 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:48,638 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:48,638 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:48,721 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:48,722 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:48,722 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:48,722 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:48,995 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:48,996 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:48,996 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:48,996 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:49,303 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:49,303 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:49,303 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:49,303 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:49,415 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: stop_status
+2023-01-23 12:20:49,415 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: stop_status
+2023-01-23 12:20:49,580 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:49,581 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:49,581 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:49,581 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:49,643 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:49,908 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:49,908 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:49,908 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:49,908 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:50,189 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:50,189 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:50,190 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:50,190 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:50,462 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:50,462 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:50,462 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:50,462 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:50,646 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:50,646 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:50,770 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:50,771 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:50,771 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:50,771 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:51,072 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:51,073 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:51,073 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:51,073 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:51,367 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:51,367 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:51,367 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:51,368 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:51,651 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:51,658 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:51,658 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:51,658 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:51,659 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:51,939 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:51,940 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:51,940 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:51,940 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:52,228 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:52,228 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:52,228 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:52,229 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:52,500 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:52,500 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:52,500 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:52,500 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:52,652 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:52,652 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:52,770 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:52,771 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:52,771 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:52,771 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:53,052 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:53,052 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:53,052 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:53,053 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:53,365 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:53,365 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:53,365 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:53,366 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:53,657 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:53,669 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:53,670 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:53,670 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:53,670 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:53,944 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:53,945 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:53,945 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:53,945 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:54,223 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:54,223 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:54,223 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:54,224 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:54,505 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:54,505 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:54,505 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:54,506 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:54,662 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:54,662 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:54,777 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:54,778 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:54,778 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:54,778 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:55,062 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:55,062 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:55,062 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:55,062 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:55,337 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:55,337 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:55,338 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:55,338 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:55,648 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:55,648 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:55,648 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:55,649 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:55,667 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:55,957 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:55,957 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:55,957 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:55,957 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:56,236 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:56,237 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:56,237 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:56,237 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:56,518 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:56,519 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:56,519 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:56,519 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:56,670 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:56,670 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:56,810 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:56,810 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:56,810 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:56,811 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:57,112 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:57,112 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:57,112 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:57,112 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:57,384 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:57,384 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:57,384 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:57,384 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:57,664 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:57,664 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:57,664 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:57,665 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:57,671 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:57,939 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:57,940 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:57,940 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:57,940 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:58,231 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:58,232 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:58,232 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:58,232 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:58,505 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:58,506 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:58,506 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:58,506 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:58,676 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:20:58,676 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:58,785 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:58,786 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:58,786 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:58,786 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:59,067 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:59,067 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:59,067 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:59,068 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:59,362 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:59,363 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:59,363 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:59,363 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:59,652 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:59,652 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:59,652 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:59,652 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:20:59,681 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:20:59,932 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:20:59,932 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:20:59,932 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:20:59,933 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:00,220 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:00,220 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:00,221 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:00,221 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:00,519 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:00,520 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:00,520 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:00,520 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:00,687 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:00,687 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:00,817 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:00,817 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:00,818 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:00,818 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:01,092 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:01,093 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:01,093 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:01,093 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:01,367 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:01,367 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:01,367 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:01,367 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:01,542 DEBUG   SystemMonitor:56413 [system_monitor.py:_start():130] Starting system metrics aggregation loop
+2023-01-23 12:21:01,542 DEBUG   SenderThread:56413 [sender.py:send():303] send: telemetry
+2023-01-23 12:21:01,542 DEBUG   SenderThread:56413 [sender.py:send():303] send: stats
+2023-01-23 12:21:01,687 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:01,688 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:01,688 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:01,851 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:01,851 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:01,975 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:01,975 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:01,975 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:01,975 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:02,245 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:02,246 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:02,246 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:02,246 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:02,513 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:02,513 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:02,513 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:02,514 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:02,692 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/config.yaml
+2023-01-23 12:21:02,692 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:02,692 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:02,785 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:02,785 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:02,785 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:02,786 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:03,084 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:03,085 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:03,085 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:03,085 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:03,397 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:03,398 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:03,398 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:03,398 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:03,690 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:03,690 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:03,690 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:03,690 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:03,697 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:03,961 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:03,962 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:03,962 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:03,963 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:04,245 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:04,245 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:04,245 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:04,246 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:04,518 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:04,518 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:04,518 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:04,518 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:04,524 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: stop_status
+2023-01-23 12:21:04,524 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: stop_status
+2023-01-23 12:21:04,702 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:04,702 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:04,786 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:04,786 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:04,786 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:04,786 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:05,052 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:05,052 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:05,053 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:05,053 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:05,326 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:05,327 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:05,327 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:05,327 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:05,637 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:05,637 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:05,637 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:05,637 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:05,706 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:05,924 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:05,924 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:05,924 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:05,924 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:06,210 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:06,210 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:06,210 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:06,211 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:06,481 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:06,481 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:06,482 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:06,482 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:06,711 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:06,711 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:06,753 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:06,753 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:06,753 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:06,753 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:07,187 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:07,188 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:07,188 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:07,188 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:07,499 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:07,499 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:07,499 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:07,500 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:07,716 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:07,797 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:07,797 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:07,797 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:07,798 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:08,138 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:08,138 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:08,138 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:08,139 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:08,413 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:08,413 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:08,413 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:08,414 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:08,720 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:08,720 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:08,740 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:08,740 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:08,741 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:08,741 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:09,041 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:09,041 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:09,042 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:09,042 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:09,357 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:09,358 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:09,358 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:09,358 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:09,624 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:09,625 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:09,625 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:09,625 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:09,725 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:09,989 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:09,990 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:09,990 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:09,990 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:10,273 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:10,274 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:10,274 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:10,274 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:10,636 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:10,636 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:10,636 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:10,636 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:10,730 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:10,730 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:10,922 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:10,922 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:10,922 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:10,922 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,205 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:11,205 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:11,205 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:11,205 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,528 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:11,529 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:11,529 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:11,529 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,735 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:11,832 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: partial_history
+2023-01-23 12:21:11,832 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:11,832 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:11,832 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,931 DEBUG   SenderThread:56413 [sender.py:send():303] send: exit
+2023-01-23 12:21:11,931 INFO    SenderThread:56413 [sender.py:send_exit():442] handling exit code: 255
+2023-01-23 12:21:11,931 INFO    SenderThread:56413 [sender.py:send_exit():444] handling runtime: 70
+2023-01-23 12:21:11,932 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,932 INFO    SenderThread:56413 [sender.py:send_exit():450] send defer
+2023-01-23 12:21:11,932 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,932 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 0
+2023-01-23 12:21:11,932 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,932 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 0
+2023-01-23 12:21:11,932 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 1
+2023-01-23 12:21:11,932 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,932 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 1
+2023-01-23 12:21:11,932 INFO    HandlerThread:56413 [system_monitor.py:finish():160] Stopping system monitor
+2023-01-23 12:21:11,951 DEBUG   SystemMonitor:56413 [system_monitor.py:_start():137] Finished system metrics aggregation loop
+2023-01-23 12:21:11,951 DEBUG   SystemMonitor:56413 [system_monitor.py:_start():141] Publishing last batch of metrics
+2023-01-23 12:21:11,952 INFO    HandlerThread:56413 [interfaces.py:finish():173] Joined cpu
+2023-01-23 12:21:11,952 INFO    HandlerThread:56413 [interfaces.py:finish():173] Joined disk
+2023-01-23 12:21:11,952 INFO    HandlerThread:56413 [interfaces.py:finish():173] Joined gpuapple
+2023-01-23 12:21:11,952 INFO    HandlerThread:56413 [interfaces.py:finish():173] Joined memory
+2023-01-23 12:21:11,952 INFO    HandlerThread:56413 [interfaces.py:finish():173] Joined network
+2023-01-23 12:21:11,952 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,952 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 1
+2023-01-23 12:21:11,952 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 2
+2023-01-23 12:21:11,952 DEBUG   SenderThread:56413 [sender.py:send():303] send: stats
+2023-01-23 12:21:11,952 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,952 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 2
+2023-01-23 12:21:11,952 DEBUG   SenderThread:56413 [sender.py:send():303] send: history
+2023-01-23 12:21:11,952 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,953 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 2
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 3
+2023-01-23 12:21:11,953 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,953 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 3
+2023-01-23 12:21:11,953 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 3
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 4
+2023-01-23 12:21:11,953 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,953 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 4
+2023-01-23 12:21:11,953 DEBUG   SenderThread:56413 [sender.py:send():303] send: summary
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2023-01-23 12:21:11,953 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 4
+2023-01-23 12:21:11,953 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 5
+2023-01-23 12:21:11,954 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,954 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 5
+2023-01-23 12:21:11,954 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,954 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 5
+2023-01-23 12:21:11,954 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 6
+2023-01-23 12:21:11,954 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:11,954 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 6
+2023-01-23 12:21:11,954 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:11,954 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 6
+2023-01-23 12:21:12,741 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:12,741 INFO    Thread-13 :56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json
+2023-01-23 12:21:12,937 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: poll_exit
+2023-01-23 12:21:13,942 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 7
+2023-01-23 12:21:13,942 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: poll_exit
+2023-01-23 12:21:13,943 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:13,943 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 7
+2023-01-23 12:21:13,944 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: poll_exit
+2023-01-23 12:21:13,944 DEBUG   SenderThread:56413 [sender.py:send_request():317] send_request: defer
+2023-01-23 12:21:13,944 INFO    SenderThread:56413 [sender.py:send_request_defer():459] handle sender defer: 7
+2023-01-23 12:21:13,944 INFO    SenderThread:56413 [dir_watcher.py:finish():362] shutting down directory watcher
+2023-01-23 12:21:14,103 WARNING StreamThr :56413 [internal.py:is_dead():385] Internal process exiting, parent pid 56406 disappeared
+2023-01-23 12:21:14,104 ERROR   StreamThr :56413 [internal.py:wandb_internal():147] Internal process shutdown.
+2023-01-23 12:21:14,751 INFO    SenderThread:56413 [dir_watcher.py:_on_file_modified():292] file/dir modified: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:14,751 INFO    SenderThread:56413 [dir_watcher.py:finish():392] scan: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files
+2023-01-23 12:21:14,751 INFO    SenderThread:56413 [dir_watcher.py:finish():406] scan save: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/requirements.txt requirements.txt
+2023-01-23 12:21:14,752 INFO    SenderThread:56413 [dir_watcher.py:finish():406] scan save: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log output.log
+2023-01-23 12:21:14,756 INFO    SenderThread:56413 [dir_watcher.py:finish():406] scan save: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/config.yaml config.yaml
+2023-01-23 12:21:14,760 INFO    SenderThread:56413 [dir_watcher.py:finish():406] scan save: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json wandb-summary.json
+2023-01-23 12:21:14,765 INFO    SenderThread:56413 [dir_watcher.py:finish():406] scan save: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/conda-environment.yaml conda-environment.yaml
+2023-01-23 12:21:14,769 INFO    SenderThread:56413 [dir_watcher.py:finish():406] scan save: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-metadata.json wandb-metadata.json
+2023-01-23 12:21:14,770 INFO    SenderThread:56413 [sender.py:transition_state():463] send defer: 8
+2023-01-23 12:21:14,770 INFO    SenderThread:56413 [sender.py:finish():1331] shutting down sender
+2023-01-23 12:21:14,770 INFO    SenderThread:56413 [file_pusher.py:finish():168] shutting down file pusher
+2023-01-23 12:21:14,770 INFO    SenderThread:56413 [file_pusher.py:join():173] waiting for file pusher
+2023-01-23 12:21:14,772 DEBUG   HandlerThread:56413 [handler.py:handle_request():139] handle_request: defer
+2023-01-23 12:21:14,776 INFO    HandlerThread:56413 [handler.py:handle_request_defer():162] handle defer: 8
+2023-01-23 12:21:14,776 INFO    HandlerThread:56413 [handler.py:finish():814] shutting down handler
+2023-01-23 12:21:14,963 INFO    WriterThread:56413 [datastore.py:close():279] close: /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/run-2gbh1svy.wandb
+2023-01-23 12:21:15,206 INFO    Thread-17 :56413 [upload_job.py:push():143] Uploaded file /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/requirements.txt
+2023-01-23 12:21:15,227 INFO    Thread-19 :56413 [upload_job.py:push():143] Uploaded file /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/config.yaml
+2023-01-23 12:21:15,228 INFO    Thread-21 :56413 [upload_job.py:push():143] Uploaded file /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/conda-environment.yaml
+2023-01-23 12:21:15,228 INFO    Thread-18 :56413 [upload_job.py:push():143] Uploaded file /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/output.log
+2023-01-23 12:21:15,264 INFO    Thread-20 :56413 [upload_job.py:push():143] Uploaded file /Users/skanda/Desktop/Stanford/Research/ca-exploration/wandb/run-20230123_122000-2gbh1svy/files/wandb-summary.json

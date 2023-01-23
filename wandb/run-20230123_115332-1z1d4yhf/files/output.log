@@ -1,0 +1,22 @@
+Started training at (GMT) :  2023-01-23 11:53:34
+============================================================================================
+Traceback (most recent call last):
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py", line 340, in <module>
+    train(args)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py", line 96, in train
+    action, action_logprob = agent.select_action(state)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/ppo.py", line 122, in select_action
+    action, action_logprob = self.policy.act(state)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/ppo.py", line 74, in act
+    dist = self.forward(state)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/ppo.py", line 63, in forward
+    encoding = self.encoder(state)
+  File "/Users/skanda/anaconda3/envs/rl/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/Users/skanda/anaconda3/envs/rl/lib/python3.9/site-packages/torch/nn/modules/container.py", line 204, in forward
+    input = module(input)
+  File "/Users/skanda/anaconda3/envs/rl/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/Users/skanda/anaconda3/envs/rl/lib/python3.9/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (1x25 and 5x64)

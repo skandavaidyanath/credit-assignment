@@ -1,0 +1,1 @@
+{"training/avg_rewards": 2.99, "training/avg_success": 0.0, "training/total_loss": 0.018524457071907818, "training/action_loss": -0.00864646265797739, "training/value_loss": 0.10868367876857518, "training/entropy": 0.15088439874351028, "_timestamp": 1674505271.831701, "_runtime": 71.06809306144714, "_step": 10900, "_wandb": {"runtime": 70}}

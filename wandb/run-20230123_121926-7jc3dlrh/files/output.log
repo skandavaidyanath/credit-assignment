@@ -1,0 +1,109 @@
+Started training at (GMT) :  2023-01-23 12:19:28
+============================================================================================
+Episode: 100 		 Average Reward: -10.4100 		 Average Success: 0.0000
+Episode: 200 		 Average Reward: 4.7000 		 Average Success: 0.0000
+Episode: 300 		 Average Reward: 5.5100 		 Average Success: 0.0000
+Episode: 400 		 Average Reward: 5.4100 		 Average Success: 0.0000
+Episode: 500 		 Average Reward: 4.9300 		 Average Success: 0.0000
+Episode: 600 		 Average Reward: 5.2800 		 Average Success: 0.0000
+Episode: 700 		 Average Reward: 5.6200 		 Average Success: 0.0000
+Episode: 800 		 Average Reward: 5.5500 		 Average Success: 0.0000
+Episode: 900 		 Average Reward: 5.5800 		 Average Success: 0.0000
+Episode: 1000 		 Average Reward: 5.7500 		 Average Success: 0.0000
+Episode: 1100 		 Average Reward: 5.7700 		 Average Success: 0.0000
+Episode: 1200 		 Average Reward: 5.1600 		 Average Success: 0.0000
+Episode: 1300 		 Average Reward: 5.1900 		 Average Success: 0.0000
+Episode: 1400 		 Average Reward: 5.3900 		 Average Success: 0.0000
+Episode: 1500 		 Average Reward: 5.2100 		 Average Success: 0.0000
+Episode: 1600 		 Average Reward: 5.3100 		 Average Success: 0.0000
+Episode: 1700 		 Average Reward: 5.6200 		 Average Success: 0.0000
+Episode: 1800 		 Average Reward: 5.3100 		 Average Success: 0.0000
+Episode: 1900 		 Average Reward: 5.4000 		 Average Success: 0.0000
+Episode: 2000 		 Average Reward: 5.5800 		 Average Success: 0.0000
+Episode: 2100 		 Average Reward: 5.6400 		 Average Success: 0.0000
+Episode: 2200 		 Average Reward: 5.6100 		 Average Success: 0.0000
+Episode: 2300 		 Average Reward: 5.5100 		 Average Success: 0.0000
+Episode: 2400 		 Average Reward: 5.7200 		 Average Success: 0.0000
+Episode: 2500 		 Average Reward: 5.4800 		 Average Success: 0.0000
+Episode: 2600 		 Average Reward: 5.4800 		 Average Success: 0.0000
+Episode: 2700 		 Average Reward: 5.2600 		 Average Success: 0.0000
+Episode: 2800 		 Average Reward: 5.5900 		 Average Success: 0.0000
+Episode: 2900 		 Average Reward: 5.7900 		 Average Success: 0.0000
+Episode: 3000 		 Average Reward: 5.6000 		 Average Success: 0.0000
+Episode: 3100 		 Average Reward: 5.4000 		 Average Success: 0.0000
+Episode: 3200 		 Average Reward: 5.4200 		 Average Success: 0.0000
+Episode: 3300 		 Average Reward: 5.6200 		 Average Success: 0.0000
+Episode: 3400 		 Average Reward: 5.4700 		 Average Success: 0.0000
+Episode: 3500 		 Average Reward: 5.3900 		 Average Success: 0.0000
+Episode: 3600 		 Average Reward: 5.6200 		 Average Success: 0.0000
+Episode: 3700 		 Average Reward: 5.0400 		 Average Success: 0.0000
+Episode: 3800 		 Average Reward: 5.1800 		 Average Success: 0.0000
+Episode: 3900 		 Average Reward: 5.6000 		 Average Success: 0.0000
+Episode: 4000 		 Average Reward: 5.3900 		 Average Success: 0.0000
+Episode: 4100 		 Average Reward: 5.4800 		 Average Success: 0.0000
+Episode: 4200 		 Average Reward: 5.4000 		 Average Success: 0.0000
+Episode: 4300 		 Average Reward: 5.8200 		 Average Success: 0.0000
+Episode: 4400 		 Average Reward: 5.6400 		 Average Success: 0.0000
+Episode: 4500 		 Average Reward: 5.9400 		 Average Success: 0.0000
+Episode: 4600 		 Average Reward: 5.9400 		 Average Success: 0.0000
+Episode: 4700 		 Average Reward: 5.9500 		 Average Success: 0.0000
+Episode: 4800 		 Average Reward: 5.4100 		 Average Success: 0.0000
+Episode: 4900 		 Average Reward: 5.0600 		 Average Success: 0.0000
+Episode: 5000 		 Average Reward: 5.2700 		 Average Success: 0.0000
+Episode: 5100 		 Average Reward: 5.5900 		 Average Success: 0.0000
+Episode: 5200 		 Average Reward: 5.6200 		 Average Success: 0.0000
+Episode: 5300 		 Average Reward: 5.6900 		 Average Success: 0.0000
+Episode: 5400 		 Average Reward: 5.7900 		 Average Success: 0.0000
+Episode: 5500 		 Average Reward: 5.6900 		 Average Success: 0.0000
+Episode: 5600 		 Average Reward: 5.6400 		 Average Success: 0.0000
+Episode: 5700 		 Average Reward: 5.3400 		 Average Success: 0.0000
+Episode: 5800 		 Average Reward: 5.5800 		 Average Success: 0.0000
+Episode: 5900 		 Average Reward: 5.4700 		 Average Success: 0.0000
+Episode: 6000 		 Average Reward: 5.7000 		 Average Success: 0.0000
+Episode: 6100 		 Average Reward: 4.6800 		 Average Success: 0.0000
+Episode: 6200 		 Average Reward: 5.5000 		 Average Success: 0.0000
+Episode: 6300 		 Average Reward: 5.7500 		 Average Success: 0.0000
+Episode: 6400 		 Average Reward: 5.5900 		 Average Success: 0.0000
+Episode: 6500 		 Average Reward: 5.4900 		 Average Success: 0.0000
+Episode: 6600 		 Average Reward: 5.8500 		 Average Success: 0.0000
+Episode: 6700 		 Average Reward: 5.7500 		 Average Success: 0.0000
+Episode: 6800 		 Average Reward: 5.9100 		 Average Success: 0.0000
+Episode: 6900 		 Average Reward: 5.9200 		 Average Success: 0.0000
+Episode: 7000 		 Average Reward: 5.9200 		 Average Success: 0.0000
+Episode: 7100 		 Average Reward: 5.9300 		 Average Success: 0.0000
+Episode: 7200 		 Average Reward: 5.9600 		 Average Success: 0.0000
+Episode: 7300 		 Average Reward: 5.9700 		 Average Success: 0.0000
+Episode: 7400 		 Average Reward: 5.9500 		 Average Success: 0.0000
+Episode: 7500 		 Average Reward: 5.9500 		 Average Success: 0.0000
+Episode: 7600 		 Average Reward: 5.9400 		 Average Success: 0.0000
+Episode: 7700 		 Average Reward: 5.9700 		 Average Success: 0.0000
+Episode: 7800 		 Average Reward: 5.8500 		 Average Success: 0.0000
+Episode: 7900 		 Average Reward: 3.7400 		 Average Success: 0.0000
+Episode: 8000 		 Average Reward: 5.4700 		 Average Success: 0.0000
+Episode: 8100 		 Average Reward: 5.3900 		 Average Success: 0.0000
+Episode: 8200 		 Average Reward: 5.0700 		 Average Success: 0.0000
+Episode: 8300 		 Average Reward: 4.6300 		 Average Success: 0.0000
+Episode: 8400 		 Average Reward: 5.0600 		 Average Success: 0.0000
+Episode: 8500 		 Average Reward: 5.6100 		 Average Success: 0.0000
+Episode: 8600 		 Average Reward: 5.7800 		 Average Success: 0.0000
+Episode: 8700 		 Average Reward: 5.8400 		 Average Success: 0.0000
+Episode: 8800 		 Average Reward: 5.9300 		 Average Success: 0.0000
+Episode: 8900 		 Average Reward: 4.8700 		 Average Success: 0.0000
+Episode: 9000 		 Average Reward: 5.7100 		 Average Success: 0.0000
+Episode: 9100 		 Average Reward: 5.2700 		 Average Success: 0.0000
+Episode: 9200 		 Average Reward: 5.8400 		 Average Success: 0.0000
+Episode: 9300 		 Average Reward: 5.4600 		 Average Success: 0.0000
+Episode: 9400 		 Average Reward: 5.5300 		 Average Success: 0.0000
+Episode: 9500 		 Average Reward: 5.9800 		 Average Success: 0.0000
+Traceback (most recent call last):
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py", line 342, in <module>
+    train(args)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py", line 125, in train
+    total_loss, action_loss, value_loss, entropy = agent.update(buffer)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/ppo.py", line 248, in update
+    loss.backward()
+  File "/Users/skanda/anaconda3/envs/rl/lib/python3.9/site-packages/torch/_tensor.py", line 487, in backward
+    torch.autograd.backward(
+  File "/Users/skanda/anaconda3/envs/rl/lib/python3.9/site-packages/torch/autograd/__init__.py", line 197, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+KeyboardInterrupt

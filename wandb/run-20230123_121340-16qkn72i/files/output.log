@@ -1,0 +1,39 @@
+Started training at (GMT) :  2023-01-23 12:13:42
+============================================================================================
+Episode: 100 		 Average Reward: -67.0200 		 Average Success: 0.0000
+Episode: 200 		 Average Reward: -48.4600 		 Average Success: 0.0000
+Episode: 300 		 Average Reward: -50.9100 		 Average Success: 0.0000
+Episode: 400 		 Average Reward: -49.8000 		 Average Success: 0.0000
+Episode: 500 		 Average Reward: -49.7000 		 Average Success: 0.0000
+Episode: 600 		 Average Reward: -49.9000 		 Average Success: 0.0000
+Episode: 700 		 Average Reward: -49.7000 		 Average Success: 0.0000
+Episode: 800 		 Average Reward: -49.9000 		 Average Success: 0.0000
+Episode: 900 		 Average Reward: -50.0300 		 Average Success: 0.0000
+Episode: 1000 		 Average Reward: -49.7000 		 Average Success: 0.0000
+Episode: 1100 		 Average Reward: -48.4000 		 Average Success: 0.0000
+Episode: 1200 		 Average Reward: -49.5600 		 Average Success: 0.0000
+Episode: 1300 		 Average Reward: -49.0000 		 Average Success: 0.0000
+Episode: 1400 		 Average Reward: -49.5000 		 Average Success: 0.0000
+Episode: 1500 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 1600 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 1700 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 1800 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 1900 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2000 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2100 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2200 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2300 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2400 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2500 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2600 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Episode: 2700 		 Average Reward: -50.0000 		 Average Success: 0.0000
+Traceback (most recent call last):
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py", line 340, in <module>
+    train(args)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/train.py", line 125, in train
+    total_loss, action_loss, value_loss, entropy = agent.update(buffer)
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/ppo.py", line 212, in update
+    advantages = self.estimate_gae(
+  File "/Users/skanda/Desktop/Stanford/Research/ca-exploration/src/ppo.py", line 150, in estimate_gae
+    + (self.gamma * values[t + 1] * (1 - terminals[t]))
+KeyboardInterrupt

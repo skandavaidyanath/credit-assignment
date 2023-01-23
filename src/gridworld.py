@@ -36,7 +36,7 @@ class GridWorld(Env):
         self.episode_reward = 0
 
         # observation and action spaces
-        self.observation_space = MultiDiscrete(7 * np.ones((self.R, self.C)))
+        self.observation_space = MultiDiscrete(7 * np.ones(self.R * self.C))
         self.action_space = Discrete(4)
 
     def process(self, gridmap):
@@ -65,7 +65,7 @@ class GridWorld(Env):
         if (0 <= next_state[0] < self.R) and (0 <= next_state[1] < self.C):
             self.agent_location = next_state
             return self.current_map[next_state[0], next_state[1]]
-        return None
+        return self.current_map[self.agent_location[0], self.agent_location[1]]
 
     def step(self, action):
         assert action in self.action_space
@@ -74,7 +74,7 @@ class GridWorld(Env):
 
         done = self.current_steps >= self.max_steps
 
-        if next_state == TILE_MAPPING["."]:
+        if next_state in [TILE_MAPPING["."], TILE_MAPPING["S"]]:
             reward = -1
         if next_state == TILE_MAPPING["R"]:
             reward = -1
@@ -83,7 +83,11 @@ class GridWorld(Env):
             reward = REWARD_MAPPING["F"]
             done = True
         if next_state == TILE_MAPPING["*"]:
-            reward = REWARD_MAPPING["*"]
+            # remove the diamond from the location
+            self.current_map[
+                self.agent_location[0], self.agent_location[1]
+            ] = TILE_MAPPING["."]
+            reward = REWARD_MAPPING["*"] - 1
         if next_state == TILE_MAPPING["G"]:
             done = True
             reward = -1
@@ -91,6 +95,13 @@ class GridWorld(Env):
         if self.sparse:
             self.episode_reward += reward
             reward = 0
+            if done:
+                return (
+                    self.get_state(),
+                    self.episode_reward,
+                    done,
+                    {"success": 0},
+                )
 
         return self.get_state(), reward, done, {"success": 0}
 
@@ -100,12 +111,10 @@ class GridWorld(Env):
             for i in range(self.R)
             for j in range(self.C)
         ]
-        print(
-            tabulate(
-                np.array(out).reshape(self.R, self.C), tablefmt="fancy_grid"
-            )
-        )
+        out = np.array(out).reshape(self.R, self.C)
+        out[self.agent_location[0], self.agent_location[1]] = "A"
+        print(tabulate(out, tablefmt="fancy_grid"))
 
 
 if __name__ == "__main__":
-    g = GridWorld("maps/test.txt")
+    g = GridWorld("maps/test.txt", sparse=False)
