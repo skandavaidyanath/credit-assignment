@@ -13,7 +13,7 @@ from replay_buffer import RolloutBuffer
 
 def train(args):
     # Environment
-    env = GridWorld(args.gw_filepath, sparse=args.sparse)
+    env = GridWorld(args.puzzle_path, sparse=args.sparse)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -41,7 +41,7 @@ def train(args):
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-    exp_name = f"{args.method}_{args.env_name}"
+    exp_name = f"{args.method}_{args.env_name}:{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
 
     # Device
     if args.cuda:
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--gw_filepath",
+        "--puzzle-path",
         default="maps/test.txt",
         help="gridworld textfile to use (default: maps/test.txt)",
     )
