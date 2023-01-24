@@ -7,6 +7,7 @@ import torch
 import wandb
 
 from gridworld import GridWorld
+from eval import eval
 from ppo import PPO
 from replay_buffer import RolloutBuffer
 
@@ -179,55 +180,14 @@ def train(args):
         if args.eval_freq and episode % args.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent)
 
-            if not args.disable_wandb:
+            if args.wandb:
                 wandb.log(
                     {
-                        "training/avg_rewards": eval_avg_reward,
-                        "training/avg_success": eval_avg_success,
+                        "eval/avg_rewards": eval_avg_reward,
+                        "eval/avg_success": eval_avg_success,
                     },
                     step=episode,
                 )
-
-
-def eval(env, agent, num_eval_eps=32):
-    print("===========Evaluating============")
-    if isinstance(env.action_space, gym.spaces.Box):
-        continuous = True
-    else:
-        continuous = False
-
-    # logging
-    total_rewards, total_successes = [], []
-
-    for episode in range(1, num_eval_eps + 1):
-        state = env.reset()
-        current_ep_reward = 0
-        done = False
-
-        rewards = []
-
-        while not done:
-            # select action with policy
-            action, _ = agent.select_action(state, greedy=True)
-            if continuous:
-                action = action.numpy().flatten()
-            else:
-                action = action.item()
-
-            # Step in env
-            state, reward, done, info = env.step(action)
-
-            # saving reward and terminals
-            rewards.append(float(reward))
-
-            current_ep_reward += reward
-
-        total_rewards.append(current_ep_reward)
-        total_successes.append(info["success"])
-    print("\t Average eval returns: ", np.mean(total_rewards))
-    print("======= Finished Evaluating=========")
-    env.close()
-    return np.mean(total_rewards), np.mean(total_successes)
 
 
 if __name__ == "__main__":
