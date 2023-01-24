@@ -70,9 +70,12 @@ class ActorCritic(nn.Module):
             dist = Categorical(action_probs)
         return dist
 
-    def act(self, state):
+    def act(self, state, greedy=False):
         dist = self.forward(state)
-        action = dist.sample()
+        if greedy:
+            action = dist.mode
+        else:
+            action = dist.sample()
         action_logprob = dist.log_prob(action)
 
         return action.detach(), action_logprob.detach()
@@ -116,10 +119,10 @@ class PPO:
 
         self.MseLoss = nn.MSELoss()
 
-    def select_action(self, state):
+    def select_action(self, state, greedy=False):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(self.device)
-            action, action_logprob = self.policy.act(state)
+            action, action_logprob = self.policy.act(state, greedy=greedy)
 
         return action.detach().cpu(), action_logprob.detach().cpu().item()
 
