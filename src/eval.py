@@ -1,8 +1,9 @@
 import numpy as np
+import gym
 
 
 def eval(env, agent, num_eval_eps=32):
-    print("===========Evaluating============")
+    print("=========== Evaluating ============")
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
     else:
@@ -39,6 +40,6 @@ def eval(env, agent, num_eval_eps=32):
 
     print("\t Average eval returns: ", np.mean(total_rewards))
     print("\t Average eval success: ", np.mean(total_successes))
-    print("======= Finished Evaluating=========")
+    print("======= Finished Evaluating =========")
 
     return np.mean(total_rewards), np.mean(total_successes)

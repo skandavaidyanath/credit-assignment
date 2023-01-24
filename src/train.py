@@ -206,7 +206,7 @@ if __name__ == "__main__":
         help="gridworld textfile to use (default: maps/test.txt)",
     )
 
-    parser.add_argument("--wandb", type=bool, default=False, help="whether to use wandb logging (default: False)")
+    parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
 
     parser.add_argument("--sparse", type=bool, default=False, help="make environment sparse (default:False)")
 
@@ -217,8 +217,6 @@ if __name__ == "__main__":
         default=0,
         help="random seed (default: 0). 0 means no seeding",
     )
-
-    parser.add_argument("--eval_freq", type=int, default=100, help="How often to run evaluation on agent.")
 
     parser.add_argument(
         "--method",
@@ -242,14 +240,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--update-every",
         type=int,
-        default=20,
-        help="update policy every these many episodes (default: 20)",
+        default=50,
+        help="update policy every these many episodes (default: 50)",
     )
     parser.add_argument(
         "--ppo-epochs",
         type=int,
-        default=20,
-        help="update policy for K epochs in one PPO update (default:20)",
+        default=30,
+        help="update policy for K epochs in one PPO update (default:30)",
     )
     parser.add_argument(
         "--eps-clip",
@@ -303,7 +301,7 @@ if __name__ == "__main__":
         help="learning rate for actor network (default: 3e-4)",
     )
 
-    ## Saving model:
+    ## Saving and logging:
     parser.add_argument(
         "--log-freq",
         type=int,
@@ -316,6 +314,8 @@ if __name__ == "__main__":
         default=1000000,
         help="Model save frequency in episodes. Use 0 for no saving (default: 1000000)",
     )
+
+    parser.add_argument("--eval-freq", type=int, default=10000, help="How often to run evaluation on agent.")
 
     ## Loading checkpoints:
     parser.add_argument(
