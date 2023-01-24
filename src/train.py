@@ -176,36 +176,58 @@ def train(args):
                 "--------------------------------------------------------------------------------------------"
             )
 
-    # print total training time
-    print(
-        "============================================================================================"
-    )
-    end_time = datetime.datetime.now().replace(microsecond=0)
-    print("Started training at (GMT): ", start_time)
-    print("Finished training at (GMT): ", end_time)
-    print("Total training time: ", end_time - start_time)
-    print(
-        "============================================================================================"
-    )
+        if args.eval_freq and episode % args.eval_freq == 0:
+            eval_avg_reward, eval_avg_success = eval(env, agent)
 
+            if not args.disable_wandb:
+                wandb.log(
+                    {
+                        "training/avg_rewards": eval_avg_reward,
+                        "training/avg_success": eval_avg_success,
+                    },
+                    step=episode,
+                )
+
+
+def eval(env, agent, num_eval_eps=32):
+    print("===========Evaluating============")
+    if isinstance(env.action_space, gym.spaces.Box):
+        continuous = True
+    else:
+        continuous = False
+
+    # logging
+    total_rewards, total_successes = [], []
+
+    for episode in range(1, num_eval_eps + 1):
+        state = env.reset()
+        current_ep_reward = 0
+        done = False
+
+        rewards = []
+
+        while not done:
+            # select action with policy
+            action, _ = agent.select_action(state, greedy=True)
+            if continuous:
+                action = action.numpy().flatten()
+            else:
+                action = action.item()
+
+            # Step in env
+            state, reward, done, info = env.step(action)
+
+            # saving reward and terminals
+            rewards.append(float(reward))
+
+            current_ep_reward += reward
+
+        total_rewards.append(current_ep_reward)
+        total_successes.append(info["success"])
+    print("\t Average eval returns: ", np.mean(total_rewards))
+    print("======= Finished Evaluating=========")
     env.close()
-
-    ## SAVE MODELS
-    if args.save_model_freq:
-        print(
-            "--------------------------------------------------------------------------------------------"
-        )
-        print("Final Checkpoint Save!!")
-        print("saving model at : " + checkpoint_path)
-        agent.save(f"{checkpoint_path}/model_{episode}.pt", vars(args))
-        print("model saved")
-        print(
-            "Elapsed Time  : ",
-            datetime.datetime.now().replace(microsecond=0) - start_time,
-        )
-        print(
-            "--------------------------------------------------------------------------------------------"
-        )
+    return np.mean(total_rewards), np.mean(total_successes)
 
 
 if __name__ == "__main__":
@@ -235,6 +257,9 @@ if __name__ == "__main__":
         default=0,
         help="random seed (default: 0). 0 means no seeding",
     )
+
+    parser.add_argument("--eval_freq", type=int, default=100, help="How often to run evaluation on agent.")
+
     parser.add_argument(
         "--method",
         type=str,
