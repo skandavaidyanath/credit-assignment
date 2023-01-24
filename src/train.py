@@ -241,7 +241,7 @@ if __name__ == "__main__":
         default="ppo",
         choices=[
             "ppo",
-            "ppo_ca",
+            "ppo-ca",
         ],  
         help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )

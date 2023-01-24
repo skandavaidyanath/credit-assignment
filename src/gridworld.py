@@ -8,9 +8,7 @@ from tabulate import tabulate
 TILE_MAPPING = {".": 0, "S": 1, "G": 2, "*": 3, "R": 4, "F": 5, "A": 6}
 INVERSE_TILE_MAPPING = {0: ".", 1: "S", 2: "G", 3: "*", 4: "R", 5: "F", 6: "A"}
 ACTION_MAPPING = {0: [0, 1], 1: [0, -1], 2: [1, 0], 3: [-1, 0]}
-REWARD_MAPPING = {"F": -100, "*": +10}
-
-# sacrifice to achieve higher reward
+REWARD_MAPPING = {"F": -100, "*": +20}
 
 
 class GridWorld(Env):
