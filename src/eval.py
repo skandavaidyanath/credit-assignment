@@ -1,7 +1,6 @@
 import numpy as np
 import gym
 
-
 def eval(env, agent, num_eval_eps=32):
     print("=========== Evaluating ============")
     if isinstance(env.action_space, gym.spaces.Box):
@@ -21,7 +20,7 @@ def eval(env, agent, num_eval_eps=32):
 
         while not done:
             # select action with policy
-            action, _ = agent.select_action(state, greedy=True)
+            action = agent.select_action(state, greedy=True)
             if continuous:
                 action = action.numpy().flatten()
             else:
