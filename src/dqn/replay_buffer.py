@@ -6,7 +6,7 @@ class ReplayBuffer:
     def __init__(self, state_dim, act_dim, max_buffer_size=1e6):
         self.states = np.empty((max_buffer_size, state_dim), dtype=np.float32)
         self.actions = np.empty((max_buffer_size, act_dim), dtype=np.float32)
-        self.rewards = np.empty((max_buffer_size, 1), dtype=np.float32)
+        self.rewards = np.zeros((max_buffer_size, 1), dtype=np.float32)
         self.next_states = np.empty((max_buffer_size, state_dim), dtype=np.float32)
         self.dones = np.empty((max_buffer_size, 1), dtype=np.float32)
 

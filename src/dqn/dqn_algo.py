@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-
+from dqn.utils import np_to_torch, LinearSchedule
 
 class QNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, n_layers=2, hidden_size=64, exploration="eps-greedy", eps=0.1):
+    def __init__(self, state_dim, action_dim, n_layers=2, hidden_size=64, exploration="eps-greedy"):
         super(QNetwork, self).__init__()
         self.action_dim = action_dim
 
@@ -17,21 +17,25 @@ class QNetwork(nn.Module):
         self.q_net = nn.Sequential(*layers)
 
         self.exploration = exploration
-        self.eps = eps
 
     def forward(self, state):
         q_vals = self.q_net(state)
         return q_vals.reshape(-1, self.action_dim)
 
-    def act(self, state, greedy=False):
-        q_vals = self.forward(state)
-        greedy_acts = torch.argmax(q_vals, dim=-1)
-        batch_size = q_vals.shape[0]
+    def act(self, state, greedy=False, random=False, eps=None):
+        with torch.no_grad():
+            q_vals = self.forward(state)
+            greedy_acts = torch.argmax(q_vals, dim=-1)
+            batch_size = q_vals.shape[0]
+
         if greedy:
             return greedy_acts
+        if random:
+            return torch.distributions.Categorical(logits=torch.ones_like(q_vals)).sample()
         if self.exploration == "eps-greedy":
+            assert eps is not None
             random_acts = torch.distributions.Categorical(logits=torch.ones_like(q_vals)).sample()
-            take_random = (torch.rand(batch_size) < self.eps).int()
+            take_random = (torch.rand(batch_size) < eps).int()
             acts = take_random * random_acts + (1 - take_random) * greedy_acts
             return acts
         else:
@@ -44,8 +48,8 @@ class QNetwork(nn.Module):
 
 
 class DQN:
-    def __init__(self, state_dim, action_dim, lr, device, gamma=0.99, n_layers=2, hidden_size=64, eps=0.1,
-                 max_grad_norm=None, loss_fn="huber"):
+    def __init__(self, state_dim, action_dim, lr, device, eps_decay_steps,  eps_init=1.0,
+                 eps_fin=0.1, gamma=0.99, n_layers=2, hidden_size=64, max_grad_norm=None, loss_fn="huber"):
         self.device = device
 
         self.gamma = gamma
@@ -54,7 +58,6 @@ class DQN:
             action_dim,
             n_layers=n_layers,
             hidden_size=hidden_size,
-            eps=eps
         ).to(device)
 
         self.target_q_network = QNetwork(
@@ -62,9 +65,9 @@ class DQN:
             action_dim,
             n_layers=n_layers,
             hidden_size=hidden_size,
-            eps=eps
         ).to(device)
 
+        self.eps_schedule = LinearSchedule(eps_decay_steps, initial_p=eps_init, final_p=eps_fin)
         self.optimizer = torch.optim.Adam(self.q_net.parameters(), lr=lr)
 
         if loss_fn == "huber":
@@ -87,8 +90,15 @@ class DQN:
         #
         # self.max_grad_norm = args.max_grad_norm
 
+    def select_action(self, state, greedy=False, random=False, t=None):
+        state = torch.FloatTensor(state).to(self.device)
+        eps = None
+        if t:
+            eps = self.eps_schedule.value(t=t)
+        return self.q_net.act(state, greedy=greedy, random=random, eps=eps)
+
     def train_step(self, batch):
-        states, actions, rewards, next_states, dones = batch
+        states, actions, rewards, next_states, dones = self.unpack_batch(batch)
         # form bootstrapped q-targets
         with torch.no_grad():
             next_qs = self.q_net(next_states)
@@ -114,6 +124,21 @@ class DQN:
 
         return loss
 
+    def unpack_batch(self, batch):
+        states, actions, rewards, next_states, dones = batch
+        return np_to_torch(states, self.device),\
+               np_to_torch(actions, self.device),\
+               np_to_torch(rewards, self.device), \
+               np_to_torch(next_states, self.device), \
+               np_to_torch(dones, self.device)
+
+    def save(self, checkpoint_path, args):
+        torch.save(
+            {"q_net": self.q_net.state_dict(), "args": args}, checkpoint_path
+        )
+
+    def load(self, checkpoint):
+        self.q_net.load_state_dict(checkpoint)
 
 if __name__ == '__main__':
     q_net = QNetwork(5, 10)
