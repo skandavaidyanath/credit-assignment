@@ -127,6 +127,3 @@ if __name__ == '__main__':
     dqn.train_step((states, actions, rewards, next_states, dones))
     a = q_net.act(states)
     b = 2
-
-
-
