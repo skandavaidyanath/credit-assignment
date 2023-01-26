@@ -1,5 +1,5 @@
 import numpy as np
-import gym
+import os
 from gym import Env
 from gym.spaces import Discrete, MultiDiscrete
 
@@ -13,7 +13,7 @@ REWARD_MAPPING = {"F": -100, "*": +20}
 
 class GridWorld(Env):
     def __init__(self, filename, sparse=True, max_steps=50):
-        gridmap = open(filename, "r").read()
+        gridmap = open(os.path.dirname(__file__) + "/" + filename, "r").read()
 
         self.sparse = sparse
         self.max_steps = max_steps
@@ -114,4 +114,4 @@ class GridWorld(Env):
 
 
 if __name__ == "__main__":
-    g = GridWorld("maps/test.txt", sparse=False)
+    g = GridWorld("src/maps/test.txt", sparse=False)
