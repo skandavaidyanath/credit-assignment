@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import gridworld
 
 
 def flatten(x):
@@ -24,19 +25,51 @@ def tensor_flatten(x):
     return torch.stack(out).squeeze()
 
 
-def get_lang_embedding(lang, tokenizer, model, device):
+def get_hindsight_logprobs(
+    episode_rewards, policy_logprobs, total_reward, max_steps
+):
     """
-    Embeds the given language instruction using the model and tokenizer
-    and returns the CLS token embedding as a numpy array
+    Returns the return-conditioned hindsight logprobs
+    from the episode rewards using the total episode reward
+    and max steps in the environment. Also uses the policy logprobs,
+    Return a numpy array that is the size of the total episode length.
+    The probability choices here are fairly arbitrary...
     """
-    lm_input = tokenizer(
-        text=lang, add_special_tokens=True, return_tensors="pt", padding=True
-    ).to(device)
-    with torch.no_grad():
-        lm_embeddings = model(
-            lm_input["input_ids"],
-            lm_input["attention_mask"],
-        ).last_hidden_state
+    hindsight_logprobs = []
+    for i, reward in enumerate(episode_rewards):
+        if total_reward < -max_steps:
+            if reward == gridworld.REWARD_MAPPING["*"]:
+                hindsight_logprobs.append(np.log(0.01))
+            elif reward == gridworld.REWARD_MAPPING["F"]:
+                hindsight_logprobs.append(np.log(0.99))
+            else:
+                hindsight_logprobs.append(
+                    policy_logprobs[i].detach().cpu().item()
+                )
+        elif total_reward == -max_steps:
+            if reward == gridworld.REWARD_MAPPING["*"]:
+                hindsight_logprobs.append(np.log(0.1))
+            elif reward == gridworld.REWARD_MAPPING["F"]:
+                hindsight_logprobs.append(np.log(0.1))
+            else:
+                hindsight_logprobs.append(np.log(0.99))
+        elif -max_steps < total_reward <= 0:
+            if reward == gridworld.REWARD_MAPPING["*"]:
+                hindsight_logprobs.append(np.log(0.99))
+            elif reward == gridworld.REWARD_MAPPING["F"]:
+                hindsight_logprobs.append(np.log(0.05))
+            else:
+                hindsight_logprobs.append(
+                    policy_logprobs[i].detach().cpu().item()
+                )
+        elif total_reward > 0:
+            if reward == gridworld.REWARD_MAPPING["*"]:
+                hindsight_logprobs.append(np.log(0.99))
+            elif reward == gridworld.REWARD_MAPPING["F"]:
+                hindsight_logprobs.append(np.log(0.01))
+            else:
+                hindsight_logprobs.append(
+                    policy_logprobs[i].detach().cpu().item()
+                )
 
-    ## return only CLS embedding as numpy array
-    return lm_embeddings[:, 0, :].cpu().numpy().squeeze()
+    return np.array(hindsight_logprobs, dtype=np.float32)

@@ -10,6 +10,7 @@ class RolloutBuffer:
         self.logprobs = []
         self.rewards = []
         self.terminals = []
+        self.hindsight_logprobs = []
     
     def clear(self):
         del self.states[:]
@@ -18,6 +19,7 @@ class RolloutBuffer:
         del self.logprobs[:]
         del self.rewards[:]
         del self.terminals[:]
+        del self.hindsight_logprobs[:]
         
     def __len__(self):
         return len(self.states)

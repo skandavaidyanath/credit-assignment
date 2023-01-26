@@ -104,7 +104,7 @@ class PPO:
         self.lamda = args.lamda
         self.entropy_coeff = args.entropy_coeff
         self.value_loss_coeff = args.value_loss_coeff
-        self.use_gae = args.use_gae
+        self.adv = args.adv
         self.eps_clip = args.eps_clip
         self.ppo_epochs = args.ppo_epochs
 
@@ -125,6 +125,17 @@ class PPO:
             action, action_logprob = self.policy.act(state, greedy=greedy)
 
         return action.detach().cpu(), action_logprob.detach().cpu().item()
+
+    def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
+        # Estimate advantages according to Return-conditioned HCA
+        # A(s, a) = (1 - \frac{\pi(a | s)}{h(a | s, G_s)})G_s
+        hindsight_ratios = torch.exp(logprobs - hindsight_logprobs.detach())
+        advantages = (1 - hindsight_ratios) * mc_returns
+        advantages = (advantages - advantages.mean()) / (
+            advantages.std() + 1e-7
+        )
+
+        return advantages.to(self.device)
 
     def estimate_montecarlo_returns(self, rewards, terminals):
         # Monte Carlo estimate of returns
@@ -163,19 +174,18 @@ class PPO:
         )
         return advantages.to(self.device)
 
-    def update(self, buffer, indices=None):
+    def update(self, buffer):
         batch_states = flatten(buffer.states)
         batch_actions = flatten(buffer.actions)
         batch_logprobs = flatten(buffer.logprobs)
         batch_rewards = flatten(buffer.rewards)
         batch_terminals = flatten(buffer.terminals)
+        hindsight_logprobs = flatten(buffer.hindsight_logprobs)
 
-        if not self.use_gae:
+        if self.adv != "gae":
             returns = self.estimate_montecarlo_returns(
                 batch_rewards, batch_terminals
             )
-            if indices:
-                returns = returns[indices]
 
         # convert list to tensor
         old_states = (
@@ -211,24 +221,22 @@ class PPO:
             ratios = torch.exp(logprobs - old_logprobs.detach())
 
             # Finding Surrogate Loss
-            if self.use_gae:
+            if self.adv == "gae":
                 advantages = self.estimate_gae(
                     batch_rewards, state_values.detach(), batch_terminals
                 )
                 returns = advantages + state_values.detach()
                 returns = (returns - returns.mean()) / (returns.std() + 1e-7)
-                if indices:
-                    returns = returns[indices]
-            else:
+            elif self.adv == "mc":
                 advantages = returns - state_values.detach()
                 advantages = (advantages - advantages.mean()) / (
                     advantages.std() + 1e-7
                 )
-
-            if indices:
-                ratios = ratios[indices]
-                advantages = advantages[indices]
-                state_values = state_values[indices]
+            else:
+                # hca adv
+                advantages = self.estimate_hca_advantages(
+                    returns, logprobs, hindsight_logprobs
+                )
 
             surr1 = ratios * advantages
             surr2 = (

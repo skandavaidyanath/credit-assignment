@@ -30,8 +30,8 @@ class GridWorld(Env):
         )
         self.agent_location = self.start_location.copy()
 
-        # set episode reward to 0
-        self.episode_reward = 0
+        # set episode rewards to empty list
+        self.episode_rewards = []
 
         # observation and action spaces
         self.observation_space = MultiDiscrete(7 * np.ones(self.R * self.C))
@@ -55,7 +55,7 @@ class GridWorld(Env):
         # set agent to start state
         self.agent_location = self.start_location.copy()
         self.current_steps = 0
-        self.episode_reward = 0
+        self.episode_rewards = []
         return self.get_state()
 
     def next_state(self, action):
@@ -90,12 +90,12 @@ class GridWorld(Env):
             reward = -1
 
         if self.sparse:
-            self.episode_reward += reward
+            self.episode_rewards.append(reward)
             reward = 0
             if done:
                 return (
                     self.get_state(),
-                    self.episode_reward,
+                    sum(self.episode_rewards),
                     done,
                     {"success": 0},
                 )
@@ -114,4 +114,4 @@ class GridWorld(Env):
 
 
 if __name__ == "__main__":
-    g = GridWorld("src/maps/test.txt", sparse=False)
+    g = GridWorld("src/maps/test_v1.txt", sparse=False)

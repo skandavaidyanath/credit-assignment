@@ -10,6 +10,7 @@ from gridworld import GridWorld
 from eval import eval
 from ppo import PPO
 from replay_buffer import RolloutBuffer
+from utils import get_hindsight_logprobs
 
 
 def train(args):
@@ -116,11 +117,16 @@ def train(args):
         total_rewards.append(current_ep_reward)
         total_successes.append(info["success"])
 
+        hindsight_logprobs = []
+        if args.method == "ppo-hca":
+            hindsight_logprobs = get_hindsight_logprobs(env.episode_rewards, logprobs, current_ep_reward, env.max_steps)
+
         buffer.states.append(states)
         buffer.actions.append(actions)
         buffer.logprobs.append(logprobs)
         buffer.rewards.append(rewards)
         buffer.terminals.append(terminals)
+        buffer.hindsight_logprobs.append(hindsight_logprobs)
 
         # update PPO agent
         if episode % args.update_every == 0:
@@ -224,7 +230,7 @@ if __name__ == "__main__":
         default="ppo",
         choices=[
             "ppo",
-            "ppo-ca",
+            "ppo-hca",
         ],  
         help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )
@@ -277,10 +283,11 @@ if __name__ == "__main__":
         help="Value Loss Coefficient (default:0.25)",
     )
     parser.add_argument(
-        "--use-gae",
-        type=bool,
-        default=True,
-        help="Use GAE or not (default: True)",
+        "--adv",
+        type=str,
+        default="gae",
+        choices=["gae", "mc", "hca"],
+        help="What advantage calculation to use (default: gae)",
     )
     parser.add_argument(
         "--n-layers",
@@ -328,5 +335,9 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    # sanity check
+    if args.adv == 'hca':
+        assert args.method == "ppo-hca", "Set the method to ppo-hca if you're using HCA advantage calculation"
     train(args)
     
