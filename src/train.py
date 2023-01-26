@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
 
-    parser.add_argument("--sparse", type=bool, default=False, help="make environment sparse (default:False)")
+    parser.add_argument("--sparse", action="store_true", help="make environment sparse (default:False)")
 
     ## Training params
     parser.add_argument(
