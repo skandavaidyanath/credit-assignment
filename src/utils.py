@@ -37,6 +37,8 @@ def get_hindsight_logprobs(
     """
     hindsight_logprobs = []
     for i, reward in enumerate(episode_rewards):
+        # agent stepped into fire; assign high probability to actions which transitioned into fire, and low probability
+        # to actions that got a diamond.
         if total_reward < -max_steps:
             if reward == gridworld.REWARD_MAPPING["*"]:
                 hindsight_logprobs.append(np.log(0.01))
@@ -46,13 +48,16 @@ def get_hindsight_logprobs(
                 hindsight_logprobs.append(
                     policy_logprobs[i].detach().cpu().item()
                 )
+        # Not very likely that agent stepped into fire, even less likely that agent picked up a diamond.
+        # Very likely that all the agent was transition into empty tiles.
         elif total_reward == -max_steps:
             if reward == gridworld.REWARD_MAPPING["*"]:
-                hindsight_logprobs.append(np.log(0.1))
+                hindsight_logprobs.append(np.log(0.01))
             elif reward == gridworld.REWARD_MAPPING["F"]:
                 hindsight_logprobs.append(np.log(0.1))
             else:
                 hindsight_logprobs.append(np.log(0.99))
+        # Agent has to have picked up at least one diamond; transition into fire isn't super likely, but possible.
         elif -max_steps < total_reward <= 0:
             if reward == gridworld.REWARD_MAPPING["*"]:
                 hindsight_logprobs.append(np.log(0.99))
@@ -62,6 +67,7 @@ def get_hindsight_logprobs(
                 hindsight_logprobs.append(
                     policy_logprobs[i].detach().cpu().item()
                 )
+        # Agent must have picked up at least one diamond; transitions into fire are highly unlikely.
         elif total_reward > 0:
             if reward == gridworld.REWARD_MAPPING["*"]:
                 hindsight_logprobs.append(np.log(0.99))
