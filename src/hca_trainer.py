@@ -102,7 +102,7 @@ def train(args):
 
         print(f"Epoch: {epoch+1} | Train Loss: {np.mean(losses)}")
         
-        if epoch % args.eval_every == 0:
+        if epoch % args.eval_freq == 0:
             accuracies = []
             for states, actions in val_dataloader:
                 preds = model(states)
