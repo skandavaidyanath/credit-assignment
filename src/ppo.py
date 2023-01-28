@@ -129,7 +129,9 @@ class PPO:
     def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
         # Estimate advantages according to Return-conditioned HCA
         # A(s, a) = (1 - \frac{\pi(a | s)}{h(a | s, G_s)})G_s
-        hindsight_ratios = torch.exp(logprobs - hindsight_logprobs.detach())
+        hindsight_ratios = torch.exp(
+            logprobs.detach() - hindsight_logprobs.detach()
+        )
         advantages = (1 - hindsight_ratios) * mc_returns
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7

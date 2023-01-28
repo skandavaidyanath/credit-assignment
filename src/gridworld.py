@@ -89,8 +89,8 @@ class GridWorld(Env):
             done = True
             reward = -1
 
+        self.episode_rewards.append(reward)
         if self.sparse:
-            self.episode_rewards.append(reward)
             reward = 0
             if done:
                 return (
