@@ -203,6 +203,11 @@ class PPO:
             .detach()
             .to(self.device)
         )
+        hindsight_logprobs = (
+            torch.squeeze(torch.from_numpy(hindsight_logprobs))
+            .detach()
+            .to(self.device)
+        )
 
         total_losses, action_losses, value_losses, entropies = [], [], [], []
 
@@ -264,12 +269,20 @@ class PPO:
             value_losses.append(value_loss.detach().cpu().item())
             entropies.append(dist_entropy.detach().cpu().item())
 
-        return (
-            np.mean(total_losses),
-            np.mean(action_losses),
-            np.mean(value_losses),
-            np.mean(entropies),
-        )
+        if self.adv != "hca":
+            return (
+                np.mean(total_losses),
+                np.mean(action_losses),
+                np.mean(value_losses),
+                np.mean(entropies),
+            )
+        else:
+            return (
+                np.mean(total_losses),
+                np.mean(action_losses),
+                0,
+                np.mean(entropies),
+            )
 
     def save(self, checkpoint_path, args):
         torch.save(

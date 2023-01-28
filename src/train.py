@@ -63,7 +63,7 @@ def train(args):
             name=exp_name,
             project=args.env_name,
             config=vars(args),
-            entity="svaidyan",
+            entity="ca-exploration",
         )
 
     # Agent
@@ -337,7 +337,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # sanity check
-    if args.adv == 'hca':
-        assert args.method == "ppo-hca", "Set the method to ppo-hca if you're using HCA advantage calculation"
+    if args.method == 'ppo-hca':
+        args.adv = 'hca'
+        args.value_loss_coeff = 0.
+        print("Using method PPO-HCA: Setting the advantage calculation to hca and value-loss coefficient to 0")
     train(args)
     

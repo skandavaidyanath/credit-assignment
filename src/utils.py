@@ -45,9 +45,7 @@ def get_hindsight_logprobs(
             elif reward == gridworld.REWARD_MAPPING["F"]:
                 hindsight_logprobs.append(np.log(0.99))
             else:
-                hindsight_logprobs.append(
-                    policy_logprobs[i].detach().cpu().item()
-                )
+                hindsight_logprobs.append(policy_logprobs[i])
         # Not very likely that agent stepped into fire, even less likely that agent picked up a diamond.
         # Very likely that all the agent was transition into empty tiles.
         elif total_reward == -max_steps:
@@ -64,9 +62,7 @@ def get_hindsight_logprobs(
             elif reward == gridworld.REWARD_MAPPING["F"]:
                 hindsight_logprobs.append(np.log(0.05))
             else:
-                hindsight_logprobs.append(
-                    policy_logprobs[i].detach().cpu().item()
-                )
+                hindsight_logprobs.append(policy_logprobs[i])
         # Agent must have picked up at least one diamond; transitions into fire are highly unlikely.
         elif total_reward > 0:
             if reward == gridworld.REWARD_MAPPING["*"]:
@@ -74,8 +70,6 @@ def get_hindsight_logprobs(
             elif reward == gridworld.REWARD_MAPPING["F"]:
                 hindsight_logprobs.append(np.log(0.01))
             else:
-                hindsight_logprobs.append(
-                    policy_logprobs[i].detach().cpu().item()
-                )
+                hindsight_logprobs.append(policy_logprobs[i])
 
     return np.array(hindsight_logprobs, dtype=np.float32)
