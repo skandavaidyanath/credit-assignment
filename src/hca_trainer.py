@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader, random_split
 import wandb
-from hca_models import HCAModel
+from hca_model import HCAModel
 import pickle 
 
 
