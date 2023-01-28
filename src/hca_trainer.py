@@ -30,15 +30,15 @@ def train(args):
     with open(args.data_path, 'rb') as f:
         data_dict = pickle.load(f)
 
-    X = torch.from_numpy(data_dict['x'])
-    y = torch.from_numpy(data_dict['y'])
+    X = torch.from_numpy(data_dict['x']).float()
+    y = torch.from_numpy(data_dict['y']).long()
     num_actions = data_dict['num_acts']
     dataset = TensorDataset(X, y)
-    train_dataset, val_dataset = random_split(dataset, [0.8, 0.2],)
+    train_dataset, val_dataset = random_split(dataset, [0.8, 0.2])
     train_dataloader = DataLoader(train_dataset, batch_size=args.batchsize)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batchsize)
 
-    exp_name = f"hca:{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+    exp_name = f"hca:{args.data_path.lstrip('hca_data/ppo_GridWorld-Default:').rstrip('_hca_data.pkl')}"
 
     # Device
     if args.cuda:
@@ -56,15 +56,14 @@ def train(args):
     if args.wandb:
         wandb.init(
             name=exp_name,
-            project=args.env_name,
+            project="hca_training",
             config=vars(args),
             entity="ca-exploration",
         )
 
-    # Agent
+    # Model
     model = HCAModel(X.shape[-1], num_actions, n_layers=args.n_layers, hidden_size=args.hidden_size)
     model = model.to(device)
-
 
     if args.checkpoint:
         checkpoint = torch.load(args.checkpoint)
@@ -79,6 +78,21 @@ def train(args):
     print(
         "============================================================================================"
     )
+
+    accuracies = []
+    for states, actions in val_dataloader:
+        preds = model(states)
+        preds = preds.argmax(-1)
+        accuracies.append(torch.sum(preds == actions)/len(preds))
+    if args.wandb:
+        wandb.log(
+            {
+                "val/acc": np.mean(accuracies),
+            },
+            step=epoch,
+        )
+
+    print(f"Epoch: 0 | Val Acc: {round(np.mean(accuracies), 3)}")
 
     for epoch in range(args.max_epochs):
         losses = []
@@ -100,14 +114,14 @@ def train(args):
                 step=epoch,
             )
 
-        print(f"Epoch: {epoch+1} | Train Loss: {np.mean(losses)}")
+        print(f"Epoch: {epoch+1} | Train Loss: {round(np.mean(losses), 3)}")
         
         if epoch % args.eval_freq == 0:
             accuracies = []
             for states, actions in val_dataloader:
                 preds = model(states)
                 preds = preds.argmax(-1)
-                accuracies.append(torch.sum(preds == actions))
+                accuracies.append(torch.sum(preds == actions)/len(preds))
             if args.wandb:
                 wandb.log(
                     {
@@ -116,7 +130,7 @@ def train(args):
                     step=epoch,
                 )
 
-            print(f"Epoch: {epoch+1} | Val Acc: {np.mean(accuracies)}")
+            print(f"Epoch: {epoch+1} | Val Acc: {round(np.mean(accuracies), 3)}")
 
         # save model weights
         if args.save_model_freq and epoch % args.save_model_freq == 0:
@@ -140,8 +154,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--data-path",
-        default="",
-        help="path to dataset (default: )",
+        default="hca_data/ppo_GridWorld-Default:test_v4_hca_data.pkl",
+        help="path to dataset (default: hca_data/ppo_GridWorld-Default:test_v4_hca_data.pkl)",
     )
 
     parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
@@ -158,10 +172,16 @@ if __name__ == "__main__":
         "--cuda", type=bool, default=False, help="run on CUDA (default: False)"
     )
     parser.add_argument(
-        "--epochs",
+        "--max-epochs",
         type=int,
         default=100,
-        help="maxmimum training epochs (default: 100)",
+        help="maximum training epochs (default: 100)",
+    )
+    parser.add_argument(
+        "--batchsize",
+        type=int,
+        default=128,
+        help="batchsize (default: 128)",
     )
     parser.add_argument(
         "--n-layers",
@@ -172,8 +192,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=64,
-        help="hidden size of models (default:64)",
+        default=128,
+        help="hidden size of models (default:128)",
     )
     parser.add_argument(
         "--lr",

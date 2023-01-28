@@ -211,8 +211,6 @@ def train(args):
                 )
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CA Based Exploration RL Training Args")
     ### Environment params
