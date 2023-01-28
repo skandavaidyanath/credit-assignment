@@ -1,6 +1,29 @@
 import numpy as np
 import torch
 import gridworld
+import pickle
+
+
+class HCABuffer:
+    def __init__(self):
+        self.states = []
+        self.actions = []
+        self.returns = []
+
+    def add_episode(self, episode_states, episode_actions, episode_rewards):
+        episode_return = np.sum(episode_rewards)
+        self.states.extend(episode_states)
+        self.actions.extend(episode_actions)
+        self.returns.extend([episode_return] * len(episode_states))
+
+    def save_data(self, filename, num_actions):
+        states = np.array(self.states)
+        returns = np.array(self.returns).reshape((-1, 1))
+        inp_data = np.concatenate((states, returns), -1)
+        save_dict = {"x": inp_data, "y": np.array(self.actions), "num_acts": num_actions}
+
+        with open('hca_data/' + filename + '.pkl', 'wb') as f:
+            pickle.dump(save_dict, f)
 
 
 def flatten(x):
