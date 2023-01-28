@@ -34,40 +34,41 @@ def get_hindsight_logprobs(
     and max steps in the environment. Also uses the policy logprobs,
     Return a numpy array that is the size of the total episode length.
     The probability choices here are fairly arbitrary...
+    The -1 added to the reward mapping is for the step we take
     """
     hindsight_logprobs = []
     for i, reward in enumerate(episode_rewards):
         # agent stepped into fire; assign high probability to actions which transitioned into fire, and low probability
         # to actions that got a diamond.
         if total_reward < -max_steps:
-            if reward == gridworld.REWARD_MAPPING["*"]:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
                 hindsight_logprobs.append(np.log(0.01))
-            elif reward == gridworld.REWARD_MAPPING["F"]:
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
                 hindsight_logprobs.append(np.log(0.99))
             else:
                 hindsight_logprobs.append(policy_logprobs[i])
         # Not very likely that agent stepped into fire, even less likely that agent picked up a diamond.
         # Very likely that all the agent was transition into empty tiles.
         elif total_reward == -max_steps:
-            if reward == gridworld.REWARD_MAPPING["*"]:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
                 hindsight_logprobs.append(np.log(0.01))
-            elif reward == gridworld.REWARD_MAPPING["F"]:
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
                 hindsight_logprobs.append(np.log(0.1))
             else:
                 hindsight_logprobs.append(np.log(0.99))
         # Agent has to have picked up at least one diamond; transition into fire isn't super likely, but possible.
         elif -max_steps < total_reward <= 0:
-            if reward == gridworld.REWARD_MAPPING["*"]:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
                 hindsight_logprobs.append(np.log(0.99))
-            elif reward == gridworld.REWARD_MAPPING["F"]:
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
                 hindsight_logprobs.append(np.log(0.05))
             else:
                 hindsight_logprobs.append(policy_logprobs[i])
         # Agent must have picked up at least one diamond; transitions into fire are highly unlikely.
         elif total_reward > 0:
-            if reward == gridworld.REWARD_MAPPING["*"]:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
                 hindsight_logprobs.append(np.log(0.99))
-            elif reward == gridworld.REWARD_MAPPING["F"]:
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
                 hindsight_logprobs.append(np.log(0.01))
             else:
                 hindsight_logprobs.append(policy_logprobs[i])

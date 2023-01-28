@@ -78,7 +78,7 @@ class GridWorld(Env):
             reward = -1
             self.agent_location = self.start_location
         if next_state == TILE_MAPPING["F"]:
-            reward = REWARD_MAPPING["F"]
+            reward = REWARD_MAPPING["F"] - 1
         if next_state == TILE_MAPPING["*"]:
             # remove the diamond from the location
             self.current_map[
