@@ -22,7 +22,6 @@ class HCABuffer:
         inp_data = np.concatenate((states, returns), -1)
         save_dict = {"x": inp_data, "y": np.array(self.actions), "num_acts": num_actions}
 
-
         with open('hca_data/' + filename + '.pkl', 'wb') as f:
             pickle.dump(save_dict, f)
 
