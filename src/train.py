@@ -4,6 +4,8 @@ import os
 import gym
 import numpy as np
 import torch
+
+import utils
 import wandb
 
 from gridworld import GridWorld
@@ -76,6 +78,12 @@ def train(args):
     # Replay Memory
     buffer = RolloutBuffer()
 
+    hca_buffer = None
+    hca_data_name = None
+    if args.collect_hca_data:
+        hca_buffer = utils.HCABuffer()
+        hca_data_name = exp_name + "_hca_data"
+
     # logging
     total_rewards, total_successes = [], []
     total_losses, action_losses, value_losses, entropies = [], [], [], []
@@ -137,6 +145,10 @@ def train(args):
             entropies.append(entropy)
             buffer.clear()
 
+        # store data for hindsight function training
+        if args.collect_hca_data:
+            hca_buffer.add_episode(states, actions, rewards)
+
         # logging
         if args.log_freq and episode % args.log_freq == 0:
             avg_reward = np.mean(total_rewards)
@@ -183,6 +195,9 @@ def train(args):
                 "--------------------------------------------------------------------------------------------"
             )
 
+        if hca_buffer and args.hca_data_save_freq and episode % args.hca_data_save_freq == 0:
+            hca_buffer.save_data(hca_data_name, action_dim)
+
         if args.eval_freq and episode % args.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent)
 
@@ -194,6 +209,8 @@ def train(args):
                     },
                     step=episode,
                 )
+
+
 
 
 if __name__ == "__main__":
@@ -321,6 +338,20 @@ if __name__ == "__main__":
         default=1000000,
         help="Model save frequency in episodes. Use 0 for no saving (default: 1000000)",
     )
+
+    parser.add_argument(
+        "--collect-hca-data",
+        action="store_true",
+        help="Whether to store transition data for HCA function training.",
+    )
+
+    parser.add_argument(
+        "--hca-data-save-freq",
+        type=int,
+        default=5000,
+        help="How many episodes between HCA data getting saved"
+    )
+
 
     parser.add_argument("--eval-freq", type=int, default=10000, help="How often to run evaluation on agent.")
 
