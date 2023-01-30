@@ -137,4 +137,4 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
         inputs.append(np.concatenate([state, [g]]))
     inputs = torch.from_numpy(inputs).reshape(len(inputs), -1)  # B x D
     h_values = h_model.get_hindsight_values(inputs, actions)
-    return h_values().detach()
+    return h_values().detach().tolist()
