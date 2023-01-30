@@ -34,13 +34,13 @@ class HCAModel(nn.Module):
         """
         return self.net(inputs)
 
-    def get_hindsight_value(self, inputs, actions):
+    def get_hindsight_values(self, inputs, actions):
         """
         get the hindsight values for a batch of actions
         """
         out = self.forward(inputs)  ## B x A
         actions = actions.reshape(-1, 1)
-        return out.gather(1, actions)
+        return out.gather(1, actions)  # B,
 
     def save(self, checkpoint_path, args):
         torch.save(

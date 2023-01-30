@@ -20,9 +20,13 @@ class HCABuffer:
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
         inp_data = np.concatenate((states, returns), -1)
-        save_dict = {"x": inp_data, "y": np.array(self.actions), "num_acts": num_actions}
+        save_dict = {
+            "x": inp_data,
+            "y": np.array(self.actions),
+            "num_acts": num_actions,
+        }
 
-        with open('hca_data/' + filename + '.pkl', 'wb') as f:
+        with open("hca_data/" + filename + ".pkl", "wb") as f:
             pickle.dump(save_dict, f)
 
 
@@ -48,7 +52,21 @@ def tensor_flatten(x):
     return torch.stack(out).squeeze()
 
 
-def get_hindsight_logprobs(
+def calculate_mc_returns(rewards, terminals, gamma):
+    """
+    Calculates MC returns
+    Duplicated from ppo.py.
+    """
+    batch_size = len(rewards)
+    returns = [0 for _ in range(len(batch_size))]
+    returns[batch_size - 1] = rewards[batch_size - 1]
+    for t in reversed(range(batch_size - 1)):
+        returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - terminals[t])
+
+    return returns
+
+
+def get_human_hindsight_logprobs(
     episode_rewards, policy_logprobs, total_reward, max_steps
 ):
     """
@@ -100,3 +118,12 @@ def get_hindsight_logprobs(
                 hindsight_logprobs.append(np.inf)
 
     return np.array(hindsight_logprobs, dtype=np.float32)
+
+
+def get_hindsight_logprobs(h_model, states, returns, actions):
+    inputs = []
+    for state, g in zip(states, returns):
+        inputs.append(np.concatenate([state, [g]]))
+    inputs = torch.from_numpy(inputs).reshape(len(inputs), -1)  # B x D
+    h_values = h_model.get_hindsight_values(inputs, actions)
+    return h_values().detach()

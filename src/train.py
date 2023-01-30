@@ -13,6 +13,7 @@ from eval import eval
 from ppo import PPO
 from replay_buffer import RolloutBuffer
 from utils import get_hindsight_logprobs
+from hca_model import HCAModel
 
 
 def train(args):
@@ -48,11 +49,8 @@ def train(args):
     exp_name = f"{args.method}_{args.env_name}:{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
 
     # Device
-    if args.cuda:
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-
+    device = torch.device(args.device)
+    
     if args.save_model_freq:
         checkpoint_path = f"checkpoints/{exp_name}_"
         checkpoint_path += f"{datetime.datetime.now().replace(microsecond=0)}"
@@ -71,9 +69,14 @@ def train(args):
     # Agent
     agent = PPO(state_dim, action_dim, args.lr, continuous, device, args)
 
+    if args.method == "ppo-hca":
+        hca_checkpoint = torch.load(args.hca_checkpoint)
+        h_model = HCAModel(state_dim+1, action_dim, hca_checkpoint["args"].n_layers, hca_checkpoint["args"].hidden_size)
+        h_model.load(hca_checkpoint["model"])
+
     if args.checkpoint:
         checkpoint = torch.load(args.checkpoint)
-        agent.load(checkpoint)
+        agent.load(checkpoint["policy"])
 
     # Replay Memory
     buffer = RolloutBuffer()
@@ -127,7 +130,8 @@ def train(args):
 
         hindsight_logprobs = []
         if args.method == "ppo-hca":
-            hindsight_logprobs = get_hindsight_logprobs(env.episode_rewards, logprobs, current_ep_reward, env.max_steps)
+            returns = utils.calculate_mc_returns(rewards, terminals, agent.gamma)
+            hindsight_logprobs = get_hindsight_logprobs(h_model, states, returns, actions)
 
         buffer.states.append(states)
         buffer.actions.append(actions)
@@ -250,7 +254,7 @@ if __name__ == "__main__":
         help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )
     parser.add_argument(
-        "--cuda", type=bool, default=False, help="run on CUDA (default: False)"
+        "--device", type=str, default="mps", help="device to run on (default: mps)"
     )
     parser.add_argument(
         "--max-training-episodes",
@@ -350,6 +354,12 @@ if __name__ == "__main__":
         help="How many episodes between HCA data getting saved"
     )
 
+    parser.add_argument(
+        "--hca-checkpoint",
+        type=str,
+        default="",
+        help="path to HCA model checkpoint"
+    )
 
     parser.add_argument("--eval-freq", type=int, default=10000, help="How often to run evaluation on agent.")
 
