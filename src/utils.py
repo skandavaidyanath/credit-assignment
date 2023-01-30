@@ -2,21 +2,31 @@ import numpy as np
 import torch
 import gridworld
 import pickle
+import datetime
+import os
 
 
 class HCABuffer:
-    def __init__(self):
+    def __init__(self, exp_name):
+        self.num_episodes_stored = 0
         self.states = []
         self.actions = []
         self.returns = []
+
+        self.checkpoint_path = f"hca_data/{exp_name}_"
+        self.checkpoint_path += (
+            f"{datetime.datetime.now().replace(microsecond=0)}"
+        )
+        os.makedirs(self.checkpoint_path, exist_ok=True)
 
     def add_episode(self, episode_states, episode_actions, episode_rewards):
         episode_return = np.sum(episode_rewards)
         self.states.extend(episode_states)
         self.actions.extend(episode_actions)
         self.returns.extend([episode_return] * len(episode_states))
+        self.num_episodes_stored += 1
 
-    def save_data(self, filename, num_actions):
+    def save_data(self, num_actions):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
         inp_data = np.concatenate((states, returns), -1)
@@ -25,8 +35,9 @@ class HCABuffer:
             "y": np.array(self.actions),
             "num_acts": num_actions,
         }
+        filename = str(self.num_episodes_stored) + "_eps"
 
-        with open("hca_data/" + filename + ".pkl", "wb") as f:
+        with open(self.checkpoint_path + "/" + filename + ".pkl", "wb") as f:
             pickle.dump(save_dict, f)
 
 
