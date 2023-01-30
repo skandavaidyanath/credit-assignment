@@ -79,10 +79,8 @@ def train(args):
     buffer = RolloutBuffer()
 
     hca_buffer = None
-    hca_data_name = None
     if args.collect_hca_data:
-        hca_buffer = utils.HCABuffer()
-        hca_data_name = exp_name + "_hca_data"
+        hca_buffer = utils.HCABuffer(exp_name)
 
     # logging
     total_rewards, total_successes = [], []
@@ -196,7 +194,7 @@ def train(args):
             )
 
         if hca_buffer and args.hca_data_save_freq and episode % args.hca_data_save_freq == 0:
-            hca_buffer.save_data(hca_data_name, action_dim)
+            hca_buffer.save_data(action_dim)
 
         if args.eval_freq and episode % args.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent)
@@ -346,7 +344,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-data-save-freq",
         type=int,
-        default=5000,
+        default=1,
         help="How many episodes between HCA data getting saved"
     )
 
