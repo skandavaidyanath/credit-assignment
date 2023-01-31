@@ -38,13 +38,11 @@ def train(args):
     train_dataloader = DataLoader(train_dataset, batch_size=args.batchsize)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batchsize)
 
-    exp_name = f"hca:{args.data_path.lstrip('hca_data/ppo_GridWorld-Default:').rstrip('_hca_data.pkl')}"
+    exp_name = f"hca:{args.data_path.lstrip('hca_data/ppo_GridWorld-Default').lstrip(':').split('_20')[0]}"
+    exp_name += args.data_path.split("/")[-1].strip(".pkl")
 
     # Device
-    if args.cuda:
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
+    device = torch.device(args.device)
 
     if args.save_model_freq:
         checkpoint_path = f"checkpoints/{exp_name}_"
@@ -114,7 +112,7 @@ def train(args):
                 step=epoch,
             )
 
-        print(f"Epoch: {epoch+1} | Train Loss: {round(np.mean(losses), 3)}")
+        print(f"Epoch: {epoch+1} | Train Loss: {np.mean(losses):.3f}")
         
         if epoch % args.eval_freq == 0:
             accuracies = []
@@ -130,7 +128,7 @@ def train(args):
                     step=epoch,
                 )
 
-            print(f"Epoch: {epoch+1} | Val Acc: {round(np.mean(accuracies), 3)}")
+            print(f"Epoch: {epoch+1} | Val Acc: {np.mean(accuracies):.3f}")
 
         # save model weights
         if args.save_model_freq and epoch % args.save_model_freq == 0:
@@ -179,8 +177,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--cuda", type=bool, default=False, help="run on CUDA (default: False)"
+        "--device", type=str, default="cpu", help="device to run on (default: cpu)"
     )
+    
     parser.add_argument(
         "--max-epochs",
         type=int,

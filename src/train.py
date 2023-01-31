@@ -262,7 +262,7 @@ if __name__ == "__main__":
         help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )
     parser.add_argument(
-        "--device", type=str, default="mps", help="device to run on (default: mps)"
+        "--device", type=str, default="cpu", help="device to run on (default: cpu)"
     )
     parser.add_argument(
         "--max-training-episodes",
