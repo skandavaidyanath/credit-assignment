@@ -212,6 +212,16 @@ def train(args):
                     step=episode,
                 )
 
+    ## SAVE MODELS
+    if args.save_model_freq:
+        print("--------------------------------------------------------------------------------------------")
+        print("Final Checkpoint Save!!")
+        print("saving model at : " + checkpoint_path)
+        agent.save(f'{checkpoint_path}/model_{episode}.pt', vars(args))
+        print("model saved")
+        print("Elapsed Time  : ", datetime.datetime.now().replace(microsecond=0) - start_time)
+        print("--------------------------------------------------------------------------------------------")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CA Based Exploration RL Training Args")
@@ -348,8 +358,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-data-save-freq",
         type=int,
-        default=1,
-        help="How many episodes between HCA data getting saved"
+        default=5000,
+        help="How many episodes between HCA data getting saved (default:5000)"
     )
 
     parser.add_argument(

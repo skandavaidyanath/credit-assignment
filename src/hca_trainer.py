@@ -148,6 +148,16 @@ def train(args):
                 "--------------------------------------------------------------------------------------------"
             )
 
+    ## SAVE MODELS
+    if args.save_model_freq:
+        print("--------------------------------------------------------------------------------------------")
+        print("Final Checkpoint Save!!")
+        print("saving model at : " + checkpoint_path)
+        model.save(f'{checkpoint_path}/model_{epoch}.pt', vars(args))
+        print("model saved")
+        print("Elapsed Time  : ", datetime.datetime.now().replace(microsecond=0) - start_time)
+        print("--------------------------------------------------------------------------------------------")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="HCA Training Args")
