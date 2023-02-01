@@ -19,10 +19,16 @@ class HCABuffer:
         )
         os.makedirs(self.checkpoint_path, exist_ok=True)
 
-    def add_episode(self, episode_states, episode_actions, episode_rewards, gamma):
+    def add_episode(
+        self, episode_states, episode_actions, episode_rewards, gamma
+    ):
         episode_return = np.sum(episode_rewards)
         rewards = np.array(episode_rewards).reshape(-1, 1)
-        episode_returns = list(np.array(calculate_mc_returns(rewards, np.zeros_like(rewards), gamma)).flatten())
+        episode_returns = list(
+            np.array(
+                calculate_mc_returns(rewards, np.zeros_like(rewards), gamma)
+            ).flatten()
+        )
 
         self.states.extend(episode_states)
         self.actions.extend(episode_actions)
@@ -138,7 +144,8 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
     inputs = []
     for state, g in zip(states, returns):
         inputs.append(np.concatenate([state, [g]]))
-    inputs = torch.Tensor(inputs).reshape(len(inputs), -1).float()  # B x D
+    inputs = np.array(inputs)
+    inputs = torch.from_numpy(inputs).reshape(len(inputs), -1).float()  # B x D
     h_values = h_model.get_hindsight_values(
         inputs, torch.Tensor(actions).long()
     )

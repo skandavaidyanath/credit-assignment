@@ -39,7 +39,7 @@ def train(args):
     val_dataloader = DataLoader(val_dataset, batch_size=args.batchsize, shuffle=True)
 
     exp_name = f"hca:{args.data_path.lstrip('hca_data/ppo_GridWorld-Default').lstrip(':').split('_20')[0]}"
-    exp_name += args.data_path.split("/")[-1].strip(".pkl")
+    exp_name += '_' + args.data_path.split("/")[-1].strip(".pkl")
 
     # Device
     device = torch.device(args.device)
@@ -162,8 +162,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--data-path",
-        default="hca_data/ppo_GridWorld-Default:test_v4_hca_data.pkl",
-        help="path to dataset (default: hca_data/ppo_GridWorld-Default:test_v4_hca_data.pkl)",
+        default="hca_data/ppo_GridWorld-Default:test_v4_2023-01-31 17:12:53/75000_eps.pkl",
+        help="path to dataset",
     )
 
     parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
@@ -189,8 +189,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batchsize",
         type=int,
-        default=128,
-        help="batchsize (default: 128)",
+        default=256,
+        help="batchsize (default: 256)",
     )
     parser.add_argument(
         "--n-layers",

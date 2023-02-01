@@ -368,7 +368,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-checkpoint",
         type=str,
-        default="checkpoints/hca:test_v4_5000_eps_2023-01-30 16:57:30/model_99.pt",
+        default="checkpoints/hca:test_v4_75000_eps_2023-01-31 17:27:42/model_99.pt",
         help="path to HCA model checkpoint"
     )
 
