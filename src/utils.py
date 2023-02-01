@@ -69,7 +69,7 @@ def calculate_mc_returns(rewards, terminals, gamma):
     Duplicated from ppo.py.
     """
     batch_size = len(rewards)
-    returns = [0 for _ in range(len(batch_size))]
+    returns = [0 for _ in range(batch_size)]
     returns[batch_size - 1] = rewards[batch_size - 1]
     for t in reversed(range(batch_size - 1)):
         returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - terminals[t])
@@ -135,6 +135,8 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
     inputs = []
     for state, g in zip(states, returns):
         inputs.append(np.concatenate([state, [g]]))
-    inputs = torch.from_numpy(inputs).reshape(len(inputs), -1)  # B x D
-    h_values = h_model.get_hindsight_values(inputs, actions)
-    return h_values().detach().tolist()
+    inputs = torch.Tensor(inputs).reshape(len(inputs), -1).float()  # B x D
+    h_values = h_model.get_hindsight_values(
+        inputs, torch.Tensor(actions).long()
+    )
+    return h_values.detach().tolist()

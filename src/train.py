@@ -71,7 +71,7 @@ def train(args):
 
     if args.method == "ppo-hca":
         hca_checkpoint = torch.load(args.hca_checkpoint)
-        h_model = HCAModel(state_dim+1, action_dim, hca_checkpoint["args"].n_layers, hca_checkpoint["args"].hidden_size)
+        h_model = HCAModel(state_dim+1, action_dim, hca_checkpoint["args"]["n_layers"], hca_checkpoint["args"]["hidden_size"])
         h_model.load(hca_checkpoint["model"])
 
     if args.checkpoint:
@@ -235,8 +235,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--puzzle-path",
-        default="maps/test.txt",
-        help="gridworld textfile to use (default: maps/test.txt)",
+        default="maps/test_v4.txt",
+        help="gridworld textfile to use (default: maps/test_v4.txt)",
     )
 
     parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
@@ -282,6 +282,9 @@ if __name__ == "__main__":
         default=30,
         help="update policy for K epochs in one PPO update (default:30)",
     )
+
+    parser.add_argument("--dont-update", action="store_true", help="dont update models (default:False)")
+
     parser.add_argument(
         "--eps-clip",
         type=float,
@@ -365,7 +368,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-checkpoint",
         type=str,
-        default="",
+        default="checkpoints/hca:test_v4_5000_eps_2023-01-30 16:57:30/model_99.pt",
         help="path to HCA model checkpoint"
     )
 

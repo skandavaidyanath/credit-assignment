@@ -107,6 +107,7 @@ class PPO:
         self.adv = args.adv
         self.eps_clip = args.eps_clip
         self.ppo_epochs = args.ppo_epochs
+        self.dont_update = args.dont_update
 
         self.policy = ActorCritic(
             state_dim,
@@ -262,9 +263,10 @@ class PPO:
             )
 
             # take gradient step
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+            if not self.dont_update:
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
 
             total_losses.append(loss.detach().cpu().item())
             action_losses.append(action_loss.detach().cpu().item())
