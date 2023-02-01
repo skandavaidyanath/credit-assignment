@@ -19,11 +19,14 @@ class HCABuffer:
         )
         os.makedirs(self.checkpoint_path, exist_ok=True)
 
-    def add_episode(self, episode_states, episode_actions, episode_rewards):
+    def add_episode(self, episode_states, episode_actions, episode_rewards, gamma):
         episode_return = np.sum(episode_rewards)
+        rewards = np.array(episode_rewards).reshape(-1, 1)
+        episode_returns = list(np.array(calculate_mc_returns(rewards, np.zeros_like(rewards), gamma)).flatten())
+
         self.states.extend(episode_states)
         self.actions.extend(episode_actions)
-        self.returns.extend([episode_return] * len(episode_states))
+        self.returns.extend(episode_returns)
         self.num_episodes_stored += 1
 
     def save_data(self, num_actions):

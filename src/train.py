@@ -149,7 +149,7 @@ def train(args):
 
         # store data for hindsight function training
         if args.collect_hca_data:
-            hca_buffer.add_episode(states, actions, rewards)
+            hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # logging
         if args.log_freq and episode % args.log_freq == 0:
