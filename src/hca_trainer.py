@@ -35,8 +35,8 @@ def train(args):
     num_actions = data_dict['num_acts']
     dataset = TensorDataset(X, y)
     train_dataset, val_dataset = random_split(dataset, [0.8, 0.2])
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batchsize)
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batchsize)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=args.batchsize, shuffle=True)
 
     exp_name = f"hca:{args.data_path.lstrip('hca_data/ppo_GridWorld-Default').lstrip(':').split('_20')[0]}"
     exp_name += args.data_path.split("/")[-1].strip(".pkl")
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", type=str, default="cpu", help="device to run on (default: cpu)"
     )
-    
+
     parser.add_argument(
         "--max-epochs",
         type=int,
