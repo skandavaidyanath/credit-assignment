@@ -46,7 +46,11 @@ def train(args):
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-    exp_name = f"{args.method}_{args.env_name}:{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+    reward_type = 'sparse' if args.sparse else 'dense'
+    exp_name = f"{args.method}_{reward_type}_{args.env_name}:{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+    if args.exp_name_modifier:
+        exp_name += "_" + args.exp_name_modifier
+
 
     # Device
     device = torch.device(args.device)
@@ -69,10 +73,18 @@ def train(args):
     # Agent
     agent = PPO(state_dim, action_dim, args.lr, continuous, device, args)
 
+    hca_buffer_online = None
+    h_model = None
+    hca_opt = None
+    hca_loss_fn = None
     if args.method == "ppo-hca":
         hca_checkpoint = torch.load(args.hca_checkpoint)
         h_model = HCAModel(state_dim+1, action_dim, hca_checkpoint["args"]["n_layers"], hca_checkpoint["args"]["hidden_size"])
         h_model.load(hca_checkpoint["model"])
+        if args.update_hca_online:
+            hca_buffer_online = utils.HCABuffer(exp_name) # TODO(akash): make this have a limited capacity.
+            hca_loss_fn = torch.nn.CrossEntropyLoss()
+            hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.hca_lr)
 
     if args.checkpoint:
         checkpoint = torch.load(args.checkpoint)
@@ -138,6 +150,9 @@ def train(args):
         buffer.terminals.append(terminals)
         buffer.hindsight_logprobs.append(hindsight_logprobs)
 
+        if hca_buffer_online:
+            hca_buffer_online.add_episode(states, actions, rewards, agent.gamma)
+
         # update PPO agent
         if episode % args.update_every == 0:
             total_loss, action_loss, value_loss, entropy = agent.update(buffer)
@@ -146,6 +161,19 @@ def train(args):
             value_losses.append(value_loss)
             entropies.append(entropy)
             buffer.clear()
+
+        # update the HCA function, if applicable
+        mean_hca_loss = 0.0
+        if episode % args.hca_update_every == 0:
+            assert hca_buffer_online is not None
+            assert h_model is not None
+            hca_losses = []
+            for _ in range(args.hca_num_updates):
+                X, y = hca_buffer_online.get_batch(args.hca_batch_size)
+                X, y = torch.from_numpy(X).float(), torch.from_numpy(y).long()
+                hca_loss = h_model.train_step(X, y, hca_opt, hca_loss_fn, device)
+                hca_losses.append(hca_loss)
+            mean_hca_loss = np.mean(hca_losses)
 
         # store data for hindsight function training
         if args.collect_hca_data:
@@ -165,6 +193,7 @@ def train(args):
                         "training/action_loss": np.mean(action_losses),
                         "training/value_loss": np.mean(value_losses),
                         "training/entropy": np.mean(entropies),
+                        "training/hca_loss": mean_hca_loss
                     },
                     step=episode,
                 )
@@ -370,6 +399,47 @@ if __name__ == "__main__":
         type=str,
         default="checkpoints/hca:test_v4_75000_eps_2023-01-31 17:27:42/model_99.pt",
         help="path to HCA model checkpoint"
+    )
+
+    parser.add_argument(
+        "--update-hca-online",
+        action="store_true",
+        help="Whether to update the HCA function with episodes collected online."
+    )
+
+    parser.add_argument(
+        "--hca-lr",
+        type=float,
+        default=3e-4,
+        help="Learning rate used to update the hca function online."
+    )
+
+    parser.add_argument(
+        "--hca-update-every",
+        type=int,
+        default=1000,
+        help="How often to update the hca function (in episodes)."
+    )
+
+    parser.add_argument(
+        "--hca-num-updates",
+        type=int,
+        default=100,
+        help="Number of gradient steps per update to the hca function. Should loosely be larger the less frequent it "
+             "is updated. "
+    )
+
+    parser.add_argument(
+        "--hca-batch-size",
+        type=int,
+        default=256,
+        help="Batch size for online hca updating."
+    )
+
+    parser.add_argument(
+        "--exp-name-modifier",
+        type=str,
+        default=''
     )
 
     parser.add_argument("--eval-freq", type=int, default=10000, help="How often to run evaluation on agent.")

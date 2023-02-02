@@ -22,7 +22,6 @@ class HCABuffer:
     def add_episode(
         self, episode_states, episode_actions, episode_rewards, gamma
     ):
-        episode_return = np.sum(episode_rewards)
         rewards = np.array(episode_rewards).reshape(-1, 1)
         episode_returns = list(
             np.array(
@@ -34,6 +33,17 @@ class HCABuffer:
         self.actions.extend(episode_actions)
         self.returns.extend(episode_returns)
         self.num_episodes_stored += 1
+
+    def get_batch(self, batch_size):
+        states = np.array(self.states)
+        returns = np.array(self.returns).reshape((-1, 1))
+        inp_data = np.concatenate((states, returns), -1)
+        actions = np.array(self.actions).reshape((-1, 1))
+
+        size = states.shape[0]
+        inds = np.random.choice(size, size=batch_size, replace=False)
+        return inp_data[inds], actions[inds]
+
 
     def save_data(self, num_actions):
         states = np.array(self.states)
