@@ -89,7 +89,7 @@ def tensor_flatten(x):
 def calculate_mc_returns(rewards, terminals, gamma):
     """
     Calculates MC returns
-    Duplicated from ppo.py.
+    Duplicated from ppo_algo.py.
     """
     batch_size = len(rewards)
     returns = [0 for _ in range(batch_size)]
