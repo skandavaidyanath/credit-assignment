@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
 import numpy as np
@@ -133,12 +132,22 @@ class PPO:
         hindsight_ratios = torch.exp(
             logprobs.detach() - hindsight_logprobs.detach()
         )
+        hindsight_ratio_mean = hindsight_ratios.mean().item()
+        hindsight_ratio_max = hindsight_ratios.max().item()
+        hindsight_ratio_min = hindsight_ratios.min().item()
+        hindsight_ratio_std = hindsight_ratios.std().item()
+
+        hindsight_stats = {"min": hindsight_ratio_min,
+                           "max": hindsight_ratio_max,
+                           "mean": hindsight_ratio_mean,
+                           "std": hindsight_ratio_std}
+
         advantages = (1 - hindsight_ratios) * mc_returns
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7
         )
 
-        return advantages.to(self.device)
+        return advantages.to(self.device), hindsight_stats
 
     def estimate_montecarlo_returns(self, rewards, terminals):
         # Monte Carlo estimate of returns
@@ -213,6 +222,7 @@ class PPO:
         )
 
         total_losses, action_losses, value_losses, entropies = [], [], [], []
+        hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = [], [], [], []
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
@@ -242,9 +252,13 @@ class PPO:
                 )
             else:
                 # hca adv
-                advantages = self.estimate_hca_advantages(
+                advantages, hca_info = self.estimate_hca_advantages(
                     returns, logprobs, hindsight_logprobs
                 )
+                hca_ratio_mins.append(hca_info["min"])
+                hca_ratio_maxes.append(hca_info["max"])
+                hca_ratio_means.append(hca_info["mean"])
+                hca_ratio_stds.append(hca_info["std"])
 
             surr1 = ratios * advantages
             surr2 = (
@@ -279,13 +293,21 @@ class PPO:
                 np.mean(action_losses),
                 np.mean(value_losses),
                 np.mean(entropies),
-            )
+                None
+            ),
         else:
+            hca_stats_dict = {
+                "max": np.max(hca_ratio_maxes),
+                "min": np.min(hca_ratio_mins),
+                "mean": np.mean(hca_ratio_means),
+                "std": np.mean(hca_ratio_stds)
+            }
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
                 0,
                 np.mean(entropies),
+                hca_stats_dict
             )
 
     def save(self, checkpoint_path, args):

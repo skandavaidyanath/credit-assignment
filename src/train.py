@@ -107,6 +107,7 @@ def train(args):
     # logging
     total_rewards, total_successes = [], []
     total_losses, action_losses, value_losses, entropies = [], [], [], []
+    hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = [], [], [], []
 
     # track total training time
     start_time = datetime.datetime.now().replace(microsecond=0)
@@ -175,11 +176,17 @@ def train(args):
 
         # update PPO agent
         if episode % args.update_every == 0:
-            total_loss, action_loss, value_loss, entropy = agent.update(buffer)
+            total_loss, action_loss, value_loss, entropy, hca_ratio_dict = agent.update(buffer)
             total_losses.append(total_loss)
             action_losses.append(action_loss)
             value_losses.append(value_loss)
             entropies.append(entropy)
+            if hca_ratio_dict:
+                hca_ratio_mins.append(hca_ratio_dict["min"])
+                hca_ratio_maxes.append(hca_ratio_dict["max"])
+                hca_ratio_means.append(hca_ratio_dict["mean"])
+                hca_ratio_stds.append(hca_ratio_dict["std"])
+
             buffer.clear()
 
         # store data for hindsight function training
@@ -191,6 +198,12 @@ def train(args):
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
+            hca_ratio_min = np.mean(hca_ratio_mins) if len(hca_ratio_mins) > 0 else 0.0
+            hca_ratio_max = np.mean(hca_ratio_maxes) if len(hca_ratio_maxes) > 0 else 0.0
+            hca_ratio_mean = np.mean(hca_ratio_means) if len(hca_ratio_means) > 0 else 0.0
+            hca_ratio_std = np.mean(hca_ratio_stds) if len(hca_ratio_stds) > 0 else 0.0
+
+
             if args.wandb:
                 wandb.log(
                     {
@@ -200,7 +213,11 @@ def train(args):
                         "training/action_loss": np.mean(action_losses),
                         "training/value_loss": np.mean(value_losses),
                         "training/entropy": np.mean(entropies),
-                        "training/hca_loss": mean_hca_loss
+                        "training/hca_loss": mean_hca_loss,
+                        "training/hca_ratio_min": hca_ratio_min,
+                        "training/hca_ratio_max": hca_ratio_max,
+                        "training/hca_ratio_mean": hca_ratio_mean,
+                        "training/hca_ratio_std": hca_ratio_std
                     },
                     step=episode,
                 )
