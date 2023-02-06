@@ -34,11 +34,21 @@ class HCAModel(nn.Module):
         """
         return self.net(inputs)
 
+    def train_step(self, states, actions, optimizer, loss_fn, device):
+        states = states.to(device)
+        actions = actions.to(device).flatten()
+        preds = self.forward(states)
+        loss = loss_fn(preds, actions)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        return loss.item()
+
     def get_hindsight_values(self, inputs, actions):
         """
         get the hindsight values for a batch of actions
         """
-        out = self.forward(inputs)  ## B x A
+        out = self.forward(inputs)  # B x A
         actions = actions.reshape(-1, 1)
         return out.gather(1, actions)  # B,
 
