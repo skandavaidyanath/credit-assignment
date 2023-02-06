@@ -18,7 +18,7 @@ from hca_model import HCAModel
 
 def train(args):
     # Environment
-    env = GridWorld(args.puzzle_path, sparse=args.sparse)
+    env = GridWorld(args.puzzle_path, sparse=args.sparse, max_steps=args.max_steps)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -229,14 +229,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--env-name",
         "-env",
+        type=str,
         default="GridWorld-Default",
         help="gym environment to use (default: GridWorld-Default)",
     )
 
     parser.add_argument(
         "--puzzle-path",
+        type=str,
         default="maps/test_v4.txt",
         help="gridworld textfile to use (default: maps/test_v4.txt)",
+    )
+
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=50,
+        help="max steps in the environment (default: 50)",
     )
 
     parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
@@ -368,7 +377,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-checkpoint",
         type=str,
-        default="checkpoints/hca:test_v4_75000_eps_2023-01-31 17:27:42/model_99.pt",
+        default="checkpoints/hca:test_v4_5000_eps_2023-01-31 17:45:56/model_99.pt",
         help="path to HCA model checkpoint"
     )
 
@@ -386,10 +395,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # sanity check
+    # sanity checks
     if args.method == 'ppo-hca':
         args.adv = 'hca'
         args.value_loss_coeff = 0.
         print("Using method PPO-HCA: Setting the advantage calculation to hca and value-loss coefficient to 0")
+
+    if "test_v5" in args.puzzle_path:
+        args.max_steps = 100
+        print("Setting max episode length to 100 for test_v5")
     train(args)
     
