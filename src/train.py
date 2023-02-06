@@ -13,7 +13,7 @@ from eval import eval
 from ppo import PPO
 from replay_buffer import RolloutBuffer
 from utils import get_hindsight_logprobs
-from hca_model import HCAModel
+from hca.hca_model import HCAModel
 
 
 def train(args):
