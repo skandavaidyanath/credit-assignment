@@ -7,12 +7,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader, random_split
 import wandb
-from hca_model import HCAModel
-import pickle 
+from hca.hca_model import HCAModel
+import pickle
 
 
 def train(args):
-
     if args.seed:
         print(
             "============================================================================================"
@@ -24,7 +23,6 @@ def train(args):
 
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
-
 
     # Load files and create dataloader
     with open(args.data_path, 'rb') as f:
@@ -81,7 +79,7 @@ def train(args):
     for states, actions in val_dataloader:
         preds = model(states)
         preds = preds.argmax(-1)
-        accuracies.append(torch.sum(preds == actions)/len(preds))
+        accuracies.append(torch.sum(preds == actions) / len(preds))
     if args.wandb:
         wandb.log(
             {
@@ -103,7 +101,7 @@ def train(args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        
+
         if args.wandb:
             wandb.log(
                 {
@@ -112,14 +110,14 @@ def train(args):
                 step=epoch,
             )
 
-        print(f"Epoch: {epoch+1} | Train Loss: {np.mean(losses):.3f}")
-        
+        print(f"Epoch: {epoch + 1} | Train Loss: {np.mean(losses):.3f}")
+
         if epoch % args.eval_freq == 0:
             accuracies = []
             for states, actions in val_dataloader:
                 preds = model(states)
                 preds = preds.argmax(-1)
-                accuracies.append(torch.sum(preds == actions)/len(preds))
+                accuracies.append(torch.sum(preds == actions) / len(preds))
             if args.wandb:
                 wandb.log(
                     {
@@ -128,7 +126,7 @@ def train(args):
                     step=epoch,
                 )
 
-            print(f"Epoch: {epoch+1} | Val Acc: {np.mean(accuracies):.3f}")
+            print(f"Epoch: {epoch + 1} | Val Acc: {np.mean(accuracies):.3f}")
 
         # save model weights
         if args.save_model_freq and epoch % args.save_model_freq == 0:
@@ -227,9 +225,8 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="path to checkpoint (default: "
-        "). Empty string does not load a checkpoint.",
+             "). Empty string does not load a checkpoint.",
     )
 
     args = parser.parse_args()
     train(args)
-    

@@ -9,6 +9,7 @@ import os
 class HCABuffer:
     def __init__(self, exp_name):
         self.num_episodes_stored = 0
+        self.num_transitions_stored = 0
         self.states = []
         self.actions = []
         self.returns = []
@@ -33,8 +34,11 @@ class HCABuffer:
         self.actions.extend(episode_actions)
         self.returns.extend(episode_returns)
         self.num_episodes_stored += 1
+        self.num_transitions_stored += rewards.shape[0]
 
     def get_batch(self, batch_size):
+        if batch_size > self.num_transitions_stored:
+            print("Warning: tried updating hca model without enough transitions in buffer!")
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
         inp_data = np.concatenate((states, returns), -1)
@@ -85,7 +89,7 @@ def tensor_flatten(x):
 def calculate_mc_returns(rewards, terminals, gamma):
     """
     Calculates MC returns
-    Duplicated from ppo.py.
+    Duplicated from ppo_algo.py.
     """
     batch_size = len(rewards)
     returns = [0 for _ in range(batch_size)]

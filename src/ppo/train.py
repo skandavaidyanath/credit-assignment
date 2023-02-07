@@ -8,17 +8,17 @@ import torch
 import utils
 import wandb
 
-from gridworld import GridWorld
+from gridworld.gridworld_env import GridWorld
 from eval import eval
-from ppo import PPO
-from replay_buffer import RolloutBuffer
+from ppo.ppo_algo import PPO
+from ppo.replay_buffer import RolloutBuffer
 from utils import get_hindsight_logprobs
-from hca_model import HCAModel
+from hca.hca_model import HCAModel
 
 
 def train(args):
     # Environment
-    env = GridWorld(args.puzzle_path, sparse=args.sparse, max_steps=args.max_steps)
+    env = GridWorld(args.puzzle_path, sparse=args.sparse)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -51,10 +51,9 @@ def train(args):
     if args.exp_name_modifier:
         exp_name += "_" + args.exp_name_modifier
 
-
     # Device
     device = torch.device(args.device)
-    
+
     if args.save_model_freq:
         checkpoint_path = f"checkpoints/{exp_name}_"
         checkpoint_path += f"{datetime.datetime.now().replace(microsecond=0)}"
@@ -73,22 +72,28 @@ def train(args):
     # Agent
     agent = PPO(state_dim, action_dim, args.lr, continuous, device, args)
 
+    if args.checkpoint:
+        checkpoint = torch.load(args.checkpoint)
+        agent.load(checkpoint["policy"])
+
+    # HCA model
     hca_buffer_online = None
     h_model = None
     hca_opt = None
     hca_loss_fn = None
     if args.method == "ppo-hca":
-        hca_checkpoint = torch.load(args.hca_checkpoint)
-        h_model = HCAModel(state_dim+1, action_dim, hca_checkpoint["args"]["n_layers"], hca_checkpoint["args"]["hidden_size"])
-        h_model.load(hca_checkpoint["model"])
+        if args.hca_checkpoint:
+            hca_checkpoint = torch.load(args.hca_checkpoint)
+            h_model = HCAModel(state_dim + 1, action_dim, hca_checkpoint["args"]["n_layers"],
+                               hca_checkpoint["args"]["hidden_size"])
+            h_model.load(hca_checkpoint["model"])
+        else:
+            assert args.update_hca_online
+            h_model = HCAModel(state_dim + 1, action_dim, args.hca_n_layers, args.hca_hidden_size)
         if args.update_hca_online:
-            hca_buffer_online = utils.HCABuffer(exp_name) # TODO(akash): make this have a limited capacity.
+            hca_buffer_online = utils.HCABuffer(exp_name)  # TODO(akash): make this have a limited capacity.
             hca_loss_fn = torch.nn.CrossEntropyLoss()
             hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.hca_lr)
-
-    if args.checkpoint:
-        checkpoint = torch.load(args.checkpoint)
-        agent.load(checkpoint["policy"])
 
     # Replay Memory
     buffer = RolloutBuffer()
@@ -100,6 +105,7 @@ def train(args):
     # logging
     total_rewards, total_successes = [], []
     total_losses, action_losses, value_losses, entropies = [], [], [], []
+    hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = [], [], [], []
 
     # track total training time
     start_time = datetime.datetime.now().replace(microsecond=0)
@@ -153,18 +159,9 @@ def train(args):
         if hca_buffer_online:
             hca_buffer_online.add_episode(states, actions, rewards, agent.gamma)
 
-        # update PPO agent
-        if episode % args.update_every == 0:
-            total_loss, action_loss, value_loss, entropy = agent.update(buffer)
-            total_losses.append(total_loss)
-            action_losses.append(action_loss)
-            value_losses.append(value_loss)
-            entropies.append(entropy)
-            buffer.clear()
-
         # update the HCA function, if applicable
         mean_hca_loss = 0.0
-        if episode % args.hca_update_every == 0:
+        if args.update_hca_online and (episode % args.hca_update_every == 0 or episode == args.update_every):
             assert hca_buffer_online is not None
             assert h_model is not None
             hca_losses = []
@@ -175,6 +172,21 @@ def train(args):
                 hca_losses.append(hca_loss)
             mean_hca_loss = np.mean(hca_losses)
 
+        # update PPO agent
+        if episode % args.update_every == 0:
+            total_loss, action_loss, value_loss, entropy, hca_ratio_dict = agent.update(buffer)
+            total_losses.append(total_loss)
+            action_losses.append(action_loss)
+            value_losses.append(value_loss)
+            entropies.append(entropy)
+            if hca_ratio_dict:
+                hca_ratio_mins.append(hca_ratio_dict["min"])
+                hca_ratio_maxes.append(hca_ratio_dict["max"])
+                hca_ratio_means.append(hca_ratio_dict["mean"])
+                hca_ratio_stds.append(hca_ratio_dict["std"])
+
+            buffer.clear()
+
         # store data for hindsight function training
         if args.collect_hca_data:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
@@ -183,6 +195,11 @@ def train(args):
         if args.log_freq and episode % args.log_freq == 0:
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
+
+            hca_ratio_min = np.mean(hca_ratio_mins) if len(hca_ratio_mins) > 0 else 0.0
+            hca_ratio_max = np.mean(hca_ratio_maxes) if len(hca_ratio_maxes) > 0 else 0.0
+            hca_ratio_mean = np.mean(hca_ratio_means) if len(hca_ratio_means) > 0 else 0.0
+            hca_ratio_std = np.mean(hca_ratio_stds) if len(hca_ratio_stds) > 0 else 0.0
 
             if args.wandb:
                 wandb.log(
@@ -193,7 +210,11 @@ def train(args):
                         "training/action_loss": np.mean(action_losses),
                         "training/value_loss": np.mean(value_losses),
                         "training/entropy": np.mean(entropies),
-                        "training/hca_loss": mean_hca_loss
+                        "training/hca_loss": mean_hca_loss,
+                        "training/hca_ratio_min": hca_ratio_min,
+                        "training/hca_ratio_max": hca_ratio_max,
+                        "training/hca_ratio_mean": hca_ratio_mean,
+                        "training/hca_ratio_std": hca_ratio_std
                     },
                     step=episode,
                 )
@@ -258,23 +279,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--env-name",
         "-env",
-        type=str,
         default="GridWorld-Default",
         help="gym environment to use (default: GridWorld-Default)",
     )
 
     parser.add_argument(
         "--puzzle-path",
-        type=str,
         default="maps/test_v4.txt",
         help="gridworld textfile to use (default: maps/test_v4.txt)",
-    )
-
-    parser.add_argument(
-        "--max-steps",
-        type=int,
-        default=50,
-        help="max steps in the environment (default: 50)",
     )
 
     parser.add_argument("--wandb", action="store_true", help="whether to use wandb logging (default: False)")
@@ -296,7 +308,7 @@ if __name__ == "__main__":
         choices=[
             "ppo",
             "ppo-hca",
-        ],  
+        ],
         help="Method we are running: one of ppo or ppo_ca (default: ppo)",
     )
     parser.add_argument(
@@ -406,7 +418,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-checkpoint",
         type=str,
-        default="checkpoints/hca:test_v4_5000_eps_2023-01-31 17:45:56/model_99.pt",
+        default=None,
         help="path to HCA model checkpoint"
     )
 
@@ -414,6 +426,20 @@ if __name__ == "__main__":
         "--update-hca-online",
         action="store_true",
         help="Whether to update the HCA function with episodes collected online."
+    )
+
+    parser.add_argument(
+        "--hca-n-layers",
+        type=int,
+        default=2,
+        help="Number of layers for HCA MLP model. Note that if a checkpoint is specified, this value is overridden."
+    )
+
+    parser.add_argument(
+        "--hca-hidden-size",
+        type=int,
+        default=128,
+        help="Hidden dimension for HCA MLP Model. Note that if a checkpoint is specified, this value is overridden."
     )
 
     parser.add_argument(
@@ -426,7 +452,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-update-every",
         type=int,
-        default=1000,
+        default=500,
         help="How often to update the hca function (in episodes)."
     )
 
@@ -460,19 +486,14 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="path to checkpoint (default: "
-        "). Empty string does not load a checkpoint.",
+             "). Empty string does not load a checkpoint.",
     )
 
     args = parser.parse_args()
 
-    # sanity checks
+    # sanity check
     if args.method == 'ppo-hca':
         args.adv = 'hca'
         args.value_loss_coeff = 0.
         print("Using method PPO-HCA: Setting the advantage calculation to hca and value-loss coefficient to 0")
-
-    if "test_v5" in args.puzzle_path:
-        args.max_steps = 100
-        print("Setting max episode length to 100 for test_v5")
     train(args)
-    
