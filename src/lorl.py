@@ -70,26 +70,26 @@ def get_mean_std(env, use_state, steps=10000):
     return x["mean"], x["std"]
 
 
-def lorl_gt_reward(qpos, initial, instr):
+def lorl_gt_reward(qpos, initial, task):
     """
     Measure true task progress for different instructions
     """
-    if instr == "open drawer":
+    if task == "open drawer":
         dist = initial[14] - qpos[14]
         s = dist > 0.02
-    elif instr == "close drawer":
+    elif task == "close drawer":
         dist = qpos[14] - initial[14]
         s = dist > 0.02
-    elif instr == "turn faucet right":
+    elif task == "turn faucet right":
         dist = initial[13] - qpos[13]
         s = dist > np.pi / 10
-    elif instr == "turn faucet left":
+    elif task == "turn faucet left":
         dist = qpos[13] - initial[13]
         s = dist > np.pi / 10
-    elif instr == "move black mug right":
+    elif task == "move black mug right":
         dist = initial[11] - qpos[11]
         s = dist > 0.02
-    elif instr == "move white mug down":
+    elif task == "move white mug down":
         dist = qpos[10] - initial[10]
         s = dist > 0.02
     return dist, s
@@ -134,6 +134,7 @@ class LorlWrapper(gym.Wrapper):
 
         self.action_space = env.action_space
 
+        self.task = None
         self.initial_state = None
 
     def reset(self, task, render=False, **kwargs):
@@ -145,6 +146,8 @@ class LorlWrapper(gym.Wrapper):
 
         if task not in TASKS:
             raise ValueError(f"Unknown task! Choose from {TASKS}")
+
+        self.task = task
 
         # Initialize state for different tasks
         if task == "open drawer":
@@ -228,7 +231,7 @@ class LorlWrapper(gym.Wrapper):
 
         im, _, _, info = self.env.step(action)
         dist, s = lorl_gt_reward(
-            self.env.sim.data.qpos[:], self.initial_state, self.orig_instr
+            self.env.sim.data.qpos[:], self.initial_state, self.task
         )
 
         reward = 0
@@ -266,4 +269,4 @@ if __name__ == "__main__":
 
     env = gym.make("LorlEnv-v0")
     wrapped_env = LorlWrapper(env)
-    print(wrapped_env.reset())
+    print(wrapped_env.reset("open drawer"))
