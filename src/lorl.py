@@ -45,9 +45,12 @@ def get_mean_std(env, use_state, steps=10000):
                     states.append(env.sim.data.qpos[:])
             states = np.array(states)
             x = {"mean": states.mean(0), "std": states.std(0)}
+            os.makedirs("static/", exist_ok=True)
+            pickle.dump(x, open("static/lorl_state_stats.pkl", "wb"))
+
     else:
-        if os.path.isfile("static/lorl_im_stats.pkl"):
-            x = pickle.load(open("static/lorl_im_stats.pkl", "rb"))
+        if os.path.isfile("static/lorl_img_stats.pkl"):
+            x = pickle.load(open("static/lorl_img_stats.pkl", "rb"))
         else:
             states = []
             obs, _ = env.reset()
@@ -61,6 +64,8 @@ def get_mean_std(env, use_state, steps=10000):
                     states.append(np.moveaxis(obs, 2, 0))
             states = np.array(states)
             x = {"mean": states.mean(0), "std": states.std(0)}
+            os.makedirs("static/", exist_ok=True)
+            pickle.dump(x, open("static/lorl_img_stats.pkl", "wb"))
 
     return x["mean"], x["std"]
 
