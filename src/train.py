@@ -4,16 +4,15 @@ import os
 import gym
 import numpy as np
 import torch
-
-import utils
 import wandb
 
 from gridworld.gridworld_env import GridWorld
-from eval import eval
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
-from utils import get_hindsight_logprobs
 from hca.hca_model import HCAModel
+
+from utils import get_hindsight_logprobs
+from eval import eval
 
 
 def train(args):
