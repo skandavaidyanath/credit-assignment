@@ -5,17 +5,15 @@ import gym
 import numpy as np
 import torch
 import wandb
-import lorl_env
+# import lorl_env
 
-from eval import eval
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
-from utils import get_hindsight_logprobs, get_env
 from hca.hca_model import HCAModel
 
 
 from lorl import LorlWrapper, TASKS
-from utils import get_hindsight_logprobs, HCABuffer, calculate_mc_returns
+from utils import get_hindsight_logprobs, HCABuffer, calculate_mc_returns, get_env
 from eval import eval
 
 
@@ -99,9 +97,9 @@ def train(args):
                                hidden_size=args.hca_hidden_size)
         if args.update_hca_online:
             if continuous:
-                hca_buffer_online = utils.HCABuffer(exp_name,  action_dim=action_dim)
+                hca_buffer_online = HCABuffer(exp_name,  action_dim=action_dim)
             else:
-                hca_buffer_online = utils.HCABuffer(exp_name, action_dim=1)
+                hca_buffer_online = HCABuffer(exp_name, action_dim=1)
             hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.hca_lr)
 
     # Replay Memory
@@ -110,9 +108,9 @@ def train(args):
     hca_buffer = None
     if args.collect_hca_data:
         if continuous:
-            hca_buffer = utils.HCABuffer(exp_name, action_dim=action_dim)
+            hca_buffer = HCABuffer(exp_name, action_dim=action_dim)
         else:
-            hca_buffer = utils.HCABuffer(exp_name, action_dim=1)
+            hca_buffer = HCABuffer(exp_name, action_dim=1)
 
     # logging
     total_rewards, total_successes = [], []
@@ -132,10 +130,11 @@ def train(args):
     )
 
     for episode in range(1, args.max_training_episodes + 1):
-        if args.env_name == "grid":
-            state = env.reset()
-        elif args.env_name == "lorl":
+        if args.env_type == "lorl":
             state = env.reset(args.task)
+        else:
+            state = env.reset()
+
         current_ep_reward = 0
         done = False
 

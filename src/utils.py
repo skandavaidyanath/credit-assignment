@@ -7,12 +7,16 @@ import os
 from gridworld.gridworld_env import GridWorld
 import gym
 import d4rl
+from lorl import LorlWrapper
+
 
 def get_env(args):
     if args.env_type == "d4rl":
         env = gym.make(args.env_name)
     elif args.env_type == "gridworld":
         env = GridWorld(args.puzzle_path, sparse=args.sparse)
+    elif args.env_type == "lorl":
+        env = LorlWrapper(gym.make(args.env_name), use_state=args.use_state)
     else:
         raise NotImplementedError
     return env
