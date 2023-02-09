@@ -1,6 +1,10 @@
 import argparse
 import datetime
 import os
+
+# suppress D4RL warnings
+os.environ["D4RL_SUPPRESS_IMPORT_ERROR"] = "1"
+
 import gym
 import numpy as np
 import torch
@@ -51,7 +55,9 @@ def train(args):
         np.random.seed(args.seed)
 
     reward_type = "sparse" if args.sparse else "dense"
-    exp_name = f"{args.method}_{reward_type}_{args.env_name}:{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+    exp_name = f":{args.method}_{reward_type}_{args.env_name}"
+    if args.env_type == "gridworld":
+        exp_name += f"{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
     if args.exp_name_modifier:
         exp_name += "_" + args.exp_name_modifier
 
@@ -96,7 +102,7 @@ def train(args):
             )
             h_model.load(hca_checkpoint["model"])
         else:
-            assert args.update_hca_online
+            assert args.update_hca_online, "If not specifying a HCA checkpoint, use --update-hca-online"
             h_model = HCAModel(
                 state_dim + 1,
                 action_dim,
@@ -262,14 +268,20 @@ def train(args):
                         "training/action_loss": np.mean(action_losses),
                         "training/value_loss": np.mean(value_losses),
                         "training/entropy": np.mean(entropies),
-                        "training/hca_loss": mean_hca_loss,
-                        "training/hca_ratio_min": hca_ratio_min,
-                        "training/hca_ratio_max": hca_ratio_max,
-                        "training/hca_ratio_mean": hca_ratio_mean,
-                        "training/hca_ratio_std": hca_ratio_std,
                     },
                     step=episode,
                 )
+                if arg.method == "ppo-hca":
+                    wandb.log(
+                        {
+                            "training/hca_loss": mean_hca_loss,
+                            "training/hca_ratio_min": hca_ratio_min,
+                            "training/hca_ratio_max": hca_ratio_max,
+                            "training/hca_ratio_mean": hca_ratio_mean,
+                            "training/hca_ratio_std": hca_ratio_std,
+                        },
+                        step=episode,
+                    )
 
             print(
                 f"Episode: {episode} \t\t Average Reward: {avg_reward:.4f} \t\t Average Success: {avg_success:.4f}"
@@ -397,13 +409,13 @@ if __name__ == "__main__":
             "ppo",
             "ppo-hca",
         ],
-        help="Method we are running: one of ppo or ppo_ca (default: ppo)",
+        help="Method we are running: one of ppo or ppo_ca (default:ppo)",
     )
     parser.add_argument(
         "--device",
         type=str,
         default="cpu",
-        help="device to run on (default: cpu)",
+        help="device to run on (default:cpu)",
     )
 
     parser.add_argument(
@@ -476,14 +488,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n-layers",
         type=int,
-        default=2,
-        help="number of hidden layers (default: 2)",
+        default=3,
+        help="number of hidden layers (default:3)",
     )
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=64,
-        help="hidden size of models (default:64)",
+        default=128,
+        help="hidden size of models (default:128)",
     )
     parser.add_argument(
         "--lr",
@@ -496,7 +508,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log-freq",
         type=int,
-        default=2500,
+        default=500,
         help="Log frequency in episodes. Use 0 for no logging (default:2500)",
     )
     parser.add_argument(
@@ -515,8 +527,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hca-data-save-freq",
         type=int,
-        default=5000,
-        help="How many episodes between HCA data getting saved (default:5000)",
+        default=500,
+        help="How many episodes between HCA data getting saved (default:500)",
     )
 
     parser.add_argument(
@@ -607,4 +619,7 @@ if __name__ == "__main__":
         print("Setting the env name correctly and sparse=True for Lorl env")
         args.sparse = True
         args.env_name = "LorlEnv-v0"
+    
+    # Start training
     train(args)
+    
