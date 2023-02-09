@@ -5,15 +5,18 @@ import gym
 import numpy as np
 import torch
 import wandb
-# import lorl_env
 
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
 from hca.hca_model import HCAModel
 
-
-from lorl import LorlWrapper, TASKS
-from utils import get_hindsight_logprobs, HCABuffer, calculate_mc_returns, get_env
+from lorl import TASKS
+from utils import (
+    get_hindsight_logprobs,
+    HCABuffer,
+    calculate_mc_returns,
+    get_env,
+)
 from eval import eval
 
 
@@ -84,20 +87,26 @@ def train(args):
     if args.method == "ppo-hca":
         if args.hca_checkpoint:
             hca_checkpoint = torch.load(args.hca_checkpoint)
-            h_model = HCAModel(state_dim + 1, action_dim,
-                               continuous=continuous,
-                               n_layers=hca_checkpoint["args"]["n_layers"],
-                               hidden_size=hca_checkpoint["args"]["hidden_size"])
+            h_model = HCAModel(
+                state_dim + 1,
+                action_dim,
+                continuous=continuous,
+                n_layers=hca_checkpoint["args"]["n_layers"],
+                hidden_size=hca_checkpoint["args"]["hidden_size"],
+            )
             h_model.load(hca_checkpoint["model"])
         else:
             assert args.update_hca_online
-            h_model = HCAModel(state_dim + 1, action_dim,
-                               continuous=continuous,
-                               n_layers=args.hca_n_layers,
-                               hidden_size=args.hca_hidden_size)
+            h_model = HCAModel(
+                state_dim + 1,
+                action_dim,
+                continuous=continuous,
+                n_layers=args.hca_n_layers,
+                hidden_size=args.hca_hidden_size,
+            )
         if args.update_hca_online:
             if continuous:
-                hca_buffer_online = HCABuffer(exp_name,  action_dim=action_dim)
+                hca_buffer_online = HCABuffer(exp_name, action_dim=action_dim)
             else:
                 hca_buffer_online = HCABuffer(exp_name, action_dim=1)
             hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.hca_lr)
@@ -335,16 +344,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--env-type",
         type=str,
-        default="gridworld",
-        choices=["gridwolrd", "d4rl"],
-        help="type of environment to use."
+        default="lorl",
+        choices=["gridworld", "d4rl", "lorl"],
+        help="type of environment to use.",
     )
 
     parser.add_argument(
         "--env-name",
         "-env",
-        default="GridWorld-Default",
-        help="name of gym environment to use (default: GridWorld-Default)",
+        default="LorlEnv-v0",
+        help="name of gym environment to use (default: LorlEnv-v0)",
     )
 
     parser.add_argument(
@@ -594,7 +603,8 @@ if __name__ == "__main__":
         print(
             "Using method PPO-HCA: Setting the advantage calculation to hca and value-loss coefficient to 0"
         )
-    if args.env_name == "lorl":
-        print("Setting sparse=True for Lorl env")
+    if args.env_type == "lorl":
+        print("Setting the env name correctly and sparse=True for Lorl env")
         args.sparse = True
+        args.env_name = "LorlEnv-v0"
     train(args)

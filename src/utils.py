@@ -7,6 +7,7 @@ import os
 from gridworld.gridworld_env import GridWorld
 import gym
 import d4rl
+import lorl_env
 from lorl import LorlWrapper
 
 
