@@ -293,8 +293,8 @@ class PPO:
                 np.mean(action_losses),
                 np.mean(value_losses),
                 np.mean(entropies),
-                None
-            ),
+                {}
+            )
         else:
             hca_stats_dict = {
                 "max": np.max(hca_ratio_maxes),
