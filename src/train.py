@@ -7,9 +7,10 @@ import torch
 import wandb
 import lorl_env
 
-from gridworld.gridworld_env import GridWorld
+from eval import eval
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
+from utils import get_hindsight_logprobs, get_env
 from hca.hca_model import HCAModel
 
 
@@ -20,10 +21,7 @@ from eval import eval
 
 def train(args):
     # Environment
-    if args.env_name == "grid":
-        env = GridWorld(args.puzzle_path, sparse=args.sparse)
-    elif args.env_name == "lorl":
-        env = LorlWrapper(gym.make("LorlEnv-v0"), use_state=args.use_state)
+    env = get_env(args)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -85,30 +83,25 @@ def train(args):
     hca_buffer_online = None
     h_model = None
     hca_opt = None
-    hca_loss_fn = None
     if args.method == "ppo-hca":
         if args.hca_checkpoint:
             hca_checkpoint = torch.load(args.hca_checkpoint)
-            h_model = HCAModel(
-                state_dim + 1,
-                action_dim,
-                hca_checkpoint["args"]["n_layers"],
-                hca_checkpoint["args"]["hidden_size"],
-            )
+            h_model = HCAModel(state_dim + 1, action_dim,
+                               continuous=continuous,
+                               n_layers=hca_checkpoint["args"]["n_layers"],
+                               hidden_size=hca_checkpoint["args"]["hidden_size"])
             h_model.load(hca_checkpoint["model"])
         else:
             assert args.update_hca_online
-            h_model = HCAModel(
-                state_dim + 1,
-                action_dim,
-                args.hca_n_layers,
-                args.hca_hidden_size,
-            )
+            h_model = HCAModel(state_dim + 1, action_dim,
+                               continuous=continuous,
+                               n_layers=args.hca_n_layers,
+                               hidden_size=args.hca_hidden_size)
         if args.update_hca_online:
-            hca_buffer_online = HCABuffer(
-                exp_name
-            )  # TODO(akash): make this have a limited capacity.
-            hca_loss_fn = torch.nn.CrossEntropyLoss()
+            if continuous:
+                hca_buffer_online = utils.HCABuffer(exp_name,  action_dim=action_dim)
+            else:
+                hca_buffer_online = utils.HCABuffer(exp_name, action_dim=1)
             hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.hca_lr)
 
     # Replay Memory
@@ -116,7 +109,10 @@ def train(args):
 
     hca_buffer = None
     if args.collect_hca_data:
-        hca_buffer = HCABuffer(exp_name)
+        if continuous:
+            hca_buffer = utils.HCABuffer(exp_name, action_dim=action_dim)
+        else:
+            hca_buffer = utils.HCABuffer(exp_name, action_dim=1)
 
     # logging
     total_rewards, total_successes = [], []
@@ -169,7 +165,10 @@ def train(args):
             current_ep_reward += reward
 
         total_rewards.append(current_ep_reward)
-        total_successes.append(info["success"])
+        if "success" in info:
+            total_successes.append(info["success"])
+        else:
+            total_successes.append(0.0)
 
         hindsight_logprobs = []
         if args.method == "ppo-hca":
@@ -198,10 +197,8 @@ def train(args):
             hca_losses = []
             for _ in range(args.hca_num_updates):
                 X, y = hca_buffer_online.get_batch(args.hca_batch_size)
-                X, y = torch.from_numpy(X).float(), torch.from_numpy(y).long()
-                hca_loss = h_model.train_step(
-                    X, y, hca_opt, hca_loss_fn, device
-                )
+                X, y = torch.from_numpy(X).float(), torch.from_numpy(y)
+                hca_loss = h_model.train_step(X, y, hca_opt, device)
                 hca_losses.append(hca_loss)
             mean_hca_loss = np.mean(hca_losses)
 
@@ -337,11 +334,18 @@ if __name__ == "__main__":
     )
     ### Environment params
     parser.add_argument(
+        "--env-type",
+        type=str,
+        default="gridworld",
+        choices=["gridwolrd", "d4rl"],
+        help="type of environment to use."
+    )
+
+    parser.add_argument(
         "--env-name",
         "-env",
-        default="grid",
-        choices=["grid", "lorl"],
-        help="gym environment to use (default: grid)",
+        default="GridWorld-Default",
+        help="name of gym environment to use (default: GridWorld-Default)",
     )
 
     parser.add_argument(

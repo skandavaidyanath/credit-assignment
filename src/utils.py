@@ -4,10 +4,23 @@ import gridworld
 import pickle
 import datetime
 import os
+from gridworld.gridworld_env import GridWorld
+import gym
+import d4rl
+
+def get_env(args):
+    if args.env_type == "d4rl":
+        env = gym.make(args.env_name)
+    elif args.env_type == "gridworld":
+        env = GridWorld(args.puzzle_path, sparse=args.sparse)
+    else:
+        raise NotImplementedError
+    return env
 
 
 class HCABuffer:
-    def __init__(self, exp_name):
+    def __init__(self, exp_name, action_dim):
+        self.action_dim = action_dim
         self.num_episodes_stored = 0
         self.num_transitions_stored = 0
         self.states = []
@@ -42,7 +55,7 @@ class HCABuffer:
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
         inp_data = np.concatenate((states, returns), -1)
-        actions = np.array(self.actions).reshape((-1, 1))
+        actions = np.array(self.actions).reshape((-1, self.action_dim))
 
         size = states.shape[0]
         inds = np.random.choice(size, size=batch_size, replace=False)
@@ -161,6 +174,6 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
     inputs = np.array(inputs)
     inputs = torch.from_numpy(inputs).reshape(len(inputs), -1).float()  # B x D
     h_values = h_model.get_hindsight_values(
-        inputs, torch.Tensor(actions).long()
+        inputs, torch.from_numpy(np.array(actions))
     )
     return h_values.detach().tolist()
