@@ -150,6 +150,9 @@ def train(args):
             action, action_logprob = agent.select_action(state)
             if continuous:
                 action = action.numpy().flatten()
+                action = action.clip(
+                    env.action_space.low, env.action_space.high
+                )
             else:
                 action = action.item()
             states.append(state)
