@@ -102,11 +102,12 @@ class LorlWrapper(gym.Wrapper):
     2) Preprocess states
     """
 
-    def __init__(self, env, use_state=True):
+    def __init__(self, env, use_state=True, max_steps=20):
         super(LorlWrapper, self).__init__(env)
 
         self.env = env
         self.use_state = use_state
+        self.max_steps = max_steps
 
         # calculate the state mean and std once if
         # not done before
@@ -134,6 +135,7 @@ class LorlWrapper(gym.Wrapper):
 
         self.action_space = env.action_space
 
+        self.cur_step = 0
         self.task = None
         self.initial_state = None
 
@@ -143,6 +145,7 @@ class LorlWrapper(gym.Wrapper):
 
         env = self.env
         im, _ = env.reset()
+        self.cur_step = 0
 
         if task not in TASKS:
             raise ValueError(f"Unknown task! Choose from {TASKS}")
@@ -228,6 +231,7 @@ class LorlWrapper(gym.Wrapper):
 
     def step(self, action):
         assert action in self.action_space
+        self.cur_step += 1
 
         im, _, _, info = self.env.step(action)
         dist, s = lorl_gt_reward(
@@ -240,8 +244,10 @@ class LorlWrapper(gym.Wrapper):
             success = 1
             reward = -dist
 
+        done = s or (self.cur_step >= self.max_steps)
+
         info.update({"success": success})
-        return self.get_state(im), reward, s, info
+        return self.get_state(im), reward, done, info
 
     def get_state(self, obs):
         """Returns the preprocessed observation"""
