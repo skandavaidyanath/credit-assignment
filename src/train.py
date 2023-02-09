@@ -5,13 +5,16 @@ import gym
 import numpy as np
 import torch
 import wandb
+import lorl_env
 
 from gridworld.gridworld_env import GridWorld
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
 from hca.hca_model import HCAModel
 
-from utils import get_hindsight_logprobs
+
+from lorl import LorlWrapper, TASKS
+from utils import get_hindsight_logprobs, HCABuffer, calculate_mc_returns
 from eval import eval
 
 
@@ -20,7 +23,7 @@ def train(args):
     if args.env_name == "grid":
         env = GridWorld(args.puzzle_path, sparse=args.sparse)
     elif args.env_name == "lorl":
-        env = gym.make("LorlEnv-v0")
+        env = LorlWrapper(gym.make("LorlEnv-v0"), use_state=args.use_state)
 
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
@@ -102,7 +105,7 @@ def train(args):
                 args.hca_hidden_size,
             )
         if args.update_hca_online:
-            hca_buffer_online = utils.HCABuffer(
+            hca_buffer_online = HCABuffer(
                 exp_name
             )  # TODO(akash): make this have a limited capacity.
             hca_loss_fn = torch.nn.CrossEntropyLoss()
@@ -113,7 +116,7 @@ def train(args):
 
     hca_buffer = None
     if args.collect_hca_data:
-        hca_buffer = utils.HCABuffer(exp_name)
+        hca_buffer = HCABuffer(exp_name)
 
     # logging
     total_rewards, total_successes = [], []
@@ -133,7 +136,10 @@ def train(args):
     )
 
     for episode in range(1, args.max_training_episodes + 1):
-        state = env.reset()
+        if args.env_name == "grid":
+            state = env.reset()
+        elif args.env_name == "lorl":
+            state = env.reset(args.task)
         current_ep_reward = 0
         done = False
 
@@ -164,9 +170,7 @@ def train(args):
 
         hindsight_logprobs = []
         if args.method == "ppo-hca":
-            returns = utils.calculate_mc_returns(
-                rewards, terminals, agent.gamma
-            )
+            returns = calculate_mc_returns(rewards, terminals, agent.gamma)
             hindsight_logprobs = get_hindsight_logprobs(
                 h_model, states, returns, actions
             )
@@ -355,6 +359,13 @@ if __name__ == "__main__":
         help="make environment sparse (default:False)",
     )
 
+    parser.add_argument(
+        "--use-state",
+        type=bool,
+        default=True,
+        help="whether to use state for Lorl env (default: True)",
+    )
+
     ## Training params
     parser.add_argument(
         "--seed",
@@ -379,6 +390,15 @@ if __name__ == "__main__":
         default="cpu",
         help="device to run on (default: cpu)",
     )
+
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="open drawer",
+        choices=TASKS,
+        help="what task to run LorlEnv on. (default: open drawer)",
+    )
+
     parser.add_argument(
         "--max-training-episodes",
         type=int,
