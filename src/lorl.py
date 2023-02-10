@@ -242,7 +242,7 @@ class LorlWrapper(gym.Wrapper):
         success = 0
         if s:
             success = 1
-            reward = dist
+            reward = dist*1000  # just increasing reward magnitude to get better gradients
 
         done = s or (self.cur_step >= self.max_steps)
 

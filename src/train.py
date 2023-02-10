@@ -37,8 +37,12 @@ def train(args):
         action_dim = env.action_space.shape[0]
     else:
         action_dim = env.action_space.n
-
-    state_dim = env.observation_space.shape[0]
+        
+    if isinstance(env.observation_space, gym.spaces.Dict):
+        # gridworld env
+        state_dim = env.observation_space["map"].shape[0]+1
+    else:
+        state_dim = env.observation_space.shape[0]
 
     if args.seed:
         print(
@@ -55,9 +59,9 @@ def train(args):
         np.random.seed(args.seed)
 
     reward_type = "sparse" if args.sparse else "dense"
-    exp_name = f":{args.method}_{reward_type}_{args.env_name}"
+    exp_name = f"{args.method}_{reward_type}_{args.env_name}"
     if args.env_type == "gridworld":
-        exp_name += f"{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+        exp_name += f":{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
     if args.exp_name_modifier:
         exp_name += "_" + args.exp_name_modifier
 
@@ -271,7 +275,7 @@ def train(args):
                     },
                     step=episode,
                 )
-                if arg.method == "ppo-hca":
+                if args.method == "ppo-hca":
                     wandb.log(
                         {
                             "training/hca_loss": mean_hca_loss,

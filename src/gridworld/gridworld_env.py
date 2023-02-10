@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from gym import Env
-from gym.spaces import Discrete, MultiDiscrete
+from gym.spaces import Discrete, MultiDiscrete, Dict
 
 from tabulate import tabulate
 
@@ -34,7 +34,7 @@ class GridWorld(Env):
         self.episode_rewards = []
 
         # observation and action spaces
-        self.observation_space = MultiDiscrete(7 * np.ones(self.R * self.C))
+        self.observation_space = Dict({"map": MultiDiscrete(7 * np.ones(self.R * self.C)), "time": Discrete(max_steps+1)})
         self.action_space = Discrete(4)
 
     def process(self, gridmap):
@@ -48,7 +48,9 @@ class GridWorld(Env):
     def get_state(self):
         map = self.current_map.copy()
         map[self.agent_location[0], self.agent_location[1]] = TILE_MAPPING["A"]
-        return map.flatten()
+        map = map.flatten()
+        state = np.concatenate([map, [self.current_steps]])
+        return state
 
     def reset(self):
         self.current_map = self.gridmap.copy()
@@ -114,4 +116,4 @@ class GridWorld(Env):
 
 
 if __name__ == "__main__":
-    g = GridWorld("src/maps/test_v1.txt", sparse=False)
+    g = GridWorld("../maps/test_v1.txt", sparse=False)
