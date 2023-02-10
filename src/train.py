@@ -323,7 +323,7 @@ def train(args):
             hca_buffer.save_data(action_dim)
 
         if args.eval_freq and episode % args.eval_freq == 0:
-            eval_avg_reward, eval_avg_success = eval(env, agent)
+            eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
             if args.wandb:
                 wandb.log(
