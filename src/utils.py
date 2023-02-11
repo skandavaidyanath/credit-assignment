@@ -6,18 +6,25 @@ import datetime
 import os
 from gridworld.gridworld_env import GridWorld
 import gym
-import d4rl
-import lorl_env
+
+try:
+    import d4rl
+except:
+    print("D4RL is not installed!")
+try:
+    import lorl_env
+except:
+    print("Lorl env is not installed!")
 from lorl import LorlWrapper
 
 
 def get_env(args):
-    if args.env_type == "d4rl":
-        env = gym.make(args.env_name)
-    elif args.env_type == "gridworld":
-        env = GridWorld(args.puzzle_path, sparse=args.sparse)
-    elif args.env_type == "lorl":
-        env = LorlWrapper(gym.make(args.env_name), use_state=args.use_state)
+    if args.env.type == "d4rl":
+        env = gym.make(args.env.name)
+    elif args.env.type == "gridworld":
+        env = GridWorld(args.puzzle_path, sparse=args.env.sparse)
+    elif args.env.type == "lorl":
+        env = LorlWrapper(gym.make(args.env_name), use_state=args.env.use_state)
     else:
         raise NotImplementedError
     return env
@@ -56,7 +63,9 @@ class HCABuffer:
 
     def get_batch(self, batch_size):
         if batch_size > self.num_transitions_stored:
-            print("Warning: tried updating hca model without enough transitions in buffer!")
+            print(
+                "Warning: tried updating hca model without enough transitions in buffer!"
+            )
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
         inp_data = np.concatenate((states, returns), -1)
@@ -65,7 +74,6 @@ class HCABuffer:
         size = states.shape[0]
         inds = np.random.choice(size, size=batch_size, replace=False)
         return inp_data[inds], actions[inds]
-
 
     def save_data(self, num_actions):
         states = np.array(self.states)

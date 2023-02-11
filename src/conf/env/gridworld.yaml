@@ -1,0 +1,17 @@
+# @package _global_
+
+env:
+  name: "GridWorld"
+  type: "gridworld"
+  sparse: True
+  puzzle_path: "maps/test_v4.txt"
+
+training:
+  log_freq: 1000  # Log every these many episodes
+  save_model_freq: 0 # Save networks every these many episodes
+  eval_freq: 10000 # eval every these many episodes
+
+agent:
+  value_loss_coeff: 0.25
+  n_layers: 2
+  hidden_size: 64
