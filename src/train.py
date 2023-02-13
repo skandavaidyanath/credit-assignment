@@ -105,6 +105,7 @@ def train(args):
                 hidden_size=hca_checkpoint["args"]["hidden_size"],
             )
             h_model.load(hca_checkpoint["model"])
+            print("successfully loaded hca model!")
         else:
             assert args.update_hca_online, "If not specifying a HCA checkpoint, use --update-hca-online"
             h_model = HCAModel(

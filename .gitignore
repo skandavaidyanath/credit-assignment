@@ -6,4 +6,5 @@ __pycache__/
 */.DS_Store/
 checkpoints/
 hca_data/
+hca/checkpoints/
 */.ipynb_checkpoints/
