@@ -99,21 +99,21 @@ class PPO:
         self.continuous = continuous
         self.device = device
 
-        self.gamma = args.gamma
-        self.lamda = args.lamda
-        self.entropy_coeff = args.entropy_coeff
-        self.value_loss_coeff = args.value_loss_coeff
-        self.adv = args.adv
-        self.eps_clip = args.eps_clip
-        self.ppo_epochs = args.ppo_epochs
-        self.dont_update = args.dont_update
+        self.gamma = args.env.gamma
+        self.lamda = args.training.lamda
+        self.entropy_coeff = args.training.entropy_coeff
+        self.value_loss_coeff = args.training.value_loss_coeff
+        self.adv = args.agent.adv
+        self.eps_clip = args.agent.eps_clip
+        self.ppo_epochs = args.agent.ppo_epochs
+        self.dont_update = args.agent.dont_update
 
         self.policy = ActorCritic(
             state_dim,
             action_dim,
             continuous=continuous,
-            n_layers=args.n_layers,
-            hidden_size=args.hidden_size,
+            n_layers=args.agent.n_layers,
+            hidden_size=args.agent.hidden_size,
         ).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
 
@@ -137,10 +137,12 @@ class PPO:
         hindsight_ratio_min = hindsight_ratios.min().item()
         hindsight_ratio_std = hindsight_ratios.std().item()
 
-        hindsight_stats = {"min": hindsight_ratio_min,
-                           "max": hindsight_ratio_max,
-                           "mean": hindsight_ratio_mean,
-                           "std": hindsight_ratio_std}
+        hindsight_stats = {
+            "min": hindsight_ratio_min,
+            "max": hindsight_ratio_max,
+            "mean": hindsight_ratio_mean,
+            "std": hindsight_ratio_std,
+        }
 
         advantages = (1 - hindsight_ratios) * mc_returns
         advantages = (advantages - advantages.mean()) / (
@@ -222,7 +224,12 @@ class PPO:
         )
 
         total_losses, action_losses, value_losses, entropies = [], [], [], []
-        hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = [], [], [], []
+        hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
+            [],
+            [],
+            [],
+            [],
+        )
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
@@ -293,21 +300,21 @@ class PPO:
                 np.mean(action_losses),
                 np.mean(value_losses),
                 np.mean(entropies),
-                {}
+                {},
             )
         else:
             hca_stats_dict = {
                 "max": np.max(hca_ratio_maxes),
                 "min": np.min(hca_ratio_mins),
                 "mean": np.mean(hca_ratio_means),
-                "std": np.mean(hca_ratio_stds)
+                "std": np.mean(hca_ratio_stds),
             }
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
                 0,
                 np.mean(entropies),
-                hca_stats_dict
+                hca_stats_dict,
             )
 
     def save(self, checkpoint_path, args):

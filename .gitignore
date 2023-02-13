@@ -8,3 +8,4 @@ checkpoints/
 hca_data/
 hca/checkpoints/
 */.ipynb_checkpoints/
+outputs/

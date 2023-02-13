@@ -1,6 +1,8 @@
-import argparse
+import hydra
+from omegaconf import DictConfig, OmegaConf
 import datetime
 import os
+import random
 
 # suppress D4RL warnings
 os.environ["D4RL_SUPPRESS_IMPORT_ERROR"] = "1"
@@ -37,38 +39,40 @@ def train(args):
         action_dim = env.action_space.shape[0]
     else:
         action_dim = env.action_space.n
-        
+
     if isinstance(env.observation_space, gym.spaces.Dict):
         # gridworld env
-        state_dim = env.observation_space["map"].shape[0]+1
+        state_dim = env.observation_space["map"].shape[0] + 1
     else:
         state_dim = env.observation_space.shape[0]
 
-    if args.seed:
+    if args.training.seed:
         print(
             "============================================================================================"
         )
-        print(f"Setting seed: {args.seed}")
+        print(f"Setting seed: {args.training.seed}")
         print(
             "============================================================================================"
         )
-        env.seed(args.seed)
-        env.action_space.seed(args.seed)
+        env.seed(args.training.seed)
+        env.action_space.seed(args.training.seed)
+        random.seed(args.training.seed)
+        torch.manual_seed(args.training.seed)
+        np.random.seed(args.training.seed)
 
-        torch.manual_seed(args.seed)
-        np.random.seed(args.seed)
-
-    reward_type = "sparse" if args.sparse else "dense"
-    exp_name = f"{args.method}_{reward_type}_{args.env_name}"
-    if args.env_type == "gridworld":
-        exp_name += f":{args.puzzle_path.lstrip('maps/').rstrip('.txt')}"
-    if args.exp_name_modifier:
-        exp_name += "_" + args.exp_name_modifier
+    reward_type = "sparse" if args.env.sparse else "dense"
+    exp_name = f"{args.agent.name}_{reward_type}_{args.env.name}"
+    if args.env.type == "gridworld":
+        exp_name += (
+            f":{args.training.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+        )
+    if args.training.exp_name_modifier:
+        exp_name += "_" + args.training.exp_name_modifier
 
     # Device
-    device = torch.device(args.device)
+    device = torch.device(args.training.device)
 
-    if args.save_model_freq:
+    if args.training.save_model_freq:
         checkpoint_path = f"../checkpoints/{exp_name}_"
         checkpoint_path += f"{datetime.datetime.now().replace(microsecond=0)}"
         setattr(args, "savedir", checkpoint_path)
@@ -78,7 +82,7 @@ def train(args):
     if args.wandb:
         wandb.init(
             name=exp_name,
-            project=args.env_name,
+            project=args.env.name,
             config=vars(args),
             entity="ca-exploration",
         )
@@ -86,17 +90,17 @@ def train(args):
     # Agent
     agent = PPO(state_dim, action_dim, args.lr, continuous, device, args)
 
-    if args.checkpoint:
-        checkpoint = torch.load(args.checkpoint)
+    if args.training.checkpoint:
+        checkpoint = torch.load(args.training.checkpoint)
         agent.load(checkpoint["policy"])
 
     # HCA model
     hca_buffer_online = None
     h_model = None
     hca_opt = None
-    if args.method == "ppo-hca":
-        if args.hca_checkpoint:
-            hca_checkpoint = torch.load(args.hca_checkpoint)
+    if args.training.method == "ppo-hca":
+        if args.agent.hca_checkpoint:
+            hca_checkpoint = torch.load(args.agent.hca_checkpoint)
             h_model = HCAModel(
                 state_dim + 1,
                 action_dim,
@@ -107,15 +111,17 @@ def train(args):
             h_model.load(hca_checkpoint["model"])
             print("successfully loaded hca model!")
         else:
-            assert args.update_hca_online, "If not specifying a HCA checkpoint, use --update-hca-online"
+            assert (
+                args.agent.update_hca_online
+            ), "If not specifying a HCA checkpoint, use --update-hca-online"
             h_model = HCAModel(
                 state_dim + 1,
                 action_dim,
                 continuous=continuous,
-                n_layers=args.hca_n_layers,
-                hidden_size=args.hca_hidden_size,
+                n_layers=args.agent.hca_n_layers,
+                hidden_size=args.agent.hca_hidden_size,
             )
-        if args.update_hca_online:
+        if args.agent.update_hca_online:
             if continuous:
                 hca_buffer_online = HCABuffer(exp_name, action_dim=action_dim)
             else:
@@ -126,7 +132,7 @@ def train(args):
     buffer = RolloutBuffer()
 
     hca_buffer = None
-    if args.collect_hca_data:
+    if args.training.collect_hca_data:
         if continuous:
             hca_buffer = HCABuffer(exp_name, action_dim=action_dim)
         else:
@@ -149,9 +155,9 @@ def train(args):
         "============================================================================================"
     )
 
-    for episode in range(1, args.max_training_episodes + 1):
-        if args.env_type == "lorl":
-            state = env.reset(args.task)
+    for episode in range(1, args.training.max_training_episodes + 1):
+        if args.env.type == "lorl":
+            state = env.reset(args.env.task)
         else:
             state = env.reset()
 
@@ -190,7 +196,7 @@ def train(args):
             total_successes.append(0.0)
 
         hindsight_logprobs = []
-        if args.method == "ppo-hca":
+        if args.agent.name == "ppo-hca":
             returns = calculate_mc_returns(rewards, terminals, agent.gamma)
             hindsight_logprobs = get_hindsight_logprobs(
                 h_model, states, returns, actions
@@ -208,21 +214,22 @@ def train(args):
 
         # update the HCA function, if applicable
         mean_hca_loss = 0.0
-        if args.update_hca_online and (
-            episode % args.hca_update_every == 0 or episode == args.update_every
+        if args.agent.update_hca_online and (
+            episode % args.agent.hca_update_every == 0
+            or episode == args.agent.update_every
         ):
             assert hca_buffer_online is not None
             assert h_model is not None
             hca_losses = []
-            for _ in range(args.hca_num_updates):
-                X, y = hca_buffer_online.get_batch(args.hca_batch_size)
+            for _ in range(args.agent.hca_num_updates):
+                X, y = hca_buffer_online.get_batch(args.agent.hca_batchsize)
                 X, y = torch.from_numpy(X).float(), torch.from_numpy(y)
                 hca_loss = h_model.train_step(X, y, hca_opt, device)
                 hca_losses.append(hca_loss)
             mean_hca_loss = np.mean(hca_losses)
 
         # update PPO agent
-        if episode % args.update_every == 0:
+        if episode % args.agent.update_every == 0:
             (
                 total_loss,
                 action_loss,
@@ -243,11 +250,11 @@ def train(args):
             buffer.clear()
 
         # store data for hindsight function training
-        if args.collect_hca_data:
+        if args.training.collect_hca_data:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # logging
-        if args.log_freq and episode % args.log_freq == 0:
+        if args.training.log_freq and episode % args.training.log_freq == 0:
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
@@ -264,7 +271,7 @@ def train(args):
                 np.mean(hca_ratio_stds) if len(hca_ratio_stds) > 0 else 0.0
             )
 
-            if args.wandb:
+            if args.training.wandb:
                 wandb.log(
                     {
                         "training/avg_rewards": avg_reward,
@@ -276,7 +283,7 @@ def train(args):
                     },
                     step=episode,
                 )
-                if args.method == "ppo-hca":
+                if args.agent.name == "ppo-hca":
                     wandb.log(
                         {
                             "training/hca_loss": mean_hca_loss,
@@ -301,7 +308,10 @@ def train(args):
             )
 
         # save model weights
-        if args.save_model_freq and episode % args.save_model_freq == 0:
+        if (
+            args.training.save_model_freq
+            and episode % args.training.save_model_freq == 0
+        ):
             print(
                 "--------------------------------------------------------------------------------------------"
             )
@@ -318,15 +328,15 @@ def train(args):
 
         if (
             hca_buffer
-            and args.hca_data_save_freq
-            and episode % args.hca_data_save_freq == 0
+            and args.agent.hca_data_save_freq
+            and episode % args.agent.hca_data_save_freq == 0
         ):
             hca_buffer.save_data(action_dim)
 
-        if args.eval_freq and episode % args.eval_freq == 0:
+        if args.training.eval_freq and episode % args.training.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
-            if args.wandb:
+            if args.training.wandb:
                 wandb.log(
                     {
                         "eval/avg_rewards": eval_avg_reward,
@@ -336,7 +346,7 @@ def train(args):
                 )
 
     ## SAVE MODELS
-    if args.save_model_freq:
+    if args.training.save_model_freq:
         print(
             "--------------------------------------------------------------------------------------------"
         )
@@ -353,278 +363,22 @@ def train(args):
         )
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="CA Based Exploration RL Training Args"
-    )
-    ### Environment params
-    parser.add_argument(
-        "--env-type",
-        type=str,
-        default="lorl",
-        choices=["gridworld", "d4rl", "lorl"],
-        help="type of environment to use.",
-    )
+def get_args(cfg: DictConfig):
+    cfg.training.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    cfg.hydra_base_dir = os.getcwd()
+    return cfg
 
-    parser.add_argument(
-        "--env-name",
-        "-env",
-        default="LorlEnv-v0",
-        help="name of gym environment to use (default: LorlEnv-v0)",
-    )
 
-    parser.add_argument(
-        "--puzzle-path",
-        default="maps/test_v4.txt",
-        help="gridworld textfile to use (default: maps/test_v4.txt)",
-    )
+@hydra.main(config_path="conf", config_name="config", version_base="1.1")
+def main(cfg: DictConfig):
+    args = get_args(cfg)
 
-    parser.add_argument(
-        "--wandb",
-        action="store_true",
-        help="whether to use wandb logging (default: False)",
-    )
+    print("--> Running in ", os.getcwd())
 
-    parser.add_argument(
-        "--sparse",
-        action="store_true",
-        help="make environment sparse (default:False)",
-    )
-
-    parser.add_argument(
-        "--use-state",
-        type=bool,
-        default=True,
-        help="whether to use state for Lorl env (default: True)",
-    )
-
-    ## Training params
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=0,
-        help="random seed (default: 0). 0 means no seeding",
-    )
-
-    parser.add_argument(
-        "--method",
-        type=str,
-        default="ppo",
-        choices=[
-            "ppo",
-            "ppo-hca",
-        ],
-        help="Method we are running: one of ppo or ppo_ca (default:ppo)",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cpu",
-        help="device to run on (default:cpu)",
-    )
-
-    parser.add_argument(
-        "--task",
-        type=str,
-        default="open drawer",
-        choices=TASKS,
-        help="what task to run LorlEnv on. (default: open drawer)",
-    )
-
-    parser.add_argument(
-        "--max-training-episodes",
-        type=int,
-        default=500000,
-        help="maxmimum training episodes (default: 500000)",
-    )
-    parser.add_argument(
-        "--update-every",
-        type=int,
-        default=50,
-        help="update policy every these many episodes (default: 50)",
-    )
-    parser.add_argument(
-        "--ppo-epochs",
-        type=int,
-        default=30,
-        help="update policy for K epochs in one PPO update (default:30)",
-    )
-
-    parser.add_argument(
-        "--dont-update",
-        action="store_true",
-        help="dont update models (default:False)",
-    )
-
-    parser.add_argument(
-        "--eps-clip",
-        type=float,
-        default=0.2,
-        help="clip parameter for PPO (default: 0.2)",
-    )
-    parser.add_argument(
-        "--gamma",
-        type=float,
-        default=0.99,
-        help="discount factor (default:0.99)",
-    )
-    parser.add_argument(
-        "--lamda", type=float, default=0.95, help="GAE lambda (default:0.95)"
-    )
-    parser.add_argument(
-        "--entropy-coeff",
-        type=float,
-        default=0.0,
-        help="Entropy Coefficient (default:0.0)",
-    )
-    parser.add_argument(
-        "--value-loss-coeff",
-        type=float,
-        default=0.25,
-        help="Value Loss Coefficient (default:0.25)",
-    )
-    parser.add_argument(
-        "--adv",
-        type=str,
-        default="gae",
-        choices=["gae", "mc", "hca"],
-        help="What advantage calculation to use (default: gae)",
-    )
-    parser.add_argument(
-        "--n-layers",
-        type=int,
-        default=3,
-        help="number of hidden layers (default:3)",
-    )
-    parser.add_argument(
-        "--hidden-size",
-        type=int,
-        default=128,
-        help="hidden size of models (default:128)",
-    )
-    parser.add_argument(
-        "--lr",
-        type=float,
-        default=3e-4,
-        help="learning rate for actor network (default: 3e-4)",
-    )
-
-    ## Saving and logging:
-    parser.add_argument(
-        "--log-freq",
-        type=int,
-        default=500,
-        help="Log frequency in episodes. Use 0 for no logging (default:2500)",
-    )
-    parser.add_argument(
-        "--save-model-freq",
-        type=int,
-        default=1000000,
-        help="Model save frequency in episodes. Use 0 for no saving (default: 1000000)",
-    )
-
-    parser.add_argument(
-        "--collect-hca-data",
-        action="store_true",
-        help="Whether to store transition data for HCA function training.",
-    )
-
-    parser.add_argument(
-        "--hca-data-save-freq",
-        type=int,
-        default=500,
-        help="How many episodes between HCA data getting saved (default:500)",
-    )
-
-    parser.add_argument(
-        "--hca-checkpoint",
-        type=str,
-        default=None,
-        help="path to HCA model checkpoint",
-    )
-
-    parser.add_argument(
-        "--update-hca-online",
-        action="store_true",
-        help="Whether to update the HCA function with episodes collected online.",
-    )
-
-    parser.add_argument(
-        "--hca-n-layers",
-        type=int,
-        default=2,
-        help="Number of layers for HCA MLP model. Note that if a checkpoint is specified, this value is overridden.",
-    )
-
-    parser.add_argument(
-        "--hca-hidden-size",
-        type=int,
-        default=128,
-        help="Hidden dimension for HCA MLP Model. Note that if a checkpoint is specified, this value is overridden.",
-    )
-
-    parser.add_argument(
-        "--hca-lr",
-        type=float,
-        default=3e-4,
-        help="Learning rate used to update the hca function online.",
-    )
-
-    parser.add_argument(
-        "--hca-update-every",
-        type=int,
-        default=500,
-        help="How often to update the hca function (in episodes).",
-    )
-
-    parser.add_argument(
-        "--hca-num-updates",
-        type=int,
-        default=100,
-        help="Number of gradient steps per update to the hca function. Should loosely be larger the less frequent it "
-        "is updated. ",
-    )
-
-    parser.add_argument(
-        "--hca-batch-size",
-        type=int,
-        default=256,
-        help="Batch size for online hca updating.",
-    )
-
-    parser.add_argument("--exp-name-modifier", type=str, default="")
-
-    parser.add_argument(
-        "--eval-freq",
-        type=int,
-        default=10000,
-        help="How often to run evaluation on agent.",
-    )
-
-    ## Loading checkpoints:
-    parser.add_argument(
-        "--checkpoint",
-        "-c",
-        type=str,
-        default="",
-        help="path to checkpoint (default: "
-        "). Empty string does not load a checkpoint.",
-    )
-
-    args = parser.parse_args()
-
-    # sanity check
-    if args.method == "ppo-hca":
-        args.adv = "hca"
-        args.value_loss_coeff = 0.0
-        print(
-            "Using method PPO-HCA: Setting the advantage calculation to hca and value-loss coefficient to 0"
-        )
-    if args.env_type == "lorl":
-        print("Setting the env name correctly and sparse=True for Lorl env")
-        args.sparse = True
-        args.env_name = "LorlEnv-v0"
-    
-    # Start training
+    # train
+    print(OmegaConf.to_yaml(cfg))
     train(args)
-    
+
+
+if __name__ == "__main__":
+    main()

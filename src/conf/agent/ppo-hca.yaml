@@ -1,0 +1,10 @@
+# @package _global_
+
+agent:
+  name: "ppo-hca"
+  adv: "hca"
+  value_loss_coeff: 0.0
+  hca_checkpoint: ""
+  update-hca-online: False
+  hca_n_layers: 2
+  hca_hidden_size: 128

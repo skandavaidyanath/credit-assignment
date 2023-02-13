@@ -1,2 +1,2 @@
 # ca-exploration
-Investigating the connections between credit assignment and exploration in RL problems
+Investigating the effects of pre-training a hindsight credit assignment function for online finetuning in RL problems

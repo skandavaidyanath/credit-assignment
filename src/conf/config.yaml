@@ -1,0 +1,32 @@
+defaults:
+  # Set default options
+  - _self_
+  - env: lorl_state
+  - agent: ppo
+
+hydra_base_dir: ""
+
+training:
+  wandb: False
+  device: ""
+  max_training_episodes: 100000 # some big number
+  seed: 0
+  checkpoint_path: ""
+  exp_name_modifier: ""
+  collect_hca_data: False
+  hca_data_save_freq: 500
+
+env:
+  gamma: 0.99
+
+agent:
+  update_every: 50
+  ppo_epochs: 30
+  eps_clip: 0.2
+  lambda: 0.95
+  entropy_coeff: 0.0
+  value_loss_coeff: 0.25
+  n_layers: 2
+  hidden_size: 64
+  lr: 3e-4
+  dont_update: False
