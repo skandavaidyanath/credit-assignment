@@ -7,3 +7,4 @@ __pycache__/
 checkpoints/
 hca_data/
 */.ipynb_checkpoints/
+outputs/
