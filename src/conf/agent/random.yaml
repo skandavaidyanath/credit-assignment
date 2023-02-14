@@ -1,0 +1,5 @@
+# @package _global_
+
+agent:
+  name: "random"
+  adv: "gae" # but actually doesn't matter

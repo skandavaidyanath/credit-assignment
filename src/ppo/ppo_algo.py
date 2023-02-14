@@ -100,13 +100,12 @@ class PPO:
         self.device = device
 
         self.gamma = args.env.gamma
-        self.lamda = args.training.lamda
-        self.entropy_coeff = args.training.entropy_coeff
-        self.value_loss_coeff = args.training.value_loss_coeff
+        self.lamda = args.agent.lamda
+        self.entropy_coeff = args.agent.entropy_coeff
+        self.value_loss_coeff = args.agent.value_loss_coeff
         self.adv = args.agent.adv
         self.eps_clip = args.agent.eps_clip
         self.ppo_epochs = args.agent.ppo_epochs
-        self.dont_update = args.agent.dont_update
 
         self.policy = ActorCritic(
             state_dim,
@@ -284,10 +283,9 @@ class PPO:
             )
 
             # take gradient step
-            if not self.dont_update:
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
 
             total_losses.append(loss.detach().cpu().item())
             action_losses.append(action_loss.detach().cpu().item())

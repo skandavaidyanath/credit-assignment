@@ -79,7 +79,7 @@ def train(args):
         os.makedirs(checkpoint_path, exist_ok=True)
 
     # Wandb Initialization
-    if args.wandb:
+    if args.training.wandb:
         wandb.init(
             name=exp_name,
             project=args.env.name,
@@ -88,7 +88,7 @@ def train(args):
         )
 
     # Agent
-    agent = PPO(state_dim, action_dim, args.lr, continuous, device, args)
+    agent = PPO(state_dim, action_dim, args.agent.lr, continuous, device, args)
 
     if args.training.checkpoint:
         checkpoint = torch.load(args.training.checkpoint)
@@ -98,7 +98,7 @@ def train(args):
     hca_buffer_online = None
     h_model = None
     hca_opt = None
-    if args.training.method == "ppo-hca":
+    if args.agent.name == "ppo-hca":
         if args.agent.hca_checkpoint:
             hca_checkpoint = torch.load(args.agent.hca_checkpoint)
             h_model = HCAModel(
@@ -167,15 +167,19 @@ def train(args):
         states, actions, logprobs, rewards, terminals = [], [], [], [], []
 
         while not done:
-            # select action with policy
-            action, action_logprob = agent.select_action(state)
-            if continuous:
-                action = action.numpy().flatten()
-                action = action.clip(
-                    env.action_space.low, env.action_space.high
-                )
+            if args.agent.name == "random":
+                action = env.action_space.sample()
+                action_logprob = None
             else:
-                action = action.item()
+                # select action with policy
+                action, action_logprob = agent.select_action(state)
+                if continuous:
+                    action = action.numpy().flatten()
+                    action = action.clip(
+                        env.action_space.low, env.action_space.high
+                    )
+                else:
+                    action = action.item()
             states.append(state)
             actions.append(action)
             logprobs.append(action_logprob)
@@ -229,7 +233,7 @@ def train(args):
             mean_hca_loss = np.mean(hca_losses)
 
         # update PPO agent
-        if episode % args.agent.update_every == 0:
+        if not args.agent.name == "random" and episode % args.agent.update_every == 0:
             (
                 total_loss,
                 action_loss,
@@ -328,8 +332,8 @@ def train(args):
 
         if (
             hca_buffer
-            and args.agent.hca_data_save_freq
-            and episode % args.agent.hca_data_save_freq == 0
+            and args.training.hca_data_save_freq
+            and episode % args.training.hca_data_save_freq == 0
         ):
             hca_buffer.save_data(action_dim)
 

@@ -13,8 +13,8 @@ def eval(env, agent, args, num_eval_eps=32):
     total_rewards, total_successes = [], []
 
     for episode in range(1, num_eval_eps + 1):
-        if args.env_type == "lorl":
-            state = env.reset(args.task)
+        if args.env.type == "lorl":
+            state = env.reset(args.env.task)
         else:
             state = env.reset()
         current_ep_reward = 0
