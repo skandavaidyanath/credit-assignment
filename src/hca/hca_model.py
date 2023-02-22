@@ -9,7 +9,14 @@ class HCAModel(nn.Module):
     HCA model to predict action probabilities conditioned on returns and state
     """
 
-    def __init__(self, state_dim, action_dim, continuous=False, n_layers=2, hidden_size=64):
+    def __init__(
+        self,
+        state_dim,
+        action_dim,
+        continuous=False,
+        n_layers=2,
+        hidden_size=64,
+    ):
         super(HCAModel, self).__init__()
 
         self.state_dim = state_dim
@@ -38,6 +45,13 @@ class HCAModel(nn.Module):
             )
         else:
             self.log_std = None
+
+    @property
+    def std(self):
+        if not self.continuous:
+            raise ValueError("Calling std() on Discrete HCA function!")
+        else:
+            return torch.exp(self.log_std)
 
     def forward(self, inputs):
         """
@@ -83,10 +97,3 @@ class HCAModel(nn.Module):
 
     def load(self, checkpoint):
         self.net.load_state_dict(checkpoint)
-
-    @property
-    def std(self):
-        if not self.continuous:
-            raise ValueError("Calling std() on Discrete policy!")
-        else:
-            return torch.exp(self.log_std)
