@@ -16,21 +16,33 @@ class HCAModel(nn.Module):
         continuous=False,
         n_layers=2,
         hidden_size=64,
+        activation_fn="tanh",
+        dropout_p=None,
     ):
         super(HCAModel, self).__init__()
 
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.continuous = continuous
+        if activation_fn == "tanh":
+            activation_cls = nn.Tanh
+        elif activation_fn == "relu":
+            activation_cls = nn.ReLU
+        else:
+            raise NotImplementedError
 
         layers = []
         for i in range(n_layers):
             if i == 0:
                 layers.append(nn.Linear(state_dim, hidden_size))
-                layers.append(nn.Tanh())
+                layers.append(activation_cls())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
             else:
                 layers.append(nn.Linear(hidden_size, hidden_size))
-                layers.append(nn.Tanh())
+                layers.append(activation_cls())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
         if not layers:
             layers.append(nn.Linear(state_dim, action_dim))
         else:

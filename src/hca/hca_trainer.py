@@ -11,6 +11,30 @@ from hca.hca_model import HCAModel
 import pickle
 
 
+def validate_model(model, val_dataloader, epoch, continuous):
+    results = []
+    for states, actions in val_dataloader:
+        preds, dists = model(states)
+        if continuous:
+            log_probs = dists.log_prob(actions)
+            results.append(log_probs.mean().item())
+        else:
+            preds = preds.argmax(-1)
+            results.append(torch.sum(preds == actions) / len(preds))
+    if args.wandb:
+        if continuous:
+            wandb_label = "val/log_likelihood"
+        else:
+            wandb_label = "val/acc"
+        wandb.log(
+            {
+                wandb_label: np.mean(results),
+            },
+            step=epoch,
+        )
+    return results
+
+
 def train(args):
     if args.seed:
         print(
@@ -24,20 +48,28 @@ def train(args):
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-    # Load files and create dataloader
+    # # Load files and create dataloader
     with open(args.data_path, 'rb') as f:
         data_dict = pickle.load(f)
+    if "act_dim" in data_dict:
+        act_dim = data_dict["act_dim"]
+    elif "num_acts" in data_dict:
+        act_dim = data_dict["num_acts"]
+    else:
+        raise Exception("Action dim not specified in the data dictionary!")
+
+    continuous = data_dict["continuous"] if "continuous" in data_dict else args.continuous
 
     X = torch.from_numpy(data_dict['x']).float()
-    y = torch.from_numpy(data_dict['y']).long()
-    num_actions = data_dict['num_acts']
+    y = torch.from_numpy(data_dict['y'])
+
     dataset = TensorDataset(X, y)
     train_dataset, val_dataset = random_split(dataset, [0.8, 0.2])
     train_dataloader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batchsize, shuffle=True)
 
-    exp_name = f"hca:{args.data_path.lstrip('hca_data/ppo_GridWorld-Default').lstrip(':').split('_20')[0]}"
-    exp_name += '_' + args.data_path.split("/")[-1].strip(".pkl")
+    dataset_name = args.data_path.split("/")[-2] + "_" + args.data_path.split("/")[-1].strip(".pkl")
+    exp_name = "hca_" + str(args.max_epochs) + "_" + dataset_name
 
     # Device
     device = torch.device(args.device)
@@ -58,14 +90,14 @@ def train(args):
         )
 
     # Model
-    model = HCAModel(X.shape[-1], num_actions, n_layers=args.n_layers, hidden_size=args.hidden_size)
+    model = HCAModel(X.shape[-1], act_dim, continuous=continuous, n_layers=args.n_layers, hidden_size=args.hidden_size)
     model = model.to(device)
 
     if args.checkpoint:
         checkpoint = torch.load(args.checkpoint)
         model.load(checkpoint)
 
-    loss_fn = nn.CrossEntropyLoss()
+    # loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     # track total training time
@@ -75,32 +107,18 @@ def train(args):
         "============================================================================================"
     )
 
-    accuracies = []
-    for states, actions in val_dataloader:
-        preds = model(states)
-        preds = preds.argmax(-1)
-        accuracies.append(torch.sum(preds == actions) / len(preds))
-    if args.wandb:
-        wandb.log(
-            {
-                "val/acc": np.mean(accuracies),
-            },
-            step=epoch,
-        )
+    val_results = validate_model(model, val_dataloader, epoch=0, continuous=continuous)
 
-    print(f"Epoch: 0 | Val Acc: {round(np.mean(accuracies), 3)}")
+    if continuous:
+        print(f"Epoch: 0 | Val Log Likelihood: {round(np.mean(val_results), 3)}")
+    else:
+        print(f"Epoch: 0 | Val Acc: {round(np.mean(val_results), 3)}")
 
     for epoch in range(args.max_epochs):
         losses = []
         for states, actions in train_dataloader:
-            states = states.to(device)
-            actions = actions.to(device)
-            preds = model(states)
-            loss = loss_fn(preds, actions)
-            losses.append(loss.item())
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            loss = model.train_step(states, actions, optimizer, device)
+            losses.append(loss)
 
         if args.wandb:
             wandb.log(
@@ -113,20 +131,11 @@ def train(args):
         print(f"Epoch: {epoch + 1} | Train Loss: {np.mean(losses):.3f}")
 
         if epoch % args.eval_freq == 0:
-            accuracies = []
-            for states, actions in val_dataloader:
-                preds = model(states)
-                preds = preds.argmax(-1)
-                accuracies.append(torch.sum(preds == actions) / len(preds))
-            if args.wandb:
-                wandb.log(
-                    {
-                        "val/acc": np.mean(accuracies),
-                    },
-                    step=epoch,
-                )
-
-            print(f"Epoch: {epoch + 1} | Val Acc: {np.mean(accuracies):.3f}")
+            val_results = validate_model(model, val_dataloader, epoch=epoch+1, continuous=continuous)
+            if continuous:
+                print(f"Epoch: {epoch + 1} | Val Log Likelihood: {np.mean(val_results):.3f}")
+            else:
+                print(f"Epoch: {epoch + 1} | Val Acc: {np.mean(val_results):.3f}")
 
         # save model weights
         if args.save_model_freq and epoch % args.save_model_freq == 0:
@@ -214,6 +223,12 @@ if __name__ == "__main__":
         type=int,
         default=100,
         help="Model save frequency in epochs. Use 0 for no saving (default: 1000000)",
+    )
+
+    parser.add_argument(
+        "--continuous",
+        action="store_true",
+        help="Override whether the action space is continuous or not."
     )
 
     parser.add_argument("--eval-freq", type=int, default=5, help="How often to run evaluation on model.")
