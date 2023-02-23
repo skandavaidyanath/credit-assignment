@@ -1,12 +1,8 @@
 import numpy as np
 import torch
 import gridworld
-import pickle
-import datetime
-import os
 from gridworld.gridworld_env import GridWorld
 import gym
-from torch.utils.data import TensorDataset, DataLoader, random_split
 
 try:
     import d4rl
@@ -19,17 +15,18 @@ except:
 from lorl import LorlWrapper
 
 
-def validate_model(model, val_dataloader, continuous):
-    results = []
-    for states, actions in val_dataloader:
-        preds, dists = model(states)
-        if continuous:
-            log_probs = dists.log_prob(actions)
-            results.append(log_probs.mean().item())
-        else:
-            preds = preds.argmax(-1)
-            results.append(torch.sum(preds == actions) / len(preds))
-    return results
+# def validate_model(model, val_dataloader, continuous):
+#     results = []
+#     for states, actions in val_dataloader:
+#         preds, dists = model(states)
+#         if continuous:
+#             log_probs = dists.log_prob(actions)
+#             results.append(log_probs.mean().item())
+#         else:
+#             preds = preds.argmax(-1)
+#             results.append(torch.sum(preds == actions) / len(preds))
+#     return results
+
 
 def get_env(args):
     if args.env.type == "d4rl":
@@ -37,83 +34,14 @@ def get_env(args):
     elif args.env.type == "gridworld":
         env = GridWorld(args.env.puzzle_path, sparse=args.env.sparse)
     elif args.env.type == "lorl":
-        env = LorlWrapper(gym.make(args.env.name), use_state=args.env.use_state, normalize=args.env.normalize)
+        env = LorlWrapper(
+            gym.make(args.env.name),
+            use_state=args.env.use_state,
+            normalize=args.env.normalize,
+        )
     else:
         raise NotImplementedError
     return env
-
-
-class HCABuffer:
-    def __init__(self, exp_name, action_dim):
-        self.action_dim = action_dim
-        self.num_episodes_stored = 0
-        self.num_transitions_stored = 0
-        self.states = []
-        self.actions = []
-        self.returns = []
-
-        self.checkpoint_path = f"hca_data/{exp_name}_"
-        self.checkpoint_path += (
-            f"{datetime.datetime.now().replace(microsecond=0)}"
-        )
-        os.makedirs(self.checkpoint_path, exist_ok=True)
-
-    def add_episode(
-        self, episode_states, episode_actions, episode_rewards, gamma
-    ):
-        rewards = np.array(episode_rewards).reshape(-1, 1)
-        episode_returns = list(
-            np.array(
-                calculate_mc_returns(rewards, np.zeros_like(rewards), gamma)
-            ).flatten()
-        )
-
-        self.states.extend(episode_states)
-        self.actions.extend(episode_actions)
-        self.returns.extend(episode_returns)
-        self.num_episodes_stored += 1
-        self.num_transitions_stored += rewards.shape[0]
-
-    def get_dataloader(self, batch_size):
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
-        X = torch.from_numpy(np.concatenate((states, returns), -1)).float()
-
-        y = torch.from_numpy(np.array(self.actions).reshape((-1, self.action_dim)))
-
-        dataset = TensorDataset(X, y)
-        train_dataset, val_dataset = random_split(dataset, [0.9, 0.1]) # TODO: make these args
-        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-        return train_dataloader, val_dataloader
-
-    def get_batch(self, batch_size):
-        if batch_size > self.num_transitions_stored:
-            print(
-                "Warning: tried updating hca model without enough transitions in buffer!"
-            )
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
-        inp_data = np.concatenate((states, returns), -1)
-        actions = np.array(self.actions).reshape((-1, self.action_dim))
-
-        size = states.shape[0]
-        inds = np.random.choice(size, size=batch_size, replace=False)
-        return inp_data[inds], actions[inds]
-
-    def save_data(self, num_actions):
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
-        inp_data = np.concatenate((states, returns), -1)
-        save_dict = {
-            "x": inp_data,
-            "y": np.array(self.actions),
-            "num_acts": num_actions,
-        }
-        filename = str(self.num_episodes_stored) + "_eps"
-
-        with open(self.checkpoint_path + "/" + filename + ".pkl", "wb") as f:
-            pickle.dump(save_dict, f)
 
 
 def flatten(x):
@@ -136,20 +64,6 @@ def tensor_flatten(x):
         for item in episode:
             out.append(item)
     return torch.stack(out).squeeze()
-
-
-def calculate_mc_returns(rewards, terminals, gamma):
-    """
-    Calculates MC returns
-    Duplicated from ppo_algo.py.
-    """
-    batch_size = len(rewards)
-    returns = [0 for _ in range(batch_size)]
-    returns[batch_size - 1] = rewards[batch_size - 1]
-    for t in reversed(range(batch_size - 1)):
-        returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - terminals[t])
-
-    return returns
 
 
 def get_human_hindsight_logprobs(

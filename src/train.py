@@ -15,12 +15,11 @@ import wandb
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
 from hca.hca_model import HCAModel
+from hca.hca_buffer import HCABuffer, calculate_mc_returns
 
 from lorl import TASKS
 from utils import (
     get_hindsight_logprobs,
-    HCABuffer,
-    calculate_mc_returns,
     get_env,
 )
 from eval import eval
@@ -63,9 +62,7 @@ def train(args):
     reward_type = "sparse" if args.env.sparse else "dense"
     exp_name = f"{args.agent.name}_{reward_type}_{args.env.name}"
     if args.env.type == "gridworld":
-        exp_name += (
-            f":{args.env.puzzle_path.lstrip('maps/').rstrip('.txt')}"
-        )
+        exp_name += f":{args.env.puzzle_path.lstrip('maps/').rstrip('.txt')}"
     if args.training.exp_name_modifier:
         exp_name += "_" + args.training.exp_name_modifier
 
@@ -96,7 +93,6 @@ def train(args):
 
     # HCA model
     h_model = None
-    hca_opt = None
     if args.agent.name == "ppo-hca":
         if args.agent.hca_checkpoint:
             hca_checkpoint = torch.load(args.agent.hca_checkpoint)
@@ -111,22 +107,35 @@ def train(args):
             print("successfully loaded hca model!")
         else:
             h_model = HCAModel(
-                state_dim + 1,
+                state_dim + 1,  # this is for return-conditioned
                 action_dim,
                 continuous=continuous,
                 n_layers=args.agent.hca_n_layers,
                 hidden_size=args.agent.hca_hidden_size,
+                activation_fn=args.agent.hca_activation,
+                dropout_p=args.agent.dropout,
+                batch_size=args.agent.hca_batch_size,
+                lr=args.agent.hca_lr,
+                device=args.training.device,
             )
-        hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.agent.hca_lr)
+        h_model = h_model.to(args.training.device)
 
     # Replay Memory
     buffer = RolloutBuffer()
 
     # Data for HCA Buffer
     if continuous:
-        hca_buffer = HCABuffer(exp_name, action_dim=action_dim)
+        hca_buffer = HCABuffer(
+            exp_name,
+            action_dim=action_dim,
+            train_val_split=args.agent.train_val_split,
+        )
     else:
-        hca_buffer = HCABuffer(exp_name, action_dim=1)
+        hca_buffer = HCABuffer(
+            exp_name,
+            action_dim=1,
+            train_val_split=args.agent.train_val_split,
+        )
 
     # logging
     total_rewards, total_successes = [], []
@@ -208,14 +217,37 @@ def train(args):
         hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # Assign credit
-        mean_hca_loss = 0.0
-        if episode % args.agent.hca_update_every == 0 or episode == args.agent.update_every:
-            mean_hca_loss, hca_val = h_model.update(hca_buffer, device=device)
-            # TODO: log the relevent hca stuff
-            # TODO: clear hca buffer
+        if (
+            episode % args.agent.hca_update_every == 0
+            or episode == args.agent.update_every
+        ):
+            hca_results = h_model.update(hca_buffer)
+            # Log every time we update the model and don't use the log freq
+            if args.training.wandb:
+                wandb.log(hca_results, step=episode)
+            print(" ============ Updated HCA model =============")
+            print(f"Episode: {episode}")
+            if h_model.continuous:
+                print(
+                    f"Train Loss: {hca_results['training/hca_train_loss']} | Train Logprobs: {hca_results['training/hca_train_logprobs']}"
+                )
+                print(
+                    f"Val Loss: {hca_results['training/hca_val_loss']} | Val Logprobs: {hca_results['training/hca_val_logprobs']}"
+                )
+            else:
+                print(
+                    f"Train Loss: {hca_results['training/hca_train_loss']} | Train Acc: {hca_results['training/hca_train_acc']}"
+                )
+                print(
+                    f"Val Loss: {hca_results['training/hca_val_loss']} | Val Acc: {hca_results['training/hca_val_acc']}"
+                )
+            print("=============================================")
 
         # Agent update (PPO)
-        if not args.agent.name == "random" and episode % args.agent.update_every == 0:
+        if (
+            args.agent.name != "random"
+            and episode % args.agent.update_every == 0
+        ):
             (
                 total_loss,
                 action_loss,
@@ -268,7 +300,6 @@ def train(args):
                 if args.agent.name == "ppo-hca":
                     wandb.log(
                         {
-                            "training/hca_loss": mean_hca_loss,
                             "training/hca_ratio_min": hca_ratio_min,
                             "training/hca_ratio_max": hca_ratio_max,
                             "training/hca_ratio_mean": hca_ratio_mean,

@@ -4,6 +4,7 @@ from torch.distributions import MultivariateNormal, Categorical
 import torch.nn.functional as F
 import numpy as np
 
+
 class HCAModel(nn.Module):
     """
     HCA model to predict action probabilities conditioned on returns and state
@@ -16,8 +17,11 @@ class HCAModel(nn.Module):
         continuous=False,
         n_layers=2,
         hidden_size=64,
-        activation_fn="tanh",
+        activation_fn="relu",
         dropout_p=None,
+        batch_size=64,
+        lr=3e-4,
+        device="cpu",
     ):
         super(HCAModel, self).__init__()
 
@@ -25,9 +29,9 @@ class HCAModel(nn.Module):
         self.action_dim = action_dim
         self.continuous = continuous
         if activation_fn == "tanh":
-            activation_cls = nn.Tanh
+            activation = nn.Tanh
         elif activation_fn == "relu":
-            activation_cls = nn.ReLU
+            activation = nn.ReLU
         else:
             raise NotImplementedError
 
@@ -35,20 +39,23 @@ class HCAModel(nn.Module):
         for i in range(n_layers):
             if i == 0:
                 layers.append(nn.Linear(state_dim, hidden_size))
-                layers.append(activation_cls())
+                layers.append(activation())
                 if dropout_p:
                     layers.append(nn.Dropout(p=dropout_p))
             else:
                 layers.append(nn.Linear(hidden_size, hidden_size))
-                layers.append(activation_cls())
+                layers.append(activation())
                 if dropout_p:
                     layers.append(nn.Dropout(p=dropout_p))
+
         if not layers:
             layers.append(nn.Linear(state_dim, action_dim))
         else:
             layers.append(nn.Linear(hidden_size, action_dim))
+
         if not continuous:
             layers.append(nn.Softmax(dim=-1))
+
         self.net = nn.Sequential(*layers)
 
         if continuous:
@@ -57,7 +64,10 @@ class HCAModel(nn.Module):
             )
         else:
             self.log_std = None
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=1000000) # TODO: fix the LR
+
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+        self.batch_size = batch_size
+        self.device = torch.device(device)
 
     @property
     def std(self):
@@ -78,50 +88,86 @@ class HCAModel(nn.Module):
             dist = Categorical(out)
         return out, dist
 
-    def _get_hca_batch(self, buffer, device):
-        states = np.concatenate(buffer.states, 0) # B, D
-        returns = np.concatenate(buffer.returns, 0).reshape(-1, 1) # B, 1
+    def _get_hca_batch(self, buffer):
+        states = np.concatenate(buffer.states, 0)  # B, D
+        returns = np.concatenate(buffer.returns, 0).reshape(-1, 1)  # B, 1
         X = np.concatenate((states, returns), -1)
-        return torch.from_numpy(X).to(device)
+        return torch.from_numpy(X).to(self.device)
 
-    def update(self, buffer, device):
-        self.batch_size = 32  # TODO: remove
-        train_dataloader, val_dataloader = buffer.get_dataloader(self.batch_size)
-        losses = []
+    def update(self, buffer):
+        train_dataloader, val_dataloader = buffer.get_dataloader(
+            self.batch_size
+        )
+
+        losses, metrics = [], []
         for states, actions in train_dataloader:
-            loss = self.train_step(states, actions, self.optimizer, device)
+            loss, metric = self.train_step(states, actions)
             losses.append(loss)
-        mean_loss = np.mean(losses)
-        # TODO: always have train/val loss, get train/val accuracy
-        val_results = self.validate_model(val_dataloader)
-        return mean_loss, val_results
+            metrics.append(metric)
 
-    def train_step(self, states, actions, optimizer, device):
-        states = states.to(device)
-        actions = actions.to(device)
-        preds, dist = self.forward(states)
         if self.continuous:
-            loss = F.gaussian_nll_loss(preds, actions, dist.variance)
+            results = {
+                "training/hca_train_loss": np.mean(losses),
+                "training/hca_train_logprobs": np.mean(metrics),
+            }
+        else:
+            results = {
+                "training/hca_train_loss": np.mean(losses),
+                "training/hca_train_acc": np.mean(metrics),
+            }
+
+        val_results = self.validate(val_dataloader)
+        results.update(val_results)
+        return results
+
+    def train_step(self, states, actions):
+        states = states.to(self.device)
+        actions = actions.to(self.device)
+        preds, dists = self.forward(states)
+
+        if self.continuous:
+            loss = F.gaussian_nll_loss(preds, actions, dists.variance)
+            metric = dists.log_prob(actions).mean().item()
         else:
             loss = F.cross_entropy(preds, actions.flatten())
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        return loss.item()
+            preds = preds.argmax(-1)
+            metric = torch.sum(preds == actions) / len(preds)
 
-    def validate_model(self, val_dataloader, device):
-        results = []
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        return loss.item(), metric
+
+    def validate(self, val_dataloader):
+        losses, metrics = [], []
         for states, actions in val_dataloader:
-            states = states.to(device)
-            actions = actions.to(device)
+            states = states.to(self.device)
+            actions = actions.to(self.device)
             preds, dists = self.forward(states)
             if self.continuous:
+                loss = F.gaussian_nll_loss(
+                    preds, actions, dists.variance
+                ).item()
                 log_probs = dists.log_prob(actions)
-                results.append(log_probs.mean().item())
+                mean_logprobs = log_probs.mean().item()
+                losses.append(loss)
+                metrics.append(mean_logprobs)
             else:
+                loss = F.cross_entropy(preds, actions.flatten()).item()
                 preds = preds.argmax(-1)
-                results.append(torch.sum(preds == actions) / len(preds))
-        return results
+                accuracy = torch.sum(preds == actions) / len(preds)
+                losses.append(loss)
+                metrics.append(accuracy)
+        if self.continuous:
+            return {
+                "training/hca_val_loss": np.mean(losses),
+                "training/hca_val_logprobs": np.mean(metrics),
+            }
+        else:
+            return {
+                "training/hca_val_loss": np.mean(losses),
+                "training/hca_val_acc": np.mean(metrics),
+            }
 
     def get_hindsight_values(self, inputs, actions):
         """
