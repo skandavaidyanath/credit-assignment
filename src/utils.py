@@ -24,7 +24,7 @@ def get_env(args):
     elif args.env.type == "gridworld":
         env = GridWorld(args.puzzle_path, sparse=args.env.sparse)
     elif args.env.type == "lorl":
-        env = LorlWrapper(gym.make(args.env.name), use_state=args.env.use_state)
+        env = LorlWrapper(gym.make(args.env.name), use_state=args.env.use_state, normalize=args.env.normalize)
     else:
         raise NotImplementedError
     return env

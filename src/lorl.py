@@ -24,52 +24,6 @@ def save_im(im, name):
     cv2.imwrite(name, im.astype(np.uint8))
 
 
-# def get_mean_std(env, use_state, steps=10000):
-#     """
-#     Calculate mean and std of Lorl env states if
-#     we haven't already calculated them
-#     """
-#     if use_state:
-#         if os.path.isfile("static/lorl_state_stats.pkl"):
-#             x = pickle.load(open("static/lorl_state_stats.pkl", "rb"))
-#         else:
-#             states = []
-#             obs, _ = env.reset()
-#             states.append(env.sim.data.qpos[:])
-#             for _ in tqdm(range(steps)):
-#                 action = env.action_space.sample()
-#                 obs, reward, done, info = env.step(action)
-#                 states.append(env.sim.data.qpos[:])
-#                 if done:
-#                     obs, _ = env.reset()
-#                     states.append(env.sim.data.qpos[:])
-#             states = np.array(states)
-#             x = {"mean": states.mean(0), "std": states.std(0)}
-#             os.makedirs("static/", exist_ok=True)
-#             pickle.dump(x, open("static/lorl_state_stats.pkl", "wb"))
-
-#     else:
-#         if os.path.isfile("static/lorl_img_stats.pkl"):
-#             x = pickle.load(open("static/lorl_img_stats.pkl", "rb"))
-#         else:
-#             states = []
-#             obs, _ = env.reset()
-#             states.append(np.moveaxis(obs, 2, 0))
-#             for _ in tqdm(range(steps)):
-#                 action = env.action_space.sample()
-#                 obs, reward, done, info = env.step(action)
-#                 states.append(np.moveaxis(obs, 2, 0))
-#                 if done:
-#                     obs, _ = env.reset()
-#                     states.append(np.moveaxis(obs, 2, 0))
-#             states = np.array(states)
-#             x = {"mean": states.mean(0), "std": states.std(0)}
-#             os.makedirs("static/", exist_ok=True)
-#             pickle.dump(x, open("static/lorl_img_stats.pkl", "wb"))
-
-#     return x["mean"], x["std"]
-
-
 def lorl_gt_reward(qpos, initial, task):
     """
     Measure true task progress for different instructions
@@ -102,25 +56,31 @@ class LorlWrapper(gym.Wrapper):
     2) Preprocess states
     """
 
-    def __init__(self, env, use_state=True, max_steps=20):
+    def __init__(self, env, use_state=True, max_steps=20, normalize=False):
         super(LorlWrapper, self).__init__(env)
 
         self.env = env
         self.use_state = use_state
         self.max_steps = max_steps
-
-        # calculate the state mean and std once if
-        # not done before
-        # self.state_mean, self.state_std = get_mean_std(env, use_state)
-
+        self.normalize = normalize
+        
         self.state_dim = 15 if use_state else (3, 64, 64)
         self.act_dim = env.action_space.shape[0]
+
+        if normalize:
+            if self.use_state:
+                stats = pickle.load(open("static/lorl_state_stats.pkl", "rb"))
+                self.state_mean, self.state_std = stats["mean"], stats["std"]
+            else:
+                print("Image observations are normalized by default. Setting mean and std to 0 and 1 respectively.")
+                self.state_mean = np.zeros(self.state_dim)
+                self.state_std = np.ones(self.state_dim)
 
         if isinstance(self.state_dim, tuple):
             # Image inputs
             self.observation_space = gym.spaces.Box(
-                low=-np.inf,
-                high=np.inf,
+                low=0.0,
+                high=1.0,
                 shape=self.state_dim,
                 dtype=np.float32,
             )
@@ -249,8 +209,8 @@ class LorlWrapper(gym.Wrapper):
             state = self.env.sim.data.qpos[:]
         else:
             state = np.moveaxis(obs, 2, 0)  # make H,W,C to C,H,W
-
-        #state = (obs - self.state_mean) / self.state_std
+        if self.normalize:
+            state = (state - self.state_mean) / self.state_std
         return state
 
     def get_image(self, h=1024, w=1024):
@@ -267,5 +227,5 @@ if __name__ == "__main__":
     import gym
 
     env = gym.make("LorlEnv-v0")
-    wrapped_env = LorlWrapper(env)
+    wrapped_env = LorlWrapper(env, normalize=True)
     print(wrapped_env.reset("open drawer"))

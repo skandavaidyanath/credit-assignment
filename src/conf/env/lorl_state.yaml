@@ -6,6 +6,7 @@ env:
   task: "open drawer"
   use_state: True
   sparse: True
+  normalize: False
 
 training:
   log_freq: 100  # Log every these many episodes
