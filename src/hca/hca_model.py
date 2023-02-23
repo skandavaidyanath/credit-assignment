@@ -18,7 +18,7 @@ class HCAModel(nn.Module):
         n_layers=2,
         hidden_size=64,
         activation_fn="relu",
-        dropout_p=None,
+        dropout_p=0,
         batch_size=64,
         lr=3e-4,
         device="cpu",
@@ -76,6 +76,11 @@ class HCAModel(nn.Module):
         else:
             return torch.exp(self.log_std)
 
+    def reset_parameters(self):
+        for layer in self.children():
+            if hasattr(layer, "reset_parameters"):
+                layer.reset_parameters()
+
     def forward(self, inputs):
         """
         forward pass a bunch of inputs into the model
@@ -127,16 +132,17 @@ class HCAModel(nn.Module):
 
         if self.continuous:
             loss = F.gaussian_nll_loss(preds, actions, dists.variance)
-            metric = dists.log_prob(actions).mean().item()
+            metric = dists.log_prob(actions).mean()
         else:
-            loss = F.cross_entropy(preds, actions.flatten())
+            actions = actions.flatten()
+            loss = F.cross_entropy(preds, actions)
             preds = preds.argmax(-1)
             metric = torch.sum(preds == actions) / len(preds)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        return loss.item(), metric
+        return loss.item(), metric.item()
 
     def validate(self, val_dataloader):
         losses, metrics = [], []
@@ -153,7 +159,8 @@ class HCAModel(nn.Module):
                 losses.append(loss)
                 metrics.append(mean_logprobs)
             else:
-                loss = F.cross_entropy(preds, actions.flatten()).item()
+                actions = actions.flatten()
+                loss = F.cross_entropy(preds, actions).item()
                 preds = preds.argmax(-1)
                 accuracy = torch.sum(preds == actions) / len(preds)
                 losses.append(loss)

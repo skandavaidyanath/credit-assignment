@@ -94,31 +94,25 @@ def train(args):
     # HCA model
     h_model = None
     if args.agent.name == "ppo-hca":
+        h_model = HCAModel(
+            state_dim + 1,  # this is for return-conditioned
+            action_dim,
+            continuous=continuous,
+            n_layers=args.agent.hca_n_layers,
+            hidden_size=args.agent.hca_hidden_size,
+            activation_fn=args.agent.hca_activation,
+            dropout_p=args.agent.hca_dropout,
+            batch_size=args.agent.hca_batchsize,
+            lr=args.agent.hca_lr,
+            device=args.training.device,
+        )
+        h_model = h_model.to(args.training.device)
         if args.agent.hca_checkpoint:
             hca_checkpoint = torch.load(args.agent.hca_checkpoint)
-            h_model = HCAModel(
-                state_dim + 1,
-                action_dim,
-                continuous=continuous,
-                n_layers=hca_checkpoint["args"]["n_layers"],
-                hidden_size=hca_checkpoint["args"]["hidden_size"],
+            h_model.load(hca_checkpoint["model"], strict=True)
+            print(
+                f"Successfully loaded hca model from {args.aget.hca_checkpoint}!"
             )
-            h_model.load(hca_checkpoint["model"])
-            print("successfully loaded hca model!")
-        else:
-            h_model = HCAModel(
-                state_dim + 1,  # this is for return-conditioned
-                action_dim,
-                continuous=continuous,
-                n_layers=args.agent.hca_n_layers,
-                hidden_size=args.agent.hca_hidden_size,
-                activation_fn=args.agent.hca_activation,
-                dropout_p=args.agent.dropout,
-                batch_size=args.agent.hca_batch_size,
-                lr=args.agent.hca_lr,
-                device=args.training.device,
-            )
-        h_model = h_model.to(args.training.device)
 
     # Replay Memory
     buffer = RolloutBuffer()
@@ -128,13 +122,13 @@ def train(args):
         hca_buffer = HCABuffer(
             exp_name,
             action_dim=action_dim,
-            train_val_split=args.agent.train_val_split,
+            train_val_split=args.agent.hca_train_val_split,
         )
     else:
         hca_buffer = HCABuffer(
             exp_name,
             action_dim=1,
-            train_val_split=args.agent.train_val_split,
+            train_val_split=args.agent.hca_train_val_split,
         )
 
     # logging
@@ -221,7 +215,14 @@ def train(args):
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
+            # reset the model if you want
+            if args.agent.refresh_hca:
+                h_model.reset_parameters()
+            # update the HCA model
             hca_results = h_model.update(hca_buffer)
+            # Clear the HCA buffer
+            hca_buffer.clear()
+
             # Log every time we update the model and don't use the log freq
             if args.training.wandb:
                 wandb.log(hca_results, step=episode)

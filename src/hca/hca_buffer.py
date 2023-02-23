@@ -54,6 +54,11 @@ class HCABuffer:
         self.num_episodes_stored += 1
         self.num_transitions_stored += rewards.shape[0]
 
+    def clear(self):
+        del self.states[:]
+        del self.actions[:]
+        del self.returns[:]
+
     def get_dataloader(self, batch_size):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))

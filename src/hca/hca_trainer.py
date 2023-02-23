@@ -242,7 +242,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dropout",
         type=float,
-        default=None,
+        default=0,
         help="hidden layer dropout probability",
     )
 

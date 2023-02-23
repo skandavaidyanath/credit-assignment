@@ -12,6 +12,7 @@ agent:
   hca_update_every: 500
   hca_num_updates: 100
   hca_batchsize: 256
-  hca_dropout: None
+  hca_dropout: 0
   hca_activation: "relu"
   hca_train_val_split: [0.9, 0.1]
+  refresh_hca: True
