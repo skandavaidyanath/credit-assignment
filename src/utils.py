@@ -6,6 +6,7 @@ import datetime
 import os
 from gridworld.gridworld_env import GridWorld
 import gym
+from torch.utils.data import TensorDataset, DataLoader, random_split
 
 try:
     import d4rl
@@ -18,11 +19,23 @@ except:
 from lorl import LorlWrapper
 
 
+def validate_model(model, val_dataloader, continuous):
+    results = []
+    for states, actions in val_dataloader:
+        preds, dists = model(states)
+        if continuous:
+            log_probs = dists.log_prob(actions)
+            results.append(log_probs.mean().item())
+        else:
+            preds = preds.argmax(-1)
+            results.append(torch.sum(preds == actions) / len(preds))
+    return results
+
 def get_env(args):
     if args.env.type == "d4rl":
         env = gym.make(args.env.name)
     elif args.env.type == "gridworld":
-        env = GridWorld(args.puzzle_path, sparse=args.env.sparse)
+        env = GridWorld(args.env.puzzle_path, sparse=args.env.sparse)
     elif args.env.type == "lorl":
         env = LorlWrapper(gym.make(args.env.name), use_state=args.env.use_state, normalize=args.env.normalize)
     else:
@@ -60,6 +73,19 @@ class HCABuffer:
         self.returns.extend(episode_returns)
         self.num_episodes_stored += 1
         self.num_transitions_stored += rewards.shape[0]
+
+    def get_dataloader(self, batch_size):
+        states = np.array(self.states)
+        returns = np.array(self.returns).reshape((-1, 1))
+        X = torch.from_numpy(np.concatenate((states, returns), -1)).float()
+
+        y = torch.from_numpy(np.array(self.actions).reshape((-1, self.action_dim)))
+
+        dataset = TensorDataset(X, y)
+        train_dataset, val_dataset = random_split(dataset, [0.9, 0.1]) # TODO: make these args
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+        return train_dataloader, val_dataloader
 
     def get_batch(self, batch_size):
         if batch_size > self.num_transitions_stored:

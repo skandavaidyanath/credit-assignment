@@ -64,7 +64,7 @@ def train(args):
     exp_name = f"{args.agent.name}_{reward_type}_{args.env.name}"
     if args.env.type == "gridworld":
         exp_name += (
-            f":{args.training.puzzle_path.lstrip('maps/').rstrip('.txt')}"
+            f":{args.env.puzzle_path.lstrip('maps/').rstrip('.txt')}"
         )
     if args.training.exp_name_modifier:
         exp_name += "_" + args.training.exp_name_modifier
@@ -95,7 +95,6 @@ def train(args):
         agent.load(checkpoint["policy"])
 
     # HCA model
-    hca_buffer_online = None
     h_model = None
     hca_opt = None
     if args.agent.name == "ppo-hca":
@@ -111,9 +110,6 @@ def train(args):
             h_model.load(hca_checkpoint["model"])
             print("successfully loaded hca model!")
         else:
-            assert (
-                args.agent.update_hca_online
-            ), "If not specifying a HCA checkpoint, use --update-hca-online"
             h_model = HCAModel(
                 state_dim + 1,
                 action_dim,
@@ -121,22 +117,16 @@ def train(args):
                 n_layers=args.agent.hca_n_layers,
                 hidden_size=args.agent.hca_hidden_size,
             )
-        if args.agent.update_hca_online:
-            if continuous:
-                hca_buffer_online = HCABuffer(exp_name, action_dim=action_dim)
-            else:
-                hca_buffer_online = HCABuffer(exp_name, action_dim=1)
-            hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.hca_lr)
+        hca_opt = torch.optim.Adam(h_model.parameters(), lr=args.agent.hca_lr)
 
     # Replay Memory
     buffer = RolloutBuffer()
 
-    hca_buffer = None
-    if args.training.collect_hca_data:
-        if continuous:
-            hca_buffer = HCABuffer(exp_name, action_dim=action_dim)
-        else:
-            hca_buffer = HCABuffer(exp_name, action_dim=1)
+    # Data for HCA Buffer
+    if continuous:
+        hca_buffer = HCABuffer(exp_name, action_dim=action_dim)
+    else:
+        hca_buffer = HCABuffer(exp_name, action_dim=1)
 
     # logging
     total_rewards, total_successes = [], []
@@ -166,6 +156,7 @@ def train(args):
 
         states, actions, logprobs, rewards, terminals = [], [], [], [], []
 
+        # Exploration
         while not done:
             if args.agent.name == "random":
                 action = env.action_space.sample()
@@ -200,6 +191,7 @@ def train(args):
             total_successes.append(0.0)
 
         hindsight_logprobs = []
+
         if args.agent.name == "ppo-hca":
             returns = calculate_mc_returns(rewards, terminals, agent.gamma)
             hindsight_logprobs = get_hindsight_logprobs(
@@ -213,26 +205,16 @@ def train(args):
         buffer.terminals.append(terminals)
         buffer.hindsight_logprobs.append(hindsight_logprobs)
 
-        if hca_buffer_online:
-            hca_buffer_online.add_episode(states, actions, rewards, agent.gamma)
+        hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
-        # update the HCA function, if applicable
+        # Assign credit
         mean_hca_loss = 0.0
-        if args.agent.update_hca_online and (
-            episode % args.agent.hca_update_every == 0
-            or episode == args.agent.update_every
-        ):
-            assert hca_buffer_online is not None
-            assert h_model is not None
-            hca_losses = []
-            for _ in range(args.agent.hca_num_updates):
-                X, y = hca_buffer_online.get_batch(args.agent.hca_batchsize)
-                X, y = torch.from_numpy(X).float(), torch.from_numpy(y)
-                hca_loss = h_model.train_step(X, y, hca_opt, device)
-                hca_losses.append(hca_loss)
-            mean_hca_loss = np.mean(hca_losses)
+        if episode % args.agent.hca_update_every == 0 or episode == args.agent.update_every:
+            mean_hca_loss, hca_val = h_model.update(hca_buffer, device=device)
+            # TODO: log the relevent hca stuff
+            # TODO: clear hca buffer
 
-        # update PPO agent
+        # Agent update (PPO)
         if not args.agent.name == "random" and episode % args.agent.update_every == 0:
             (
                 total_loss,
@@ -252,10 +234,6 @@ def train(args):
                 hca_ratio_stds.append(hca_ratio_dict["std"])
 
             buffer.clear()
-
-        # store data for hindsight function training
-        if args.training.collect_hca_data:
-            hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # logging
         if args.training.log_freq and episode % args.training.log_freq == 0:
@@ -329,13 +307,6 @@ def train(args):
             print(
                 "--------------------------------------------------------------------------------------------"
             )
-
-        if (
-            hca_buffer
-            and args.training.hca_data_save_freq
-            and episode % args.training.hca_data_save_freq == 0
-        ):
-            hca_buffer.save_data(action_dim)
 
         if args.training.eval_freq and episode % args.training.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent, args)

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal, Categorical
 import torch.nn.functional as F
-
+import numpy as np
 
 class HCAModel(nn.Module):
     """
@@ -57,6 +57,7 @@ class HCAModel(nn.Module):
             )
         else:
             self.log_std = None
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=1000000) # TODO: fix the LR
 
     @property
     def std(self):
@@ -77,6 +78,24 @@ class HCAModel(nn.Module):
             dist = Categorical(out)
         return out, dist
 
+    def _get_hca_batch(self, buffer, device):
+        states = np.concatenate(buffer.states, 0) # B, D
+        returns = np.concatenate(buffer.returns, 0).reshape(-1, 1) # B, 1
+        X = np.concatenate((states, returns), -1)
+        return torch.from_numpy(X).to(device)
+
+    def update(self, buffer, device):
+        self.batch_size = 32  # TODO: remove
+        train_dataloader, val_dataloader = buffer.get_dataloader(self.batch_size)
+        losses = []
+        for states, actions in train_dataloader:
+            loss = self.train_step(states, actions, self.optimizer, device)
+            losses.append(loss)
+        mean_loss = np.mean(losses)
+        # TODO: always have train/val loss, get train/val accuracy
+        val_results = self.validate_model(val_dataloader)
+        return mean_loss, val_results
+
     def train_step(self, states, actions, optimizer, device):
         states = states.to(device)
         actions = actions.to(device)
@@ -89,6 +108,20 @@ class HCAModel(nn.Module):
         loss.backward()
         optimizer.step()
         return loss.item()
+
+    def validate_model(self, val_dataloader, device):
+        results = []
+        for states, actions in val_dataloader:
+            states = states.to(device)
+            actions = actions.to(device)
+            preds, dists = self.forward(states)
+            if self.continuous:
+                log_probs = dists.log_prob(actions)
+                results.append(log_probs.mean().item())
+            else:
+                preds = preds.argmax(-1)
+                results.append(torch.sum(preds == actions) / len(preds))
+        return results
 
     def get_hindsight_values(self, inputs, actions):
         """

@@ -11,30 +11,6 @@ from hca.hca_model import HCAModel
 import pickle
 
 
-def validate_model(model, val_dataloader, epoch, continuous):
-    results = []
-    for states, actions in val_dataloader:
-        preds, dists = model(states)
-        if continuous:
-            log_probs = dists.log_prob(actions)
-            results.append(log_probs.mean().item())
-        else:
-            preds = preds.argmax(-1)
-            results.append(torch.sum(preds == actions) / len(preds))
-    if args.wandb:
-        if continuous:
-            wandb_label = "val/log_likelihood"
-        else:
-            wandb_label = "val/acc"
-        wandb.log(
-            {
-                wandb_label: np.mean(results),
-            },
-            step=epoch,
-        )
-    return results
-
-
 def train(args):
     if args.seed:
         print(
@@ -106,7 +82,7 @@ def train(args):
     print(
         "============================================================================================"
     )
-
+    # TODO: Fix this
     val_results = validate_model(model, val_dataloader, epoch=0, continuous=continuous)
 
     if continuous:
