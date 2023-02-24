@@ -7,7 +7,7 @@ defaults:
 hydra_base_dir: ""
 
 training:
-  wandb: False
+  wandb: True
   device: ""
   max_training_episodes: 100000 # some big number
   seed: 0

@@ -114,22 +114,22 @@ def train(args):
                 f"Successfully loaded hca model from {args.aget.hca_checkpoint}!"
             )
 
-    # Replay Memory
-    buffer = RolloutBuffer()
+        # HCA Buffer
+        if continuous:
+            hca_buffer = HCABuffer(
+                exp_name,
+                action_dim=action_dim,
+                train_val_split=args.agent.hca_train_val_split,
+            )
+        else:
+            hca_buffer = HCABuffer(
+                exp_name,
+                action_dim=1,
+                train_val_split=args.agent.hca_train_val_split,
+            )
 
-    # Data for HCA Buffer
-    if continuous:
-        hca_buffer = HCABuffer(
-            exp_name,
-            action_dim=action_dim,
-            train_val_split=args.agent.hca_train_val_split,
-        )
-    else:
-        hca_buffer = HCABuffer(
-            exp_name,
-            action_dim=1,
-            train_val_split=args.agent.hca_train_val_split,
-        )
+    # Replay Buffer for PPO
+    buffer = RolloutBuffer()
 
     # logging
     total_rewards, total_successes = [], []
@@ -208,10 +208,11 @@ def train(args):
         buffer.terminals.append(terminals)
         buffer.hindsight_logprobs.append(hindsight_logprobs)
 
-        hca_buffer.add_episode(states, actions, rewards, agent.gamma)
+        if args.agent.name == "ppo-hca":
+            hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # Assign credit
-        if (
+        if args.agent.name == "ppo-hca" and (
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
