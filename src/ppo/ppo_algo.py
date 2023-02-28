@@ -15,11 +15,19 @@ class ActorCritic(nn.Module):
         continuous=False,
         n_layers=2,
         hidden_size=64,
+        activation_fn="tanh"
     ):
         super(ActorCritic, self).__init__()
 
         self.continuous = continuous
         self.action_dim = action_dim
+
+        if activation_fn == "tanh":
+            activation_fn = nn.Tanh()
+        elif activation_fn == "relu":
+            activation_fn = nn.ReLU()
+        else:
+            raise NotImplementedError()
 
         if continuous:
             self.log_std = nn.Parameter(
@@ -34,10 +42,10 @@ class ActorCritic(nn.Module):
             for i in range(n_layers):
                 if i == 0:
                     layers.append(nn.Linear(state_dim, hidden_size))
-                    layers.append(nn.Tanh())
+                    layers.append(activation_fn)
                 else:
                     layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(nn.Tanh())
+                    layers.append(activation_fn)
             self.encoder = nn.Sequential(*layers)
 
         # actor
@@ -113,6 +121,7 @@ class PPO:
             continuous=continuous,
             n_layers=args.agent.n_layers,
             hidden_size=args.agent.hidden_size,
+            activation_fn=args.agent.activation_fn
         ).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
 
