@@ -6,6 +6,7 @@ import pickle
 from tqdm import tqdm
 import cv2
 
+
 TASKS = [
     "open drawer",
     "close drawer",
@@ -56,11 +57,19 @@ class LorlWrapper(gym.Wrapper):
     2) Preprocess states
     """
 
-    def __init__(self, env, use_state=True, max_steps=20, normalize=False):
+    def __init__(self, env, task, use_state=True, reward_multiplier=1000, binary_reward=False, max_steps=20, normalize=True):
         super(LorlWrapper, self).__init__(env)
 
         self.env = env
+        
+        if task not in TASKS:
+            raise ValueError(f"Unknown task! Choose from {TASKS}")
+        
+        self.task = task
+        
         self.use_state = use_state
+        self.reward_multiplier = reward_multiplier
+        self.binary_reward = binary_reward
         self.max_steps = max_steps
         self.normalize = normalize
         
@@ -69,7 +78,8 @@ class LorlWrapper(gym.Wrapper):
 
         if normalize:
             if self.use_state:
-                stats = pickle.load(open("static/lorl_state_stats.pkl", "rb"))
+                stats = pickle.load(open("static/lorl_offline_state_stats.pkl", "rb"))
+                # stats = pickle.load(open("static/lorl_state_stats.pkl", "rb"))
                 self.state_mean, self.state_std = stats["mean"], stats["std"]
             else:
                 print("Image observations are normalized by default. Setting mean and std to 0 and 1 respectively.")
@@ -96,21 +106,17 @@ class LorlWrapper(gym.Wrapper):
         self.action_space = env.action_space
 
         self.cur_step = 0
-        self.task = None
         self.initial_state = None
 
-    def reset(self, task, render=False, **kwargs):
+    def reset(self, render=False, **kwargs):
         if render:
             render_path = kwargs["render_path"]
 
         env = self.env
         im, _ = env.reset()
         self.cur_step = 0
-
-        if task not in TASKS:
-            raise ValueError(f"Unknown task! Choose from {TASKS}")
-
-        self.task = task
+        
+        task = self.task
 
         # Initialize state for different tasks
         if task == "open drawer":
@@ -190,15 +196,18 @@ class LorlWrapper(gym.Wrapper):
         dist, s = lorl_gt_reward(
             self.env.sim.data.qpos[:], self.initial_state, self.task
         )
-
+        
         reward = 0
-        success = 0
-        if s:
-            success = 1
-            reward = dist*1000  # just increasing reward magnitude to get better gradients
-
+        success = int(s)
+        
         done = s or (self.cur_step >= self.max_steps)
-
+        
+        if done:
+            if self.binary_reward:
+                reward = int(s)
+            else:
+                reward = dist * self.reward_multiplier  # just increasing reward magnitude to get better gradients
+            
         info.update({"success": success})
         return self.get_state(im), reward, done, info
 
@@ -225,7 +234,67 @@ class LorlWrapper(gym.Wrapper):
 if __name__ == "__main__":
     import lorl_env
     import gym
+    from stable_baselines3.common.vec_env import DummyVecEnv
 
     env = gym.make("LorlEnv-v0")
-    wrapped_env = LorlWrapper(env, normalize=True)
-    print(wrapped_env.reset("open drawer"))
+    
+    def make_env(task):
+        def _init():
+            wrapped_env = LorlWrapper(gym.make("LorlEnv-v0"), task)
+            # Important: use a different seed for each environment
+            # wrapped_env.seed(seed + rank)
+            return wrapped_env
+        return _init
+
+    env_fns = [make_env("open drawer")] * 3
+    vec_env = DummyVecEnv(env_fns)
+    # print(vec_env.reset())
+    
+#     def get_mean_std(env, use_state=True, steps=10000):
+#         """
+#         Calculate mean and std of Lorl env states if
+#         we haven't already calculated them
+#         """
+#         if use_state:
+#             if os.path.isfile("static/lorl_state_stats.pkl"):
+#                 x = pickle.load(open("static/lorl_state_stats.pkl", "rb"))
+#             else:
+#                 states = []
+#                 obs, _ = env.reset()
+#                 states.append(env.sim.data.qpos[:])
+#                 for _ in tqdm(range(steps)):
+#                     action = env.action_space.sample()
+#                     obs, reward, done, info = env.step(action)
+#                     states.append(env.sim.data.qpos[:])
+#                     if done:
+#                         obs, _ = env.reset()
+#                         states.append(env.sim.data.qpos[:])
+#                 states = np.array(states)
+#                 x = {"mean": states.mean(0), "std": states.std(0)}
+#                 os.makedirs("static/", exist_ok=True)
+#                 pickle.dump(x, open("static/lorl_state_stats.pkl", "wb"))
+
+#         else:
+#             if os.path.isfile("static/lorl_img_stats.pkl"):
+#                 x = pickle.load(open("static/lorl_img_stats.pkl", "rb"))
+#             else:
+#                 states = []
+#                 obs, _ = env.reset()
+#                 states.append(np.moveaxis(obs, 2, 0))
+#                 for _ in tqdm(range(steps)):
+#                     action = env.action_space.sample()
+#                     obs, reward, done, info = env.step(action)
+#                     states.append(np.moveaxis(obs, 2, 0))
+#                     if done:
+#                         obs, _ = env.reset()
+#                         states.append(np.moveaxis(obs, 2, 0))
+#                 states = np.array(states)
+#                 x = {"mean": states.mean(0), "std": states.std(0)}
+#                 os.makedirs("static/", exist_ok=True)
+#                 pickle.dump(x, open("static/lorl_img_stats.pkl", "wb"))
+
+#         return x["mean"], x["std"]
+    
+#     print(get_mean_std(env))
+
+    

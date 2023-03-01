@@ -149,10 +149,7 @@ def train(args):
     )
 
     for episode in range(1, args.training.max_training_episodes + 1):
-        if args.env.type == "lorl":
-            state = env.reset(args.env.task)
-        else:
-            state = env.reset()
+        state = env.reset()
 
         current_ep_reward = 0
         done = False
@@ -377,7 +374,7 @@ def get_args(cfg: DictConfig):
     return cfg
 
 
-@hydra.main(config_path="conf", config_name="config", version_base="1.1")
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig):
     args = get_args(cfg)
 

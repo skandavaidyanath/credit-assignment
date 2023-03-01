@@ -1,0 +1,18 @@
+# @package _global_
+
+env:
+  name: "HalfCheetah-v3"
+  type: "mujoco"
+  sparse: false
+
+training:
+  log_freq: 10  # Log every these many episodes
+  save_model_freq: 0 # Save networks every these many episodes
+  eval_freq: 10 # eval every these many episodes
+
+agent:
+  update_every: 4
+  ppo_epochs: 80
+  value_loss_coeff: 0.5
+  n_layers: 3
+  hidden_size: 128

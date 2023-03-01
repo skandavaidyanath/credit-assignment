@@ -36,9 +36,12 @@ def get_env(args):
     elif args.env.type == "lorl":
         env = LorlWrapper(
             gym.make(args.env.name),
+            task=args.env.task,
             use_state=args.env.use_state,
             normalize=args.env.normalize,
         )
+    elif args.env.type == "mujoco":
+        env = gym.make(args.env.name)
     else:
         raise NotImplementedError
     return env

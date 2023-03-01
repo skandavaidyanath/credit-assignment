@@ -56,7 +56,7 @@ class HCAModel(nn.Module):
         if not continuous:
             layers.append(nn.Softmax(dim=-1))
 
-        self.net = nn.Sequential(*layers)
+        self.net = nn.Sequential(*layers).to(device)
 
         if continuous:
             self.log_std = nn.Parameter(
@@ -180,6 +180,8 @@ class HCAModel(nn.Module):
         """
         get the hindsight values for a batch of actions
         """
+        inputs = inputs.to(self.device)
+        actions = actions.to(self.device)
         out, dist = self.forward(inputs)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
