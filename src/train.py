@@ -154,16 +154,17 @@ def train(args):
         current_ep_reward = 0
         done = False
 
-        states, actions, logprobs, rewards, terminals = [], [], [], [], []
+        states, actions, logprobs, values, rewards, terminals = [], [], [], [], [], []
 
         # Exploration
         while not done:
             if args.agent.name == "random":
                 action = env.action_space.sample()
                 action_logprob = None
+                value = None
             else:
                 # select action with policy
-                action, action_logprob = agent.select_action(state)
+                action, action_logprob, value = agent.select_action(state)
                 if continuous:
                     action = action.numpy().flatten()
                     action = action.clip(
@@ -174,6 +175,7 @@ def train(args):
             states.append(state)
             actions.append(action)
             logprobs.append(action_logprob)
+            values.append(value)
 
             # Step in env
             state, reward, done, info = env.step(action)
@@ -201,6 +203,7 @@ def train(args):
         buffer.states.append(states)
         buffer.actions.append(actions)
         buffer.logprobs.append(logprobs)
+        buffer.values.append(values)
         buffer.rewards.append(rewards)
         buffer.terminals.append(terminals)
         buffer.hindsight_logprobs.append(hindsight_logprobs)

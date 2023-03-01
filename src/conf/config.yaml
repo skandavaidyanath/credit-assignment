@@ -22,6 +22,7 @@ env:
 agent:
   update_every: 50
   ppo_epochs: 30
+  minibatch_size: 64
   eps_clip: 0.2
   lamda: 0.95
   entropy_coeff: 0.0
