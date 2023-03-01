@@ -114,6 +114,7 @@ class PPO:
         self.adv = args.agent.adv
         self.eps_clip = args.agent.eps_clip
         self.ppo_epochs = args.agent.ppo_epochs
+        self.max_grad_norm =  args.agent.max_grad_norm
 
         self.policy = ActorCritic(
             state_dim,
@@ -294,6 +295,8 @@ class PPO:
             # take gradient step
             self.optimizer.zero_grad()
             loss.backward()
+            if self.max_grad_norm:
+                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.optimizer.step()
 
             total_losses.append(loss.detach().cpu().item())
