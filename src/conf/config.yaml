@@ -30,3 +30,4 @@ agent:
   hidden_size: 64
   lr: 3e-4
   activation_fn: "relu"
+  max_grad_norm: null # no clipping by default
