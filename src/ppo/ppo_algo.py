@@ -114,7 +114,7 @@ class PPO:
         self.adv = args.agent.adv
         self.eps_clip = args.agent.eps_clip
         self.ppo_epochs = args.agent.ppo_epochs
-        self.max_grad_norm =  args.agent.max_grad_norm
+        self.max_grad_norm = args.agent.max_grad_norm
 
         self.policy = ActorCritic(
             state_dim,
