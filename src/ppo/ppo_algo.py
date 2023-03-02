@@ -114,6 +114,7 @@ class PPO:
         self.value_loss_coeff = args.agent.value_loss_coeff
         self.adv = args.agent.adv
         self.eps_clip = args.agent.eps_clip
+        self.clip_range_vf = args.agent.clip_range_vf
         self.ppo_epochs = args.agent.ppo_epochs
         self.minibatch_size = args.agent.minibatch_size
         self.max_grad_norm = args.agent.max_grad_norm
@@ -230,7 +231,14 @@ class PPO:
 
                 action_loss = -torch.min(surr1, surr2).mean()
                 # TODO: implement clipped value loss
-                value_loss = self.MseLoss(new_values.flatten(), returns)
+                if self.clip_range_vf:
+                    new_values = new_values.flatten()
+                    values_pred = old_values + torch.clamp(
+                        new_values - old_values, -self.clip_range_vf, self.clip_range_vf
+                    )
+                else:
+                    values_pred = new_values.flatten()
+                value_loss = self.MseLoss(values_pred, returns)
                 loss = (
                         action_loss
                         + self.value_loss_coeff * value_loss
