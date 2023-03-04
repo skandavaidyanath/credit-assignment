@@ -11,9 +11,9 @@ env:
   reward_multiplier: 1000
 
 training:
-  log_freq: 100  # Log every these many episodes
+  log_freq: 1000  # Log every these many env steps
   save_model_freq: 0 # Save networks every these many episodes
-  eval_freq: 100 # eval every these many episodes
+  eval_freq: 1000 # eval every these many env steps.
 
 agent:
   value_loss_coeff: 0.05

@@ -148,16 +148,18 @@ def train(args):
         "============================================================================================"
     )
 
-    for episode in range(1, args.training.max_training_episodes + 1):
-        state = env.reset()
+    num_total_steps = 0
+    episodes_collected = 0
 
-        current_ep_reward = 0
-        done = False
+    state = env.reset()
+    done = False
+    current_ep_reward = 0
+    current_ep_length = 0
 
-        states, actions, logprobs, values, rewards, terminals = [], [], [], [], [], []
+    while num_total_steps <= args.training.max_training_env_steps:
 
-        # Exploration
-        while not done:
+        # Exploration:
+        for t in range(1, args.agent.batch_size + 1):
             if args.agent.name == "random":
                 action = env.action_space.sample()
                 action_logprob = None
@@ -172,91 +174,60 @@ def train(args):
                     )
                 else:
                     action = action.item()
-            states.append(state)
-            actions.append(action)
-            logprobs.append(action_logprob)
-            values.append(value)
 
-            # Step in env
-            state, reward, done, info = env.step(action)
-
-            # saving reward and terminals
-            rewards.append(float(reward))
-            terminals.append(done)
-
+            # step env
+            next_state, reward, done, info = env.step(action)
             current_ep_reward += reward
+            num_total_steps += 1
+            current_ep_length += 1
 
-        total_rewards.append(current_ep_reward)
-        if "success" in info:
-            total_successes.append(info["success"])
+            # determine if episode is done, and if it is because of terminal state or timeout.
+            # timeout = current_ep_length == args.training.max_episode_length  # TOOD: add this to args.training
+            timeout = current_ep_length == 30 # TODO remove
+            episode_finished = done or timeout
+
+            if episode_finished:
+                # trajectory didn't reach a terminal state; bootstrap value target. # TODO: figure out what to do here.
+                if not done:
+                    _, _, next_value = agent.select_action(next_state)
+                else:
+                    next_value = 0.0
+
+                # Add in the final value to the reward to account for potentially not reaching terminal state.
+                reward += agent.gamma * next_value
+                total_rewards.append(current_ep_reward)
+                total_successes.append(info.get("success", 0.0))
+
+                # reset env and trackers.
+                next_state = env.reset()
+                episodes_collected += 1
+                current_ep_reward = 0.0
+                current_ep_length = 0
+
+
+            # add transition to buffer
+            buffer.states.append(state)
+            buffer.actions.append(action)
+            buffer.logprobs.append(action_logprob)
+            buffer.values.append(value)
+            buffer.rewards.append(reward)
+            buffer.terminals.append(episode_finished)
+
+            state = next_state
+
+        # Batch has been collected; compute the last value if needed, and put it in buffer.
+        if done:
+            final_value = 0.0
         else:
-            total_successes.append(0.0)
+            _, _, final_value = agent.select_action(state)
+        buffer.values.append(final_value)
 
-        hindsight_logprobs = []
+        # TODO: Credit assignment.
 
-        if args.agent.name == "ppo-hca":
-            returns = calculate_mc_returns(rewards, terminals, agent.gamma)
-            hindsight_logprobs = get_hindsight_logprobs(
-                h_model, states, returns, actions
-            )
+        # Policy update (PPO)
+        if args.agent.name != "random":
+            total_loss, action_loss, value_loss, entropy, hca_ratio_dict = agent.update(buffer)
 
-        buffer.states.append(states)
-        buffer.actions.append(actions)
-        buffer.logprobs.append(logprobs)
-        buffer.values.append(values)
-        buffer.rewards.append(rewards)
-        buffer.terminals.append(terminals)
-        buffer.hindsight_logprobs.append(hindsight_logprobs)
-
-        if args.agent.name == "ppo-hca":
-            hca_buffer.add_episode(states, actions, rewards, agent.gamma)
-
-        # Assign credit
-        if args.agent.name == "ppo-hca" and (
-            episode % args.agent.hca_update_every == 0
-            or episode == args.agent.update_every
-        ):
-            # reset the model if you want
-            if args.agent.refresh_hca:
-                h_model.reset_parameters()
-            # update the HCA model
-            hca_results = h_model.update(hca_buffer)
-            # Clear the HCA buffer
-            hca_buffer.clear()
-
-            # Log every time we update the model and don't use the log freq
-            if args.training.wandb:
-                wandb.log(hca_results, step=episode)
-            print(" ============ Updated HCA model =============")
-            print(f"Episode: {episode}")
-            if h_model.continuous:
-                print(
-                    f"Train Loss: {hca_results['training/hca_train_loss']} | Train Logprobs: {hca_results['training/hca_train_logprobs']}"
-                )
-                print(
-                    f"Val Loss: {hca_results['training/hca_val_loss']} | Val Logprobs: {hca_results['training/hca_val_logprobs']}"
-                )
-            else:
-                print(
-                    f"Train Loss: {hca_results['training/hca_train_loss']} | Train Acc: {hca_results['training/hca_train_acc']}"
-                )
-                print(
-                    f"Val Loss: {hca_results['training/hca_val_loss']} | Val Acc: {hca_results['training/hca_val_acc']}"
-                )
-            print("=============================================")
-
-        # Agent update (PPO)
-        if (
-            args.agent.name != "random"
-            and episode % args.agent.update_every == 0
-        ):
-            (
-                total_loss,
-                action_loss,
-                value_loss,
-                entropy,
-                hca_ratio_dict,
-            ) = agent.update(buffer)
             total_losses.append(total_loss)
             action_losses.append(action_loss)
             value_losses.append(value_loss)
@@ -270,7 +241,7 @@ def train(args):
             buffer.clear()
 
         # logging
-        if args.training.log_freq and episode % args.training.log_freq == 0:
+        if args.training.log_freq and num_total_steps % args.training.log_freq == 0:
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
@@ -297,7 +268,7 @@ def train(args):
                         "training/value_loss": np.mean(value_losses),
                         "training/entropy": np.mean(entropies),
                     },
-                    step=episode,
+                    step=num_total_steps,
                 )
                 if args.agent.name == "ppo-hca":
                     wandb.log(
@@ -307,11 +278,11 @@ def train(args):
                             "training/hca_ratio_mean": hca_ratio_mean,
                             "training/hca_ratio_std": hca_ratio_std,
                         },
-                        step=episode,
+                        step=num_total_steps,
                     )
 
             print(
-                f"Episode: {episode} \t\t Average Reward: {avg_reward:.4f} \t\t Average Success: {avg_success:.4f}"
+                f"Steps: {num_total_steps} \t\t Episodes: {episodes_collected} \t\t Average Reward: {avg_reward:.4f} \t\t Average Success: {avg_success:.4f}"
             )
 
             total_rewards, total_successes = [], []
@@ -324,14 +295,14 @@ def train(args):
 
         # save model weights
         if (
-            args.training.save_model_freq
-            and episode % args.training.save_model_freq == 0
+                args.training.save_model_freq
+                and episodes_collected % args.training.save_model_freq == 0
         ):
             print(
                 "--------------------------------------------------------------------------------------------"
             )
             print("saving model at : " + checkpoint_path)
-            agent.save(f"{checkpoint_path}/model_{episode}.pt", vars(args))
+            agent.save(f"{checkpoint_path}/model_{episodes_collected}.pt", vars(args))
             print("model saved")
             print(
                 "Elapsed Time  : ",
@@ -341,7 +312,7 @@ def train(args):
                 "--------------------------------------------------------------------------------------------"
             )
 
-        if args.training.eval_freq and episode % args.training.eval_freq == 0:
+        if args.training.eval_freq and num_total_steps % args.training.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
             if args.training.wandb:
@@ -350,7 +321,7 @@ def train(args):
                         "eval/avg_rewards": eval_avg_reward,
                         "eval/avg_success": eval_avg_success,
                     },
-                    step=episode,
+                    step=num_total_steps,
                 )
 
     ## SAVE MODELS
@@ -360,7 +331,7 @@ def train(args):
         )
         print("Final Checkpoint Save!!")
         print("saving model at : " + checkpoint_path)
-        agent.save(f"{checkpoint_path}/model_{episode}.pt", vars(args))
+        agent.save(f"{checkpoint_path}/model_{num_total_steps}.pt", vars(args))
         print("model saved")
         print(
             "Elapsed Time  : ",
@@ -369,7 +340,6 @@ def train(args):
         print(
             "--------------------------------------------------------------------------------------------"
         )
-
 
 def get_args(cfg: DictConfig):
     cfg.training.device = "cuda:0" if torch.cuda.is_available() else "cpu"

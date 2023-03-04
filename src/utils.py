@@ -158,12 +158,12 @@ def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize
         returns = (returns - returns.mean()) / (returns.std() + 1e-7)
     return advantages, returns
 
-def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv_ret=True):
+def estimate_gae(gamma, lamda, rewards, values, terminals, last_val, normalize_adv_ret=True):
     # GAE estimates of Advantage
     batch_size = len(rewards)
     advantages = np.zeros(batch_size, dtype=np.float32)
     advantages[batch_size - 1] = (
-        rewards[batch_size - 1] - values[batch_size - 1]
+        rewards[batch_size - 1] + last_val - values[batch_size - 1]
     )
     for t in reversed(range(batch_size - 1)):
         delta = (
@@ -176,7 +176,7 @@ def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv_ret=Tru
         )
 
     returns = advantages + values
-
+    # TODO: is this the right way to normalize returns? Should we normalize returns?
     if normalize_adv_ret:
         advantages = (advantages - advantages.mean()) / (
                 advantages.std() + 1e-7

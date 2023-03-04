@@ -7,10 +7,9 @@ env:
   gamma: 0.98
 
 training:
-  max_training_episodes: 1000000
-  log_freq: 10  # Log every these many episodes
+  log_freq: 10000  # Log every these many env steps
   save_model_freq: 0 # Save networks every these many episodes
-  eval_freq: 10 # eval every these many episodes
+  eval_freq: 10000 # eval every these many env steps
 
 agent:
   update_every: 1
@@ -23,4 +22,3 @@ agent:
   entropy_coeff: 0.000401762
   lr: 2.0633e-05
   max_grad_norm: 0.8
-  
