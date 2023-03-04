@@ -4,15 +4,23 @@ env:
   name: "HalfCheetah-v3"
   type: "mujoco"
   sparse: false
+  gamma: 0.98
 
 training:
+  max_training_episodes: 1000000
   log_freq: 10  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
   eval_freq: 10 # eval every these many episodes
 
 agent:
-  update_every: 4
-  ppo_epochs: 80
-  value_loss_coeff: 0.5
-  n_layers: 3
-  hidden_size: 128
+  update_every: 1
+  ppo_epochs: 20
+  value_loss_coeff: 0.58096
+  n_layers: 2
+  hidden_size: 256
+  lamda: 0.92
+  eps_clip: 0.1
+  entropy_coeff: 0.000401762
+  lr: 2.0633e-05
+  max_grad_norm: 0.8
+  

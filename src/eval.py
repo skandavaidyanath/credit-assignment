@@ -24,7 +24,7 @@ def eval(env, agent, args, num_eval_eps=32):
 
         while not done:
             # select action with policy
-            action, _ = agent.select_action(state, greedy=True)
+            action, _, _ = agent.select_action(state, greedy=True)
             if continuous:
                 action = action.numpy().flatten()
                 action = action.clip(
