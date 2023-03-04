@@ -161,12 +161,12 @@ def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize
         )
     return advantages, returns
 
-def estimate_gae(gamma, lamda, rewards, values, terminals, last_val, normalize_adv=True):
+def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv=True):
     # GAE estimates of Advantage
     batch_size = len(rewards)
     advantages = np.zeros(batch_size, dtype=np.float32)
     advantages[batch_size - 1] = (
-        rewards[batch_size - 1] + gamma * last_val - values[batch_size - 1]
+        rewards[batch_size - 1] - values[batch_size - 1]
     )
     for t in reversed(range(batch_size - 1)):
         delta = (

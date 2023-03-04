@@ -29,21 +29,20 @@ class RolloutBuffer:
 
     def prep_buffer(self, gamma, lamda, adv_type):
         # the last element in self.values is the final step value; remove this and use to compute gae.
-        last_val = self.values[-1]
         buffer_states = np.array(self.states, dtype=np.float32).squeeze()
         buffer_actions = np.array(self.actions, dtype=np.float32).squeeze()
         buffer_logprobs = np.array(self.logprobs, dtype=np.float32).squeeze()
         buffer_rewards = np.array(self.rewards, dtype=np.float32).squeeze()
         buffer_terminals = np.array(self.terminals, dtype=np.float32).squeeze()
-        buffer_values = np.array(self.values[:-1], dtype=np.float32).squeeze()
+        buffer_values = np.array(self.values, dtype=np.float32).squeeze()
 
         if adv_type == "gae":
             advantages, returns = estimate_gae(
-                gamma, lamda, buffer_rewards, buffer_values, buffer_terminals, last_val
+                gamma, lamda, buffer_rewards, buffer_values, buffer_terminals
             )
         elif adv_type == "mc":
             advantages, returns = estimate_montecarlo_returns_adv(
-                gamma, buffer_rewards, buffer_values, buffer_terminals, last_val
+                gamma, buffer_rewards, buffer_values, buffer_terminals
             )
         else:
             raise NotImplementedError
