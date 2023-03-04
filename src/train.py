@@ -182,9 +182,8 @@ def train(args):
             current_ep_length += 1
 
             # determine if episode is done, and if it is because of terminal state or timeout.
-            # timeout = current_ep_length == args.training.max_episode_length  # TOOD: add this to args.training
             if done:
-                # trajectory didn't reach a terminal state; bootstrap value target. # TODO: figure out what to do here.
+                # trajectory didn't reach a terminal state; bootstrap value target.
                 if not info["terminal_state"]:
                     _, _, next_value = agent.select_action(next_state)
                 else:

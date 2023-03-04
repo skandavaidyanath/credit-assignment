@@ -230,7 +230,7 @@ class PPO:
                 )
 
                 action_loss = -torch.min(surr1, surr2).mean()
-                # TODO: implement clipped value loss
+
                 if self.clip_range_vf:
                     new_values = new_values.flatten()
                     values_pred = old_values + torch.clamp(
