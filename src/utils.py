@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import gridworld
 from gridworld.gridworld_env import GridWorld
+from env_wrappers import HalfCheetahWrapper
 import gym
 
 try:
@@ -44,6 +45,7 @@ def get_env(args):
         )
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
+        env = MujocoWrapper(env)
     else:
         raise NotImplementedError
     return env
@@ -137,7 +139,7 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
     return h_values.detach().tolist()
 
 
-def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize_adv_ret=True):
+def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize_adv=True):
     # Monte Carlo estimate of returns
     batch_size = len(rewards)
     returns = np.zeros(batch_size)
@@ -153,19 +155,18 @@ def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize
 
     advantages = returns - values
 
-    if normalize_adv_ret:
+    if normalize_adv:
         advantages = (advantages - advantages.mean()) / (
                 advantages.std() + 1e-7
         )
-        returns = (returns - returns.mean()) / (returns.std() + 1e-7)
     return advantages, returns
 
-def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv_ret=True):
+def estimate_gae(gamma, lamda, rewards, values, terminals, last_val, normalize_adv=True):
     # GAE estimates of Advantage
     batch_size = len(rewards)
     advantages = np.zeros(batch_size, dtype=np.float32)
     advantages[batch_size - 1] = (
-        rewards[batch_size - 1] - values[batch_size - 1]
+        rewards[batch_size - 1] + last_val - values[batch_size - 1]
     )
     for t in reversed(range(batch_size - 1)):
         delta = (
@@ -178,11 +179,9 @@ def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv_ret=Tru
         )
 
     returns = advantages + values
-
-    if normalize_adv_ret:
+    if normalize_adv:
         advantages = (advantages - advantages.mean()) / (
                 advantages.std() + 1e-7
         )
-        returns = (returns - returns.mean()) / (returns.std() + 1e-7)
 
     return advantages, returns

@@ -10,7 +10,6 @@ training:
   wandb: True
   device: ""
   max_training_env_steps: 50000000 # big number
-  max_training_episodes: 100000 # some big number (deprecate)
   seed: 0
   checkpoint: ""
   exp_name_modifier: ""
@@ -21,7 +20,6 @@ env:
   gamma: 0.99
 
 agent:
-  update_every: 50 (deprecate)
   env_steps_per_update: 2048
   ppo_epochs: 10
   minibatch_size: 64
