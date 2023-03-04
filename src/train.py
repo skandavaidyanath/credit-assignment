@@ -182,9 +182,8 @@ def train(args):
             current_ep_length += 1
 
             # determine if episode is done, and if it is because of terminal state or timeout.
-            # timeout = current_ep_length == args.training.max_episode_length  # TOOD: add this to args.training
             if done:
-                # trajectory didn't reach a terminal state; bootstrap value target. # TODO: figure out what to do here.
+                # trajectory didn't reach a terminal state; bootstrap value target.
                 if not info["terminal_state"]:
                     _, _, next_value = agent.select_action(next_state)
                 else:
@@ -213,10 +212,10 @@ def train(args):
             state = next_state
 
         # Batch has been collected; compute the last value if needed, and put it in buffer.
-        if info["terminal_state"]:
-            final_value = 0.0
-        else:
-            _, _, final_value = agent.select_action(state)
+        final_value = 0.0
+        if not done:
+            if not info["terminal_state"]:
+                _, _, final_value = agent.select_action(state)
         buffer.values.append(final_value)
 
         # TODO: Credit assignment.

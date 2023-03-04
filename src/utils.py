@@ -166,7 +166,7 @@ def estimate_gae(gamma, lamda, rewards, values, terminals, last_val, normalize_a
     batch_size = len(rewards)
     advantages = np.zeros(batch_size, dtype=np.float32)
     advantages[batch_size - 1] = (
-        rewards[batch_size - 1] + last_val - values[batch_size - 1]
+        rewards[batch_size - 1] + gamma * last_val - values[batch_size - 1]
     )
     for t in reversed(range(batch_size - 1)):
         delta = (
