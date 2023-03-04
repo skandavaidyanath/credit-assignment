@@ -10,7 +10,7 @@ training:
   wandb: True
   device: ""
   max_training_env_steps: 50000000 # big number
-  max_training_episodes: 100000 # some big number
+  max_training_episodes: 100000 # some big number (deprecate)
   seed: 0
   checkpoint: ""
   exp_name_modifier: ""
@@ -21,17 +21,17 @@ env:
   gamma: 0.99
 
 agent:
-  update_every: 50
-  batch_size: 2500
-  ppo_epochs: 30
+  update_every: 50 (deprecate)
+  env_steps_per_update: 2048
+  ppo_epochs: 10
   minibatch_size: 64
   eps_clip: 0.2
   clip_range_vf: null # no value function clipping by default
   lamda: 0.95
   entropy_coeff: 0.0
-  value_loss_coeff: 0.25
+  value_loss_coeff: 0.5
   n_layers: 2
   hidden_size: 64
   lr: 3e-4
   activation_fn: "relu"
-  max_grad_norm: null # no gradient norm clipping by default
+  max_grad_norm: 0.5

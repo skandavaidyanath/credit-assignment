@@ -12,13 +12,16 @@ training:
   eval_freq: 10000 # eval every these many env steps
 
 agent:
-  update_every: 1
+  env_steps_per_update: 512
   ppo_epochs: 20
+  minibatch_size: 64
+  eps_clip: 0.2
+  clip_range_vf: null # no value function clipping by default
+  lamda: 0.92
+  entropy_coeff: 0.0
   value_loss_coeff: 0.58096
   n_layers: 2
   hidden_size: 256
-  lamda: 0.92
-  eps_clip: 0.1
-  entropy_coeff: 0.000401762
   lr: 2.0633e-05
+  activation_fn: "relu"
   max_grad_norm: 0.8

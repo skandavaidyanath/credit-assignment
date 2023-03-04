@@ -159,7 +159,7 @@ def train(args):
     while num_total_steps <= args.training.max_training_env_steps:
 
         # Exploration:
-        for t in range(1, args.agent.batch_size + 1):
+        for t in range(1, args.agent.env_steps_per_update + 1):
             if args.agent.name == "random":
                 action = env.action_space.sample()
                 action_logprob = None
