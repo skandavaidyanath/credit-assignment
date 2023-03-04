@@ -24,6 +24,7 @@ agent:
   ppo_epochs: 30
   minibatch_size: 64
   eps_clip: 0.2
+  clip_range_vf: null # no value function clipping by default
   lamda: 0.95
   entropy_coeff: 0.0
   value_loss_coeff: 0.25
@@ -31,4 +32,4 @@ agent:
   hidden_size: 64
   lr: 3e-4
   activation_fn: "relu"
-  max_grad_norm: null # no clipping by default
+  max_grad_norm: null # no gradient norm clipping by default
