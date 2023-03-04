@@ -1,8 +1,8 @@
 import gym 
 
-class HalfCheetahWrapper(gym.Wrapper):
+class MujocoWrapper(gym.Wrapper):
     def __init__(self, env):
-        super(HalfCheetahWrapper, self).__init__(env)
+        super(MujocoWrapper, self).__init__(env)
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)

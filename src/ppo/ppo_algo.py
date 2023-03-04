@@ -21,9 +21,9 @@ class ActorCritic(nn.Module):
         self.action_dim = action_dim
 
         if activation_fn == "tanh":
-            activation_fn = nn.Tanh()
+            activation = nn.Tanh()
         elif activation_fn == "relu":
-            activation_fn = nn.ReLU()
+            activation = nn.ReLU()
         else:
             raise NotImplementedError()
 
@@ -40,10 +40,10 @@ class ActorCritic(nn.Module):
             for i in range(n_layers):
                 if i == 0:
                     layers.append(nn.Linear(state_dim, hidden_size))
-                    layers.append(activation_fn)
+                    layers.append(activation)
                 else:
                     layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation_fn)
+                    layers.append(activation)
             self.encoder = nn.Sequential(*layers)
 
         # actor
@@ -134,7 +134,7 @@ class PPO:
     def select_action(self, state, greedy=False):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(self.device)
-            action, action_logprob, value = self.policy.act(state, greedy=greedy, return_value=not greedy)
+            action, action_logprob, value = self.policy.act(state, greedy=greedy, return_value=(not greedy))
         if value:
             value = value.cpu().item()
 
@@ -165,42 +165,42 @@ class PPO:
 
         return advantages.to(self.device), hindsight_stats
 
-    def estimate_montecarlo_returns(self, rewards, terminals):
-        # Monte Carlo estimate of returns
-        batch_size = len(rewards)
-        returns = np.zeros(batch_size)
-        returns[batch_size - 1] = rewards[batch_size - 1]
-        for t in reversed(range(batch_size - 1)):
-            returns[t] = rewards[t] + returns[t + 1] * self.gamma * (
-                1 - terminals[t]
-            )
+#     def estimate_montecarlo_returns(self, rewards, terminals):
+#         # Monte Carlo estimate of returns
+#         batch_size = len(rewards)
+#         returns = np.zeros(batch_size)
+#         returns[batch_size - 1] = rewards[batch_size - 1]
+#         for t in reversed(range(batch_size - 1)):
+#             returns[t] = rewards[t] + returns[t + 1] * self.gamma * (
+#                 1 - terminals[t]
+#             )
 
-        returns = torch.tensor(returns, dtype=torch.float32)
-        returns = (returns - returns.mean()) / (returns.std() + 1e-7)
-        return returns.to(self.device)
+#         returns = torch.tensor(returns, dtype=torch.float32)
+#         returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+#         return returns.to(self.device)
 
-    def estimate_gae(self, rewards, values, terminals):
-        # GAE estimates of Advantage
-        batch_size = len(rewards)
-        advantages = np.zeros(batch_size)
-        advantages[batch_size - 1] = (
-            rewards[batch_size - 1] - values[batch_size - 1]
-        )
-        for t in reversed(range(batch_size - 1)):
-            delta = (
-                rewards[t]
-                + (self.gamma * values[t + 1] * (1 - terminals[t]))
-                - values[t]
-            )
-            advantages[t] = delta + (
-                self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
-            )
+#     def estimate_gae(self, rewards, values, terminals):
+#         # GAE estimates of Advantage
+#         batch_size = len(rewards)
+#         advantages = np.zeros(batch_size)
+#         advantages[batch_size - 1] = (
+#             rewards[batch_size - 1] - values[batch_size - 1]
+#         )
+#         for t in reversed(range(batch_size - 1)):
+#             delta = (
+#                 rewards[t]
+#                 + (self.gamma * values[t + 1] * (1 - terminals[t]))
+#                 - values[t]
+#             )
+#             advantages[t] = delta + (
+#                 self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
+#             )
 
-        advantages = torch.tensor(advantages, dtype=torch.float32)
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-7
-        )
-        return advantages.to(self.device)
+#         advantages = torch.tensor(advantages, dtype=torch.float32)
+#         advantages = (advantages - advantages.mean()) / (
+#             advantages.std() + 1e-7
+#         )
+#         return advantages.to(self.device)
 
     def update(self, buffer):
         total_losses, action_losses, value_losses, entropies = [], [], [], []
