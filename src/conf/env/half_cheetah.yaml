@@ -15,10 +15,10 @@ agent:
   env_steps_per_update: 512
   ppo_epochs: 20
   minibatch_size: 64
-  eps_clip: 0.2
+  eps_clip: 0.1
   clip_range_vf: null # no value function clipping by default
   lamda: 0.92
-  entropy_coeff: 0.0
+  entropy_coeff: 0.000401762
   value_loss_coeff: 0.58096
   n_layers: 2
   hidden_size: 256
