@@ -17,7 +17,7 @@ from ppo.replay_buffer import RolloutBuffer
 from hca.hca_model import HCAModel
 from hca.hca_buffer import HCABuffer, calculate_mc_returns
 
-from lorl import TASKS
+from wrappers.lorl import TASKS
 from utils import (
     get_hindsight_logprobs,
     get_env,
