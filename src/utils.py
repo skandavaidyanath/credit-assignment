@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import gridworld
 from gridworld.gridworld_env import GridWorld
-from env_wrappers import HalfCheetahWrapper
 import gym
 
 try:
