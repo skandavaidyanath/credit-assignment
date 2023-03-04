@@ -149,6 +149,8 @@ def train(args):
     )
 
     num_total_steps = 0
+    steps_between_logs = 0
+    steps_between_evals = 0
     episodes_collected = 0
 
     state = env.reset()
@@ -180,6 +182,8 @@ def train(args):
             current_ep_reward += reward
             num_total_steps += 1
             current_ep_length += 1
+            steps_between_logs += 1
+            steps_between_evals += 1
 
             # determine if episode is done, and if it is because of terminal state or timeout.
             if done:
@@ -236,7 +240,9 @@ def train(args):
             buffer.clear()
 
         # logging
-        if args.training.log_freq and num_total_steps % args.training.log_freq == 0:
+        if args.training.log_freq and steps_between_logs >= args.training.log_freq:
+            steps_between_logs = 0
+
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
@@ -307,7 +313,8 @@ def train(args):
                 "--------------------------------------------------------------------------------------------"
             )
 
-        if args.training.eval_freq and num_total_steps % args.training.eval_freq == 0:
+        if args.training.eval_freq and steps_between_evals >= args.training.eval_freq:
+            steps_between_evals = 0
             eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
             if args.training.wandb:
