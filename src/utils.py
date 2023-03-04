@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import gridworld
 from gridworld.gridworld_env import GridWorld
+from env_wrappers import HalfCheetahWrapper
 import gym
 
 try:
@@ -42,6 +43,8 @@ def get_env(args):
         )
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
+        if "HalfCheetah" in args.env.name:
+            env = HalfCheetahWrapper(env)
     else:
         raise NotImplementedError
     return env
