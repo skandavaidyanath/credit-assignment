@@ -14,7 +14,6 @@ class RolloutBuffer:
         self.logprobs = []
         self.values = []
         self.rewards = []
-        self.returns = []
         self.terminals = []
         self.hindsight_logprobs = []
 

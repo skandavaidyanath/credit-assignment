@@ -217,9 +217,8 @@ def train(args):
 
         # Batch has been collected; compute the last value if needed, and put it in buffer.
         if not done:
-            if not info["terminal_state"]:
-                _, _, final_value = agent.select_action(state)
-                buffer.rewards[-1] += agent.gamma * final_value
+            _, _, final_value = agent.select_action(state)
+            buffer.rewards[-1] += agent.gamma * final_value
 
         # TODO: Credit assignment.
 
