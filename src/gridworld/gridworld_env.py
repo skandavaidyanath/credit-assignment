@@ -36,6 +36,7 @@ class GridWorld(Env):
         # observation and action spaces
         self.observation_space = Dict({"map": MultiDiscrete(7 * np.ones(self.R * self.C)), "time": Discrete(max_steps+1)})
         self.action_space = Discrete(4)
+        self.goal_location = np.array(np.where(self.gridmap == TILE_MAPPING["G"])).flatten()
 
     def process(self, gridmap):
         rows = gridmap.split("\n")
@@ -72,7 +73,8 @@ class GridWorld(Env):
         next_state = self.next_state(action)
         self.current_steps += 1
 
-        done = self.current_steps >= self.max_steps
+        timeout = self.current_steps >= self.max_steps
+        terminal = False
 
         if next_state in [TILE_MAPPING["."], TILE_MAPPING["S"]]:
             reward = -1
@@ -88,8 +90,10 @@ class GridWorld(Env):
             ] = TILE_MAPPING["."]
             reward = REWARD_MAPPING["*"] - 1
         if next_state == TILE_MAPPING["G"]:
-            done = True
+            terminal = True
             reward = -1
+
+        done = terminal or timeout
 
         self.episode_rewards.append(reward)
         if self.sparse:
@@ -102,7 +106,7 @@ class GridWorld(Env):
                     {"success": 0},
                 )
 
-        return self.get_state(), reward, done, {"success": 0}
+        return self.get_state(), reward, done, {"success": 0, "terminal_state": terminal, "timeout": timeout}
 
     def render(self):
         out = [
