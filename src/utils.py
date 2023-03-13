@@ -181,5 +181,6 @@ def estimate_gae(gamma, lamda, rewards, values, dones, normalize_adv=True):
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7
         )
+        # returns = (returns - returns.mean()) / (returns.std() + 1e-7)
 
     return advantages, returns

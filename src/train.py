@@ -170,14 +170,15 @@ def train(args):
                 action, action_logprob, value = agent.select_action(state)
                 if continuous:
                     action = action.numpy().flatten()
-                    action = action.clip(
+                    clipped_action = action.clip(
                         env.action_space.low, env.action_space.high
                     )
                 else:
                     action = action.item()
+                    clipped_action = action
 
             # step env
-            next_state, reward, done, info = env.step(action)
+            next_state, reward, done, info = env.step(clipped_action)
             current_ep_reward += reward
             num_total_steps += 1
             current_ep_length += 1
