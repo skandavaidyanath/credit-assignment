@@ -216,7 +216,8 @@ class PPO:
             mb_total_losses, mb_action_losses, mb_value_losses, mb_entropies = [], [], [], []
 
             # iterate over big batch in smaller minibatches
-            for minibatch in buffer.generate_batches(self.gamma, self.lamda, self.minibatch_size, self.adv, self.device):
+            batch_generator = buffer.generate_batches(self.gamma, self.lamda, self.minibatch_size, self.adv, self.device)
+            for minibatch in batch_generator:
                 # Evaluating old actions and values
                 states, actions, old_logprobs, old_values, advantages, returns = minibatch
                 logprobs, new_values, entropy = self.policy.evaluate(states, actions)
