@@ -1,2 +1,2 @@
-# ca-exploration
-Investigating the effects of pre-training a hindsight credit assignment function for online finetuning in RL problems
+# credit-assignment
+Investigating the different ways we can do credit assignment in deep RL
