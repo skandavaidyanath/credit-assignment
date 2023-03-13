@@ -86,6 +86,7 @@ def train(args):
 
     # Agent
     agent = PPO(state_dim, action_dim, args.agent.lr, continuous, device, args)
+    advantage_type = args.agent.adv
 
     if args.training.checkpoint:
         checkpoint = torch.load(args.training.checkpoint)
@@ -161,7 +162,10 @@ def train(args):
     while num_total_steps <= args.training.max_training_env_steps:
 
         # Exploration:
-        for t in range(1, args.agent.env_steps_per_update + 1):
+        explore = True
+        t = 1
+        # for t in range(1, args.agent.env_steps_per_update + 1):
+        while explore:
             if args.agent.name == "random":
                 action = env.action_space.sample()
                 action_logprob = None
@@ -215,6 +219,13 @@ def train(args):
             buffer.terminals.append(done)
 
             state = next_state
+
+            # MC returns needs full episodes; keep exploring until there are enough transitions and episode is done.
+            if advantage_type == "mc":
+                explore = not(t >= args.agent.env_steps_per_update and done)
+            else:
+                explore = t < args.agent.env_steps_per_update
+            t += 1
 
         # Batch has been collected; compute the last value if needed, and put it in buffer.
         if not done:

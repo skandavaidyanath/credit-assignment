@@ -149,16 +149,14 @@ def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize
                 1 - terminals[t]
         )
 
-    returns = torch.tensor(returns, dtype=torch.float32)
-    returns = (returns - returns.mean()) / (returns.std() + 1e-7)
-
+    # returns = torch.tensor(returns, dtype=torch.float32)
     advantages = returns - values
 
     if normalize_adv:
         advantages = (advantages - advantages.mean()) / (
                 advantages.std() + 1e-7
         )
-    return advantages, returns
+    return advantages.astype(np.float32), returns.astype(np.float32)
 
 def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv=True):
     # GAE estimates of Advantage
