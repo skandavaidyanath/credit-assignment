@@ -138,16 +138,16 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
     return h_values.detach().tolist()
 
 
-def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize_adv=True):
+def estimate_montecarlo_returns_adv(
+    gamma, rewards, values, dones, normalize_adv=True
+):
     # Monte Carlo estimate of returns
     batch_size = len(rewards)
     returns = np.zeros(batch_size)
     returns[batch_size - 1] = rewards[batch_size - 1]
 
     for t in reversed(range(batch_size - 1)):
-        returns[t] = rewards[t] + returns[t + 1] * gamma * (
-                1 - terminals[t]
-        )
+        returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - dones[t])
 
     returns = torch.tensor(returns, dtype=torch.float32)
     returns = (returns - returns.mean()) / (returns.std() + 1e-7)
@@ -156,11 +156,12 @@ def estimate_montecarlo_returns_adv(gamma, rewards, values, terminals, normalize
 
     if normalize_adv:
         advantages = (advantages - advantages.mean()) / (
-                advantages.std() + 1e-7
+            advantages.std() + 1e-7
         )
     return advantages, returns
 
-def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv=True):
+
+def estimate_gae(gamma, lamda, rewards, values, dones, normalize_adv=True):
     # GAE estimates of Advantage
     batch_size = len(rewards)
     advantages = np.zeros(batch_size, dtype=np.float32)
@@ -169,18 +170,16 @@ def estimate_gae(gamma, lamda, rewards, values, terminals, normalize_adv=True):
     )
     for t in reversed(range(batch_size - 1)):
         delta = (
-            rewards[t]
-            + (gamma * values[t + 1] * (1 - terminals[t]))
-            - values[t]
+            rewards[t] + (gamma * values[t + 1] * (1 - dones[t])) - values[t]
         )
         advantages[t] = delta + (
-            gamma * lamda * advantages[t + 1] * (1 - terminals[t])
+            gamma * lamda * advantages[t + 1] * (1 - dones[t])
         )
 
     returns = advantages + values
     if normalize_adv:
         advantages = (advantages - advantages.mean()) / (
-                advantages.std() + 1e-7
+            advantages.std() + 1e-7
         )
 
     return advantages, returns

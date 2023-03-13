@@ -15,9 +15,8 @@ import wandb
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
 from hca.hca_model import HCAModel
-from hca.hca_buffer import HCABuffer, calculate_mc_returns
+from hca.hca_buffer import HCABuffer
 
-from wrappers.lorl import TASKS
 from utils import (
     get_hindsight_logprobs,
     get_env,
@@ -204,27 +203,34 @@ def train(args):
                 current_ep_reward = 0.0
                 current_ep_length = 0
 
-
             # add transition to buffer
             buffer.states.append(state)
             buffer.actions.append(action)
             buffer.logprobs.append(action_logprob)
             buffer.values.append(value)
             buffer.rewards.append(reward)
-            buffer.terminals.append(done)
+            buffer.dones.append(done)
 
             state = next_state
 
         # Batch has been collected; compute the last value if needed, and put it in buffer.
         if not done:
-            _, _, final_value = agent.select_action(state)
+            _, _, final_value = agent.select_action(
+                state
+            )  # state is already set to next_state
             buffer.rewards[-1] += agent.gamma * final_value
 
         # TODO: Credit assignment.
 
         # Policy update (PPO)
         if args.agent.name != "random":
-            total_loss, action_loss, value_loss, entropy, hca_ratio_dict = agent.update(buffer)
+            (
+                total_loss,
+                action_loss,
+                value_loss,
+                entropy,
+                hca_ratio_dict,
+            ) = agent.update(buffer)
 
             total_losses.append(total_loss)
             action_losses.append(action_loss)
@@ -239,7 +245,10 @@ def train(args):
             buffer.clear()
 
         # logging
-        if args.training.log_freq and steps_between_logs >= args.training.log_freq:
+        if (
+            args.training.log_freq
+            and steps_between_logs >= args.training.log_freq
+        ):
             steps_between_logs = 0
 
             avg_reward = np.mean(total_rewards)
@@ -295,14 +304,16 @@ def train(args):
 
         # save model weights
         if (
-                args.training.save_model_freq
-                and episodes_collected % args.training.save_model_freq == 0
+            args.training.save_model_freq
+            and episodes_collected % args.training.save_model_freq == 0
         ):
             print(
                 "--------------------------------------------------------------------------------------------"
             )
             print("saving model at : " + checkpoint_path)
-            agent.save(f"{checkpoint_path}/model_{episodes_collected}.pt", vars(args))
+            agent.save(
+                f"{checkpoint_path}/model_{episodes_collected}.pt", vars(args)
+            )
             print("model saved")
             print(
                 "Elapsed Time  : ",
@@ -312,7 +323,10 @@ def train(args):
                 "--------------------------------------------------------------------------------------------"
             )
 
-        if args.training.eval_freq and steps_between_evals >= args.training.eval_freq:
+        if (
+            args.training.eval_freq
+            and steps_between_evals >= args.training.eval_freq
+        ):
             steps_between_evals = 0
             eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
@@ -341,6 +355,7 @@ def train(args):
         print(
             "--------------------------------------------------------------------------------------------"
         )
+
 
 def get_args(cfg: DictConfig):
     cfg.training.device = "cuda:0" if torch.cuda.is_available() else "cpu"
