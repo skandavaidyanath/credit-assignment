@@ -112,13 +112,13 @@ class HCAModel(nn.Module):
 
         if self.continuous:
             results = {
-                "training/hca_train_loss": np.mean(losses),
-                "training/hca_train_logprobs": np.mean(metrics),
+                "hca_train_loss": np.mean(losses),
+                "hca_train_logprobs": np.mean(metrics),
             }
         else:
             results = {
-                "training/hca_train_loss": np.mean(losses),
-                "training/hca_train_acc": np.mean(metrics),
+                "hca_train_loss": np.mean(losses),
+                "hca_train_acc": np.mean(metrics),
             }
 
         val_results = self.validate(val_dataloader)
@@ -167,13 +167,13 @@ class HCAModel(nn.Module):
                 metrics.append(accuracy)
         if self.continuous:
             return {
-                "training/hca_val_loss": np.mean(losses),
-                "training/hca_val_logprobs": np.mean(metrics),
+                "hca_val_loss": np.mean(losses),
+                "hca_val_logprobs": np.mean(metrics),
             }
         else:
             return {
-                "training/hca_val_loss": np.mean(losses),
-                "training/hca_val_acc": np.mean(metrics),
+                "hca_val_loss": np.mean(losses),
+                "hca_val_acc": np.mean(metrics),
             }
 
     def get_hindsight_logprobs(self, states, returns, actions):

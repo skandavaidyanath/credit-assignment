@@ -10,7 +10,6 @@ os.environ["D4RL_SUPPRESS_IMPORT_ERROR"] = "1"
 import gym
 import numpy as np
 import torch
-import wandb
 
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer, RolloutBufferHCA
@@ -19,6 +18,7 @@ from hca.hca_buffer import HCABuffer, Episode
 
 from utils import get_env
 from eval import eval
+from logger import stat, Stats, Logger
 
 
 def train(args):
@@ -71,13 +71,14 @@ def train(args):
         setattr(args, "savedir", checkpoint_path)
         os.makedirs(checkpoint_path, exist_ok=True)
 
-    # Wandb Initialization
-    if args.training.wandb:
-        wandb.init(
-            name=exp_name,
-            project=args.env.name,
-            config=vars(args),
-            entity="ca-exploration",
+    # Initialize Logger
+    if args.training.log_freq:
+        logger = Logger(
+            exp_name,
+            args.env.name,
+            vars(args),
+            "ca-exploration",
+            args.logger.wandb,
         )
 
     # Agent
@@ -163,7 +164,6 @@ def train(args):
         # Exploration:
         explore = True
         t = 1
-        # for t in range(1, args.agent.env_steps_per_update + 1):
         while explore:
             if args.agent.name == "random":
                 action = env.action_space.sample()
@@ -237,8 +237,11 @@ def train(args):
             )  # state is already set to next_state
             buffer.rewards[-1] += agent.gamma * final_value
 
-        # TODO: Credit assignment.
-        hca_results = h_model.update(hca_buffer)
+        # Credit assignment.
+        if args.agent.name == "ppo-hca":
+            hca_stats = h_model.update(hca_buffer)
+        else:
+            hca_stats = {}
 
         # Policy update (PPO)
         if args.agent.name != "random":
@@ -254,12 +257,11 @@ def train(args):
             value_losses.append(value_loss)
             entropies.append(entropy)
 
-            hca_ration_dict = {}
-            if hca_ratio_dict:
-                hca_ratio_mins.append(hca_ratio_dict["min"])
-                hca_ratio_maxes.append(hca_ratio_dict["max"])
-                hca_ratio_means.append(hca_ratio_dict["mean"])
-                hca_ratio_stds.append(hca_ratio_dict["std"])
+            hca_ratios = getattr(buffer, hca_ratios, None)
+            hca_ratio_mins.append(stat(hca_ratios, "min"))
+            hca_ratio_maxes.append(stat(hca_ratios, "max"))
+            hca_ratio_means.append(stat(hca_ratios, "mean"))
+            hca_ratio_stds.append(stat(hca_ratios, "std"))
 
             buffer.clear()
 
@@ -270,51 +272,38 @@ def train(args):
         ):
             steps_between_logs = 0
 
-            avg_reward = np.mean(total_rewards)
-            avg_success = np.mean(total_successes)
+            stats = Stats(
+                avg_reward=stat(total_rewards),
+                avg_success=stat(total_successes),
+                total_loss=stat(total_losses),
+                action_loss=stat(action_losses),
+                value_loss=stat(value_losses),
+                entropy=stat(entropies),
+                hca_ratio_max=stat(hca_ratio_maxes),
+                hca_ratio_min=stat(hca_ratio_mins),
+                hca_ratio_mean=stat(hca_ratio_means),
+                hca_ratio_std=stat(hca_ratio_stds),
+                hca_train_loss=stat(hca_stats.get("hca_train_loss", 0.0)),
+                hca_train_logprobs=stat(
+                    hca_stats.get("hca_train_logprobs", 0.0)
+                ),
+                hca_train_acc=stat(hca_stats.get("hca_train_acc", 0.0)),
+                hca_val_loss=stat(hca_stats.get("hca_val_loss", 0.0)),
+                hca_val_logprobs=stat(hca_stats.get("hca_val_logprobs", 0.0)),
+                hca_val_acc=stat(hca_stats.get("hca_val_acc", 0.0)),
+            )
 
-            hca_ratio_min = (
-                np.mean(hca_ratio_mins) if len(hca_ratio_mins) > 0 else 0.0
-            )
-            hca_ratio_max = (
-                np.mean(hca_ratio_maxes) if len(hca_ratio_maxes) > 0 else 0.0
-            )
-            hca_ratio_mean = (
-                np.mean(hca_ratio_means) if len(hca_ratio_means) > 0 else 0.0
-            )
-            hca_ratio_std = (
-                np.mean(hca_ratio_stds) if len(hca_ratio_stds) > 0 else 0.0
-            )
-
-            if args.training.wandb:
-                wandb.log(
-                    {
-                        "training/avg_rewards": avg_reward,
-                        "training/avg_success": avg_success,
-                        "training/total_loss": np.mean(total_losses),
-                        "training/action_loss": np.mean(action_losses),
-                        "training/value_loss": np.mean(value_losses),
-                        "training/entropy": np.mean(entropies),
-                    },
-                    step=num_total_steps,
-                )
-                if args.agent.name == "ppo-hca":
-                    wandb.log(
-                        {
-                            "training/hca_ratio_min": hca_ratio_min,
-                            "training/hca_ratio_max": hca_ratio_max,
-                            "training/hca_ratio_mean": hca_ratio_mean,
-                            "training/hca_ratio_std": hca_ratio_std,
-                        },
-                        step=num_total_steps,
-                    )
-
-            print(
-                f"Steps: {num_total_steps} \t\t Episodes: {episodes_collected} \t\t Average Reward: {avg_reward:.4f} \t\t Average Success: {avg_success:.4f}"
-            )
+            logger.log(stats, step=num_total_steps, wandb_prefix="training")
 
             total_rewards, total_successes = [], []
             total_losses, action_losses, value_losses, entropies = (
+                [],
+                [],
+                [],
+                [],
+            )
+
+            hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
                 [],
                 [],
                 [],
@@ -349,14 +338,14 @@ def train(args):
             steps_between_evals = 0
             eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
-            if args.training.wandb:
-                wandb.log(
-                    {
-                        "eval/avg_rewards": eval_avg_reward,
-                        "eval/avg_success": eval_avg_success,
-                    },
-                    step=num_total_steps,
-                )
+            logger.log(
+                {
+                    "avg_rewards": eval_avg_reward,
+                    "avg_success": eval_avg_success,
+                },
+                step=num_total_steps,
+                wandb_prefix="eval",
+            )
 
     ## SAVE MODELS
     if args.training.save_model_freq:

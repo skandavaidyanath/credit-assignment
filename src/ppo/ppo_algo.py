@@ -169,12 +169,6 @@ class PPO:
 
     def update(self, buffer):
         total_losses, action_losses, value_losses, entropies = [], [], [], []
-        hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
-            [],
-            [],
-            [],
-            [],
-        )
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
