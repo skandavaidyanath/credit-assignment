@@ -176,19 +176,23 @@ class HCAModel(nn.Module):
                 "training/hca_val_acc": np.mean(metrics),
             }
 
-    def get_hindsight_values(self, inputs, actions):
+    def get_hindsight_logprobs(self, states, returns, actions):
         """
         get the hindsight values for a batch of actions
         """
-        inputs = inputs.to(self.device)
-        actions = actions.to(self.device)
+        returns = returns.reshape((-1, 1))
+        inputs = np.concatenate((states, returns), -1)
+        inputs = torch.from_numpy(inputs).to(self.device)
+
+        actions = torch.from_numpy(actions).to(self.device)
+
         out, dist = self.forward(inputs)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
-            return log_probs.exp()
         else:
             actions = actions.reshape(-1, 1).long()
-            return out.gather(1, actions)  # B,
+            log_probs = torch.log(out.gather(1, actions))  # B,
+        return log_probs.flatten()
 
     def save(self, checkpoint_path, args):
         torch.save(

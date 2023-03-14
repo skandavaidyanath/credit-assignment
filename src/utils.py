@@ -81,16 +81,16 @@ def estimate_montecarlo_returns_adv(
     for t in reversed(range(batch_size - 1)):
         returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - dones[t])
 
-    returns = torch.tensor(returns, dtype=torch.float32)
-    returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+    advantages = None
+    if values:
+        advantages = returns - values
 
-    advantages = returns - values
-
-    if normalize_adv:
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-7
-        )
-    return advantages, returns
+        if normalize_adv:
+            advantages = (advantages - advantages.mean()) / (
+                advantages.std() + 1e-7
+            )
+        advantages = advantages.astype(np.float32)
+    return advantages, returns.astype(np.float32)
 
 
 def estimate_gae(gamma, lamda, rewards, values, dones, normalize_adv=True):

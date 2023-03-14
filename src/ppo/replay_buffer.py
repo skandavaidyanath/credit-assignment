@@ -16,7 +16,6 @@ class RolloutBuffer:
         self.values = []
         self.rewards = []
         self.dones = []
-        self.hindsight_logprobs = []
 
     def clear(self):
         del self.states[:]
@@ -25,7 +24,6 @@ class RolloutBuffer:
         del self.values[:]
         del self.rewards[:]
         del self.dones[:]
-        del self.hindsight_logprobs[:]
 
     def prep_buffer(self, gamma, lamda, adv_type):
         # the last element in self.values is the final step value; remove this and use to compute gae.
@@ -41,8 +39,6 @@ class RolloutBuffer:
                 gamma, lamda, buffer_rewards, buffer_values, buffer_dones
             )
         elif adv_type == "mc":
-            raise NotImplementedError
-            # the way the rewards are stored is not appropriate for this
             advantages, returns = estimate_montecarlo_returns_adv(
                 gamma, buffer_rewards, buffer_values, buffer_dones
             )
@@ -102,3 +98,51 @@ class RolloutBuffer:
 
     def __len__(self):
         return len(self.states)
+
+
+class RolloutBufferHCA(RolloutBuffer):
+    def __init__(self, hindsight_model):
+        super(RolloutBufferHCA, self).__init__()
+        self.hindsight_logprobs = []
+        self.hindsight_model = hindsight_model
+
+    def clear(self):
+        super(RolloutBufferHCA, self).clear()
+        del self.hindsight_logprobs[:]
+
+    def prep_buffer(self, gamma, lamda, adv_type, normalize_adv=True):
+
+        # lamda and adv_type are not used here.
+
+        buffer_states = np.array(self.states, dtype=np.float32).squeeze()
+        buffer_actions = np.array(self.actions, dtype=np.float32).squeeze()
+        buffer_logprobs = np.array(self.logprobs, dtype=np.float32).squeeze()
+        buffer_rewards = np.array(self.rewards, dtype=np.float32).squeeze()
+        buffer_dones = np.array(self.dones, dtype=np.float32).squeeze()
+        buffer_values = np.array(self.values, dtype=np.float32).squeeze()
+
+        _, returns = estimate_montecarlo_returns_adv(
+            gamma, buffer_rewards, None, buffer_dones
+        )
+
+        hindsight_logprobs = self.hindsight_model.get_hindsight_logprobs(
+            buffer_states, returns, buffer_actions
+        )
+        hindsight_logprobs = hindsight_logprobs.detach().numpy()
+        hindsight_ratios = np.exp(buffer_logprobs - hindsight_logprobs)
+
+        advantages = (1 - hindsight_ratios) * returns
+        if normalize_adv:
+            advantages = (advantages - advantages.mean()) / (
+                advantages.std() + 1e-7
+            )
+
+        # What to return: states, actions, logprobs, values, advantages, returns.
+        return (
+            buffer_states,
+            buffer_actions,
+            buffer_logprobs,
+            buffer_values,
+            advantages,
+            returns,
+        )

@@ -21,6 +21,23 @@ def calculate_mc_returns(rewards, terminals, gamma):
     return returns
 
 
+class Episode:
+    def __init__(self):
+        self.states = []
+        self.actions = []
+        self.rewards = []
+
+    def add_transition(self, state, action, reward):
+        self.states.append(state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+
+    def clear(self):
+        del self.states[:]
+        del self.actions[:]
+        del self.rewards[:]
+
+
 class HCABuffer:
     def __init__(self, exp_name, action_dim, train_val_split=[0.9, 0.1]):
         self.action_dim = action_dim
@@ -39,8 +56,9 @@ class HCABuffer:
         self.train_val_split = train_val_split
 
     def add_episode(
-        self, episode_states, episode_actions, episode_rewards, gamma
+        self, episode, gamma
     ):
+        episode_states, episode_actions, episode_rewards = episode.states, episode.actions, episode.rewards
         rewards = np.array(episode_rewards).reshape(-1, 1)
         episode_returns = list(
             np.array(

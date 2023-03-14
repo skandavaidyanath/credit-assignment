@@ -13,14 +13,11 @@ import torch
 import wandb
 
 from ppo.ppo_algo import PPO
-from ppo.replay_buffer import RolloutBuffer
+from ppo.replay_buffer import RolloutBuffer, RolloutBufferHCA
 from hca.hca_model import HCAModel
-from hca.hca_buffer import HCABuffer
+from hca.hca_buffer import HCABuffer, Episode
 
-from utils import (
-    get_hindsight_logprobs,
-    get_env,
-)
+from utils import get_env
 from eval import eval
 
 
@@ -85,6 +82,7 @@ def train(args):
 
     # Agent
     agent = PPO(state_dim, action_dim, args.agent.lr, continuous, device, args)
+    advantage_type = args.agent.adv
 
     if args.training.checkpoint:
         checkpoint = torch.load(args.training.checkpoint)
@@ -92,6 +90,7 @@ def train(args):
 
     # HCA model
     h_model = None
+    hca_buffer = None
     if args.agent.name == "ppo-hca":
         h_model = HCAModel(
             state_dim + 1,  # this is for return-conditioned
@@ -126,9 +125,10 @@ def train(args):
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
-
-    # Replay Buffer for PPO
-    buffer = RolloutBuffer()
+        buffer = RolloutBufferHCA(h_model)
+    else:
+        # Replay Buffer for PPO
+        buffer = RolloutBuffer()
 
     # logging
     total_rewards, total_successes = [], []
@@ -156,11 +156,15 @@ def train(args):
     done = False
     current_ep_reward = 0
     current_ep_length = 0
+    curr_episode = Episode()
 
     while num_total_steps <= args.training.max_training_env_steps:
 
         # Exploration:
-        for t in range(1, args.agent.env_steps_per_update + 1):
+        explore = True
+        t = 1
+        # for t in range(1, args.agent.env_steps_per_update + 1):
+        while explore:
             if args.agent.name == "random":
                 action = env.action_space.sample()
                 action_logprob = None
@@ -179,6 +183,7 @@ def train(args):
 
             # step env
             next_state, reward, done, info = env.step(clipped_action)
+            curr_episode.add_transition(state, action, reward)
             current_ep_reward += reward
             num_total_steps += 1
             current_ep_length += 1
@@ -198,9 +203,13 @@ def train(args):
                 total_rewards.append(current_ep_reward)
                 total_successes.append(info.get("success", 0.0))
 
+                if hca_buffer:
+                    hca_buffer.add_episode(curr_episode, agent.gamma)
+
                 # reset env and trackers.
                 next_state = env.reset()
                 episodes_collected += 1
+                curr_episode.clear()
                 current_ep_reward = 0.0
                 current_ep_length = 0
 
@@ -214,6 +223,13 @@ def train(args):
 
             state = next_state
 
+            # MC returns needs full episodes; keep exploring until there are enough transitions and episode is done.
+            if advantage_type == "mc":
+                explore = not (t >= args.agent.env_steps_per_update and done)
+            else:
+                explore = t < args.agent.env_steps_per_update
+            t += 1
+
         # Batch has been collected; compute the last value if needed, and put it in buffer.
         if not done:
             _, _, final_value = agent.select_action(
@@ -222,6 +238,7 @@ def train(args):
             buffer.rewards[-1] += agent.gamma * final_value
 
         # TODO: Credit assignment.
+        hca_results = h_model.update(hca_buffer)
 
         # Policy update (PPO)
         if args.agent.name != "random":
@@ -230,13 +247,14 @@ def train(args):
                 action_loss,
                 value_loss,
                 entropy,
-                hca_ratio_dict,
             ) = agent.update(buffer)
 
             total_losses.append(total_loss)
             action_losses.append(action_loss)
             value_losses.append(value_loss)
             entropies.append(entropy)
+
+            hca_ration_dict = {}
             if hca_ratio_dict:
                 hca_ratio_mins.append(hca_ratio_dict["min"])
                 hca_ratio_maxes.append(hca_ratio_dict["max"])
