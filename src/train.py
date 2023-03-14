@@ -13,9 +13,9 @@ import torch
 import wandb
 
 from ppo.ppo_algo import PPO
-from ppo.replay_buffer import RolloutBuffer
+from ppo.replay_buffer import RolloutBuffer, RolloutBufferHCA
 from hca.hca_model import HCAModel
-from hca.hca_buffer import HCABuffer, calculate_mc_returns
+from hca.hca_buffer import HCABuffer, calculate_mc_returns, Episode
 
 from wrappers.lorl import TASKS
 from utils import (
@@ -94,6 +94,7 @@ def train(args):
 
     # HCA model
     h_model = None
+    hca_buffer = None
     if args.agent.name == "ppo-hca":
         h_model = HCAModel(
             state_dim + 1,  # this is for return-conditioned
@@ -128,9 +129,10 @@ def train(args):
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
-
-    # Replay Buffer for PPO
-    buffer = RolloutBuffer()
+        buffer = RolloutBufferHCA(h_model)
+    else:
+        # Replay Buffer for PPO
+        buffer = RolloutBuffer()
 
     # logging
     total_rewards, total_successes = [], []
@@ -158,6 +160,7 @@ def train(args):
     done = False
     current_ep_reward = 0
     current_ep_length = 0
+    curr_episode = Episode()
 
     while num_total_steps <= args.training.max_training_env_steps:
 
@@ -184,6 +187,7 @@ def train(args):
 
             # step env
             next_state, reward, done, info = env.step(clipped_action)
+            curr_episode.add_transition(state, action, reward)
             current_ep_reward += reward
             num_total_steps += 1
             current_ep_length += 1
@@ -203,9 +207,13 @@ def train(args):
                 total_rewards.append(current_ep_reward)
                 total_successes.append(info.get("success", 0.0))
 
+                if hca_buffer:
+                    hca_buffer.add_episode(curr_episode, agent.gamma)
+
                 # reset env and trackers.
                 next_state = env.reset()
                 episodes_collected += 1
+                curr_episode.clear()
                 current_ep_reward = 0.0
                 current_ep_length = 0
 
@@ -233,6 +241,8 @@ def train(args):
             buffer.rewards[-1] += agent.gamma * final_value
 
         # TODO: Credit assignment.
+        hca_results = h_model.update(hca_buffer)
+
 
         # Policy update (PPO)
         if args.agent.name != "random":

@@ -258,45 +258,18 @@ class PPO:
                 mb_value_losses.append(value_loss.detach().cpu())
                 mb_entropies.append(entropy.detach().cpu())
 
-            # TODO: hca advantages into new buffer setup
-            # else:
-            #     # hca adv
-            #     advantages, hca_info = self.estimate_hca_advantages(
-            #         returns, logprobs, hindsight_logprobs
-            #     )
-            #     hca_ratio_mins.append(hca_info["min"])
-            #     hca_ratio_maxes.append(hca_info["max"])
-            #     hca_ratio_means.append(hca_info["mean"])
-            #     hca_ratio_stds.append(hca_info["std"])
-            #
-
             total_losses.append(np.mean(mb_total_losses))
             action_losses.append(np.mean(mb_action_losses))
             value_losses.append(np.mean(mb_value_losses))
             entropies.append(np.mean(mb_entropies))
 
-        if self.adv != "hca":
-            return (
-                np.mean(total_losses),
-                np.mean(action_losses),
-                np.mean(value_losses),
-                np.mean(entropies),
-                {},
-            )
-        else:
-            hca_stats_dict = {
-                "max": np.max(hca_ratio_maxes),
-                "min": np.min(hca_ratio_mins),
-                "mean": np.mean(hca_ratio_means),
-                "std": np.mean(hca_ratio_stds),
-            }
-            return (
-                np.mean(total_losses),
-                np.mean(action_losses),
-                0,
-                np.mean(entropies),
-                hca_stats_dict,
-            )
+        return (
+            np.mean(total_losses),
+            np.mean(action_losses),
+            np.mean(value_losses),
+            np.mean(entropies),
+            {},
+        )
 
     def save(self, checkpoint_path, args):
         torch.save(
