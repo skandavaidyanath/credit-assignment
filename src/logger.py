@@ -18,7 +18,7 @@ def stat(x, stat="mean"):
 
 @dataclass
 class Stats:
-    """Class for PPO stats logging"""
+    """Class for training stats logging"""
 
     avg_reward: float
     avg_success: float
@@ -26,16 +26,16 @@ class Stats:
     action_loss: float
     value_loss: float
     entropy: float
-    hca_ratio_mean: float = 0
-    hca_ratio_std: float = 0
-    hca_ratio_min: float = 0
-    hca_ratio_max: float = 0
-    hca_train_loss: float = 0
-    hca_train_logprobs: float = 0
-    hca_train_acc: float = 0
-    hca_val_loss: float = 0
-    hca_val_logprobs: float = 0
-    hca_val_acc: float = 0
+    hca_ratio_mean: float = 0.0
+    hca_ratio_std: float = 0.0
+    hca_ratio_min: float = 0.0
+    hca_ratio_max: float = 0.0
+    hca_train_loss: float = 0.0
+    hca_train_logprobs: float = 0.0
+    hca_train_acc: float = 0.0
+    hca_val_loss: float = 0.0
+    hca_val_logprobs: float = 0.0
+    hca_val_acc: float = 0.0
 
 
 class Logger:
