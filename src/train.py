@@ -101,6 +101,7 @@ def train(args):
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
             dropout_p=args.agent.hca_dropout,
+            epochs=args.agent.hca_epochs,
             batch_size=args.agent.hca_batchsize,
             lr=args.agent.hca_lr,
             device=args.training.device,
@@ -126,7 +127,7 @@ def train(args):
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
-        buffer = RolloutBufferHCA(h_model)
+        buffer = RolloutBufferHCA(h_model, hindsight_ratio_clip_val=args.agent.hindsight_ratio_clip)
     else:
         # Replay Buffer for PPO
         buffer = RolloutBuffer()
@@ -150,6 +151,7 @@ def train(args):
 
     num_total_steps = 0
     steps_between_logs = 0
+    steps_between_hca_updates = 0
     steps_between_evals = 0
     episodes_collected = 0
 
@@ -238,8 +240,13 @@ def train(args):
             buffer.rewards[-1] += agent.gamma * final_value
 
         # Credit assignment.
-        if args.agent.name == "ppo-hca":
+        if args.agent.name == "ppo-hca" and steps_between_hca_updates > args.agent.env_steps_per_hca_update:
+            steps_between_hca_updates = 0
+            if args.agent.reset_hca:
+                h_model.reset_parameters()
             hca_stats = h_model.update(hca_buffer)
+            # Empty the buffer after updating the model with the newest data.
+            hca_buffer.clear()
         else:
             hca_stats = {}
 

@@ -111,10 +111,11 @@ class RolloutBuffer:
 
 
 class RolloutBufferHCA(RolloutBuffer):
-    def __init__(self, hindsight_model):
+    def __init__(self, hindsight_model, hindsight_ratio_clip_val=None):
         super(RolloutBufferHCA, self).__init__()
         self.hindsight_logprobs = []
         self.hindsight_model = hindsight_model
+        self.hindsight_ratio_clip_val = hindsight_ratio_clip_val
 
     def clear(self):
         super(RolloutBufferHCA, self).clear()
@@ -141,6 +142,11 @@ class RolloutBufferHCA(RolloutBuffer):
         )
         hindsight_logprobs = hindsight_logprobs.detach().numpy()
         hindsight_ratios = np.exp(buffer_logprobs - hindsight_logprobs)
+        if self.hindsight_ratio_clip_val:
+            hindsight_ratios = np.clip(hindsight_ratios,
+                                       a_min=-self.hindsight_ratio_clip_val,
+                                       a_max=self.hindsight_ratio_clip_val
+                                       )
 
         # set this to be a class variable so we can access it from outside
         # if required

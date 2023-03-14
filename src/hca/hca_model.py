@@ -19,6 +19,7 @@ class HCAModel(nn.Module):
         hidden_size=64,
         activation_fn="relu",
         dropout_p=0,
+        epochs=25,
         batch_size=64,
         lr=3e-4,
         device="cpu",
@@ -66,6 +67,7 @@ class HCAModel(nn.Module):
             self.log_std = None
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+        self.epochs = epochs
         self.batch_size = batch_size
         self.device = torch.device(device)
 
@@ -105,10 +107,11 @@ class HCAModel(nn.Module):
         )
 
         losses, metrics = [], []
-        for states, actions in train_dataloader:
-            loss, metric = self.train_step(states, actions)
-            losses.append(loss)
-            metrics.append(metric)
+        for epoch in range(self.epochs):
+            for states, actions in train_dataloader:
+                loss, metric = self.train_step(states, actions)
+                losses.append(loss)
+                metrics.append(metric)
 
         if self.continuous:
             results = {
