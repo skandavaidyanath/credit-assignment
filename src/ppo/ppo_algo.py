@@ -13,7 +13,7 @@ class ActorCritic(nn.Module):
         continuous=False,
         n_layers=2,
         hidden_size=64,
-        activation_fn="tanh"
+        activation_fn="tanh",
     ):
         super(ActorCritic, self).__init__()
 
@@ -125,7 +125,7 @@ class PPO:
             continuous=continuous,
             n_layers=args.agent.n_layers,
             hidden_size=args.agent.hidden_size,
-            activation_fn=args.agent.activation_fn
+            activation_fn=args.agent.activation_fn,
         ).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
 
@@ -134,7 +134,9 @@ class PPO:
     def select_action(self, state, greedy=False):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(self.device)
-            action, action_logprob, value = self.policy.act(state, greedy=greedy, return_value=(not greedy))
+            action, action_logprob, value = self.policy.act(
+                state, greedy=greedy, return_value=(not greedy)
+            )
         if value:
             value = value.cpu().item()
 
@@ -165,43 +167,6 @@ class PPO:
 
         return advantages.to(self.device), hindsight_stats
 
-#     def estimate_montecarlo_returns(self, rewards, terminals):
-#         # Monte Carlo estimate of returns
-#         batch_size = len(rewards)
-#         returns = np.zeros(batch_size)
-#         returns[batch_size - 1] = rewards[batch_size - 1]
-#         for t in reversed(range(batch_size - 1)):
-#             returns[t] = rewards[t] + returns[t + 1] * self.gamma * (
-#                 1 - terminals[t]
-#             )
-
-#         returns = torch.tensor(returns, dtype=torch.float32)
-#         returns = (returns - returns.mean()) / (returns.std() + 1e-7)
-#         return returns.to(self.device)
-
-#     def estimate_gae(self, rewards, values, terminals):
-#         # GAE estimates of Advantage
-#         batch_size = len(rewards)
-#         advantages = np.zeros(batch_size)
-#         advantages[batch_size - 1] = (
-#             rewards[batch_size - 1] - values[batch_size - 1]
-#         )
-#         for t in reversed(range(batch_size - 1)):
-#             delta = (
-#                 rewards[t]
-#                 + (self.gamma * values[t + 1] * (1 - terminals[t]))
-#                 - values[t]
-#             )
-#             advantages[t] = delta + (
-#                 self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
-#             )
-
-#         advantages = torch.tensor(advantages, dtype=torch.float32)
-#         advantages = (advantages - advantages.mean()) / (
-#             advantages.std() + 1e-7
-#         )
-#         return advantages.to(self.device)
-
     def update(self, buffer):
         total_losses, action_losses, value_losses, entropies = [], [], [], []
         hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
@@ -213,20 +178,40 @@ class PPO:
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
-            mb_total_losses, mb_action_losses, mb_value_losses, mb_entropies = [], [], [], []
+            mb_total_losses, mb_action_losses, mb_value_losses, mb_entropies = (
+                [],
+                [],
+                [],
+                [],
+            )
 
             # iterate over big batch in smaller minibatches
-            for minibatch in buffer.generate_batches(self.gamma, self.lamda, self.minibatch_size, self.adv, self.device):
+            for minibatch in buffer.generate_batches(
+                self.gamma,
+                self.lamda,
+                self.minibatch_size,
+                self.adv,
+                self.device,
+            ):
                 # Evaluating old actions and values
-                states, actions, old_logprobs, old_values, advantages, returns = minibatch
-                logprobs, new_values, entropy = self.policy.evaluate(states, actions)
+                (
+                    states,
+                    actions,
+                    old_logprobs,
+                    old_values,
+                    advantages,
+                    returns,
+                ) = minibatch
+                logprobs, new_values, entropy = self.policy.evaluate(
+                    states, actions
+                )
 
                 # Compute Surrogate Loss
                 ratios = torch.exp(logprobs - old_logprobs.detach())
                 surr1 = ratios * advantages
                 surr2 = (
-                        torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip)
-                        * advantages
+                    torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip)
+                    * advantages
                 )
 
                 action_loss = -torch.min(surr1, surr2).mean()
@@ -234,22 +219,26 @@ class PPO:
                 if self.clip_range_vf:
                     new_values = new_values.flatten()
                     values_pred = old_values + torch.clamp(
-                        new_values - old_values, -self.clip_range_vf, self.clip_range_vf
+                        new_values - old_values,
+                        -self.clip_range_vf,
+                        self.clip_range_vf,
                     )
                 else:
                     values_pred = new_values.flatten()
                 value_loss = self.MseLoss(values_pred, returns)
                 loss = (
-                        action_loss
-                        + self.value_loss_coeff * value_loss
-                        - self.entropy_coeff * entropy
+                    action_loss
+                    + self.value_loss_coeff * value_loss
+                    - self.entropy_coeff * entropy
                 )
                 # take gradient step
                 self.optimizer.zero_grad()
                 loss.backward()
                 # clip gradient if applicable
                 if self.max_grad_norm:
-                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(
+                        self.policy.parameters(), self.max_grad_norm
+                    )
                 self.optimizer.step()
 
                 mb_total_losses.append(loss.detach().cpu())
