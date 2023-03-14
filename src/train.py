@@ -237,7 +237,7 @@ def train(args):
             )  # state is already set to next_state
             buffer.rewards[-1] += agent.gamma * final_value
 
-        # TODO: Credit assignment.
+        # TODO: Credit assignment. Update this to properly train h function.
         hca_results = h_model.update(hca_buffer)
 
         # Policy update (PPO)
