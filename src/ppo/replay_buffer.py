@@ -116,11 +116,12 @@ class RolloutBufferHCA(RolloutBuffer):
         self.hindsight_logprobs = []
         self.hindsight_model = hindsight_model
         self.hindsight_ratio_clip_val = hindsight_ratio_clip_val
+        self.hindsight_ratios = None
 
     def clear(self):
         super(RolloutBufferHCA, self).clear()
         del self.hindsight_logprobs[:]
-        del self.hindsight_ratios[:]
+        self.hindsight_ratios = None
 
     def prep_buffer(self, gamma, lamda, adv_type, normalize_adv=True):
 
@@ -144,7 +145,6 @@ class RolloutBufferHCA(RolloutBuffer):
         hindsight_ratios = np.exp(buffer_logprobs - hindsight_logprobs)
         if self.hindsight_ratio_clip_val:
             hindsight_ratios = np.clip(hindsight_ratios,
-                                       a_min=-self.hindsight_ratio_clip_val,
                                        a_max=self.hindsight_ratio_clip_val
                                        )
 

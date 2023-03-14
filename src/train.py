@@ -264,7 +264,7 @@ def train(args):
             value_losses.append(value_loss)
             entropies.append(entropy)
 
-            hca_ratios = getattr(buffer, hca_ratios, None)
+            hca_ratios = getattr(buffer, "hca_ratios", None)
             hca_ratio_mins.append(stat(hca_ratios, "min"))
             hca_ratio_maxes.append(stat(hca_ratios, "max"))
             hca_ratio_means.append(stat(hca_ratios, "mean"))
@@ -280,7 +280,7 @@ def train(args):
             steps_between_logs = 0
 
             stats = Stats(
-                avg_reward=stat(total_rewards),
+                avg_rewards=stat(total_rewards),
                 avg_success=stat(total_successes),
                 total_loss=stat(total_losses),
                 action_loss=stat(action_losses),

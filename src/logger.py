@@ -1,8 +1,8 @@
+import dataclasses
 from dataclasses import dataclass, asdict
 
 import numpy as np
 import wandb
-
 
 def stat(x, stat="mean"):
     """
@@ -20,7 +20,7 @@ def stat(x, stat="mean"):
 class Stats:
     """Class for training stats logging"""
 
-    avg_reward: float
+    avg_rewards: float
     avg_success: float
     total_loss: float
     action_loss: float
@@ -58,8 +58,12 @@ class Logger:
         if self.wandb:
             self.wandb_log(stats, step, wandb_prefix)
         else:
+            if dataclasses.is_dataclass(stats):
+                stats_dict = asdict(stats)
+            else:
+                stats_dict = stats
             print(
-                f"Steps: {stats.num_total_steps} \t\t Average Reward: {stats.avg_reward:.4f} \t\t Average Success: {stats.avg_success:.4f}"
+                f"Steps: {step} \t\t Average Reward: {stats_dict['avg_rewards']:.4f} \t\t Average Success: {stats_dict['avg_success']:.4f}"
             )
 
     def wandb_log(self, stats, step, wandb_prefix):
