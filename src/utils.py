@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import gridworld
 from gridworld.gridworld_env import GridWorld
 import gym
 
@@ -11,9 +12,20 @@ try:
     import lorl_env
 except:
     print("Lorl env is not installed!")
+from lorl import LorlWrapper
 
-from wrappers.lorl import LorlWrapper
-from wrappers.mujoco import MujocoWrapper
+
+# def validate_model(model, val_dataloader, continuous):
+#     results = []
+#     for states, actions in val_dataloader:
+#         preds, dists = model(states)
+#         if continuous:
+#             log_probs = dists.log_prob(actions)
+#             results.append(log_probs.mean().item())
+#         else:
+#             preds = preds.argmax(-1)
+#             results.append(torch.sum(preds == actions) / len(preds))
+#     return results
 
 
 def get_env(args):
@@ -30,7 +42,6 @@ def get_env(args):
         )
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
-        env = MujocoWrapper(env)
     else:
         raise NotImplementedError
     return env
@@ -58,6 +69,60 @@ def tensor_flatten(x):
     return torch.stack(out).squeeze()
 
 
+def get_human_hindsight_logprobs(
+    episode_rewards, policy_logprobs, total_reward, max_steps
+):
+    """
+    Returns the return-conditioned hindsight logprobs
+    from the episode rewards using the total episode reward
+    and max steps in the environment. Also uses the policy logprobs,
+    Return a numpy array that is the size of the total episode length.
+    The probability choices here are fairly arbitrary...
+    The -1 added to the reward mapping is for the step we take
+    """
+    hindsight_logprobs = []
+    for i, reward in enumerate(episode_rewards):
+        # agent stepped into fire; assign high probability to actions which transitioned into fire, and low probability
+        # to actions that got a diamond.
+        if total_reward < -max_steps:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
+                hindsight_logprobs.append(np.log(0.01))
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
+                hindsight_logprobs.append(np.log(0.99))
+            else:
+                # don't want to change the weighting for this
+                hindsight_logprobs.append(np.inf)
+        # Not very likely that agent stepped into fire, even less likely that agent picked up a diamond.
+        # Very likely that all the agent was transition into empty tiles.
+        elif total_reward == -max_steps:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
+                hindsight_logprobs.append(np.log(0.01))
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
+                hindsight_logprobs.append(np.log(0.1))
+            else:
+                hindsight_logprobs.append(np.log(0.99))
+        # Agent has to have picked up at least one diamond; transition into fire isn't super likely, but possible.
+        elif -max_steps < total_reward <= 0:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
+                hindsight_logprobs.append(np.log(0.99))
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
+                hindsight_logprobs.append(np.log(0.05))
+            else:
+                # don't want to change the weighting for this
+                hindsight_logprobs.append(np.inf)
+        # Agent must have picked up at least one diamond; transitions into fire are highly unlikely.
+        elif total_reward > 0:
+            if reward == gridworld.REWARD_MAPPING["*"] - 1:
+                hindsight_logprobs.append(np.log(0.99))
+            elif reward == gridworld.REWARD_MAPPING["F"] - 1:
+                hindsight_logprobs.append(np.log(0.01))
+            else:
+                # don't want to change the weighting for this
+                hindsight_logprobs.append(np.inf)
+
+    return np.array(hindsight_logprobs, dtype=np.float32)
+
+
 def get_hindsight_logprobs(h_model, states, returns, actions):
     inputs = []
     for state, g in zip(states, returns):
@@ -68,51 +133,3 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
         inputs, torch.from_numpy(np.array(actions))
     )
     return h_values.detach().tolist()
-
-
-def estimate_montecarlo_returns_adv(
-    gamma, rewards, values, dones, normalize_adv=True
-):
-    # Monte Carlo estimate of returns
-    batch_size = len(rewards)
-    returns = np.zeros(batch_size)
-    returns[batch_size - 1] = rewards[batch_size - 1]
-
-    for t in reversed(range(batch_size - 1)):
-        returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - dones[t])
-
-    advantages = None
-    if values is not None:
-        advantages = returns - values
-
-        if normalize_adv:
-            advantages = (advantages - advantages.mean()) / (
-                advantages.std() + 1e-7
-            )
-        advantages = advantages.astype(np.float32)
-    return advantages, returns.astype(np.float32)
-
-
-def estimate_gae(gamma, lamda, rewards, values, dones, normalize_adv=True):
-    # GAE estimates of Advantage
-    batch_size = len(rewards)
-    advantages = np.zeros(batch_size, dtype=np.float32)
-    advantages[batch_size - 1] = (
-        rewards[batch_size - 1] - values[batch_size - 1]
-    )
-    for t in reversed(range(batch_size - 1)):
-        delta = (
-            rewards[t] + (gamma * values[t + 1] * (1 - dones[t])) - values[t]
-        )
-        advantages[t] = delta + (
-            gamma * lamda * advantages[t + 1] * (1 - dones[t])
-        )
-
-    returns = advantages + values
-    if normalize_adv:
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-7
-        )
-        # returns = (returns - returns.mean()) / (returns.std() + 1e-7)
-
-    return advantages, returns

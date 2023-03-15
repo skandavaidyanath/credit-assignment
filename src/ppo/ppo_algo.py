@@ -4,6 +4,8 @@ from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
 import numpy as np
 
+from utils import flatten
+
 
 class ActorCritic(nn.Module):
     def __init__(
@@ -21,9 +23,9 @@ class ActorCritic(nn.Module):
         self.action_dim = action_dim
 
         if activation_fn == "tanh":
-            activation = nn.Tanh()
+            activation_fn = nn.Tanh()
         elif activation_fn == "relu":
-            activation = nn.ReLU()
+            activation_fn = nn.ReLU()
         else:
             raise NotImplementedError()
 
@@ -40,10 +42,10 @@ class ActorCritic(nn.Module):
             for i in range(n_layers):
                 if i == 0:
                     layers.append(nn.Linear(state_dim, hidden_size))
-                    layers.append(activation)
+                    layers.append(activation_fn)
                 else:
                     layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation)
+                    layers.append(activation_fn)
             self.encoder = nn.Sequential(*layers)
 
         # actor
@@ -64,7 +66,7 @@ class ActorCritic(nn.Module):
         else:
             return torch.exp(self.log_std)
 
-    def forward(self, state, return_value=False):
+    def forward(self, state):
         encoding = self.encoder(state)
         if self.continuous:
             action_mean = self.actor(encoding)
@@ -73,31 +75,28 @@ class ActorCritic(nn.Module):
         else:
             action_probs = self.actor(encoding)
             dist = Categorical(action_probs)
-        state_value = None
-        if return_value:
-            state_value = self.critic(encoding)
-        return dist, state_value
+        return dist
 
-    def act(self, state, greedy=False, return_value=False):
-        dist, value = self.forward(state, return_value=return_value)
-        if value:
-            value = value.detach()
-
+    def act(self, state, greedy=False):
+        dist = self.forward(state)
         if greedy:
             action = dist.mode
         else:
             action = dist.sample()
         action_logprob = dist.log_prob(action)
 
-        return action.detach(), action_logprob.detach(), value
+        return action.detach(), action_logprob.detach()
 
     def evaluate(self, state, action):
-        dist, state_values = self.forward(state, return_value=True)
+        dist = self.forward(state)
         # For Single Action Environments.
         if self.continuous and self.action_dim == 1:
             action = action.reshape(-1, self.action_dim)
         action_logprobs = dist.log_prob(action)
         dist_entropy = dist.entropy().mean()
+        # state_values = self.critic(state)
+        encoding = self.encoder(state)
+        state_values = self.critic(encoding)
 
         return action_logprobs, state_values, dist_entropy
 
@@ -114,9 +113,7 @@ class PPO:
         self.value_loss_coeff = args.agent.value_loss_coeff
         self.adv = args.agent.adv
         self.eps_clip = args.agent.eps_clip
-        self.clip_range_vf = args.agent.clip_range_vf
         self.ppo_epochs = args.agent.ppo_epochs
-        self.minibatch_size = args.agent.minibatch_size
         self.max_grad_norm = args.agent.max_grad_norm
 
         self.policy = ActorCritic(
@@ -134,13 +131,9 @@ class PPO:
     def select_action(self, state, greedy=False):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(self.device)
-            action, action_logprob, value = self.policy.act(
-                state, greedy=greedy, return_value=(not greedy)
-            )
-        if value:
-            value = value.cpu().item()
+            action, action_logprob = self.policy.act(state, greedy=greedy)
 
-        return action.cpu(), action_logprob.cpu().item(), value
+        return action.detach().cpu(), action_logprob.detach().cpu().item()
 
     def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
         # Estimate advantages according to Return-conditioned HCA
@@ -167,100 +160,174 @@ class PPO:
 
         return advantages.to(self.device), hindsight_stats
 
-    def update(self, buffer, hindsight_model=None):
+    def estimate_montecarlo_returns(self, rewards, terminals):
+        # Monte Carlo estimate of returns
+        batch_size = len(rewards)
+        returns = np.zeros(batch_size)
+        returns[batch_size - 1] = rewards[batch_size - 1]
+        for t in reversed(range(batch_size - 1)):
+            returns[t] = rewards[t] + returns[t + 1] * self.gamma * (
+                1 - terminals[t]
+            )
+
+        returns = torch.tensor(returns, dtype=torch.float32)
+        returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+        return returns.to(self.device)
+
+    def estimate_gae(self, rewards, values, terminals):
+        # GAE estimates of Advantage
+        batch_size = len(rewards)
+        advantages = np.zeros(batch_size)
+        advantages[batch_size - 1] = (
+            rewards[batch_size - 1] - values[batch_size - 1]
+        )
+        for t in reversed(range(batch_size - 1)):
+            delta = (
+                rewards[t]
+                + (self.gamma * values[t + 1] * (1 - terminals[t]))
+                - values[t]
+            )
+            advantages[t] = delta + (
+                self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
+            )
+
+        advantages = torch.tensor(advantages, dtype=torch.float32)
+        advantages = (advantages - advantages.mean()) / (
+            advantages.std() + 1e-7
+        )
+        return advantages.to(self.device)
+
+    def update(self, buffer):
+        batch_states = flatten(buffer.states)
+        batch_actions = flatten(buffer.actions)
+        batch_logprobs = flatten(buffer.logprobs)
+        batch_rewards = flatten(buffer.rewards)
+        batch_terminals = flatten(buffer.terminals)
+        hindsight_logprobs = flatten(buffer.hindsight_logprobs)
+
+        if self.adv != "gae":
+            returns = self.estimate_montecarlo_returns(
+                batch_rewards, batch_terminals
+            )
+
+        # convert list to tensor
+        old_states = (
+            torch.squeeze(torch.from_numpy(batch_states))
+            .detach()
+            .to(self.device)
+        )
+        old_actions = (
+            torch.squeeze(torch.from_numpy(batch_actions))
+            .detach()
+            .to(self.device)
+        )
+        old_logprobs = (
+            torch.squeeze(torch.from_numpy(batch_logprobs))
+            .detach()
+            .to(self.device)
+        )
+        hindsight_logprobs = (
+            torch.squeeze(torch.from_numpy(hindsight_logprobs))
+            .detach()
+            .to(self.device)
+        )
+
         total_losses, action_losses, value_losses, entropies = [], [], [], []
+        hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
+            [],
+            [],
+            [],
+            [],
+        )
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
-            mb_total_losses, mb_action_losses, mb_value_losses, mb_entropies = (
-                [],
-                [],
-                [],
-                [],
+
+            # Evaluating old actions and values
+            logprobs, state_values, dist_entropy = self.policy.evaluate(
+                old_states, old_actions
             )
 
-            # iterate over big batch in smaller minibatches
-            batch_generator = buffer.generate_batches(
-                self.gamma,
-                self.lamda,
-                self.minibatch_size,
-                self.adv,
-                self.device,
+            # match state_values tensor dimensions with rewards tensor
+            state_values = torch.squeeze(state_values)
+
+            # Finding the ratio (pi_theta / pi_theta__old)
+            ratios = torch.exp(logprobs - old_logprobs.detach())
+
+            # Finding Surrogate Loss
+            if self.adv == "gae":
+                advantages = self.estimate_gae(
+                    batch_rewards, state_values.detach(), batch_terminals
+                )
+                returns = advantages + state_values.detach()
+                returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+            elif self.adv == "mc":
+                advantages = returns - state_values.detach()
+                advantages = (advantages - advantages.mean()) / (
+                    advantages.std() + 1e-7
+                )
+            else:
+                # hca adv
+                advantages, hca_info = self.estimate_hca_advantages(
+                    returns, logprobs, hindsight_logprobs
+                )
+                hca_ratio_mins.append(hca_info["min"])
+                hca_ratio_maxes.append(hca_info["max"])
+                hca_ratio_means.append(hca_info["mean"])
+                hca_ratio_stds.append(hca_info["std"])
+
+            surr1 = ratios * advantages
+            surr2 = (
+                torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip)
+                * advantages
             )
-            for minibatch in batch_generator:
-                # Evaluating old actions and values
-                (
-                    states,
-                    actions,
-                    old_logprobs,
-                    old_values,
-                    advantages,
-                    returns,
-                ) = minibatch
-                logprobs, new_values, entropy = self.policy.evaluate(
-                    states, actions
+
+            action_loss = -torch.min(surr1, surr2).mean()
+            value_loss = self.MseLoss(state_values, returns)
+
+            # final loss of clipped objective PPO
+            loss = (
+                action_loss
+                + self.value_loss_coeff * value_loss
+                - self.entropy_coeff * dist_entropy
+            )
+
+            # take gradient step
+            self.optimizer.zero_grad()
+            loss.backward()
+            if self.max_grad_norm:
+                torch.nn.utils.clip_grad_norm_(
+                    self.policy.parameters(), self.max_grad_norm
                 )
+            self.optimizer.step()
 
-                if advantages is None:
-                    assert hindsight_model is not None
-                    hindsight_logprobs = hindsight_model.get_hindsight_logprobs(
-                        states, returns, actions
-                    )
-                    hindsight_ratios = torch.exp(logprobs.detach() - hindsight_logprobs.detach())
-                    advantages = (1 - hindsight_ratios) * returns
-                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-7)
+            total_losses.append(loss.detach().cpu().item())
+            action_losses.append(action_loss.detach().cpu().item())
+            value_losses.append(value_loss.detach().cpu().item())
+            entropies.append(dist_entropy.detach().cpu().item())
 
-                # Compute Surrogate Loss
-                ratios = torch.exp(logprobs - old_logprobs.detach())
-                surr1 = ratios * advantages
-                surr2 = (
-                    torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip)
-                    * advantages
-                )
-
-                action_loss = -torch.min(surr1, surr2).mean()
-
-                if self.clip_range_vf:
-                    new_values = new_values.flatten()
-                    values_pred = old_values + torch.clamp(
-                        new_values - old_values,
-                        -self.clip_range_vf,
-                        self.clip_range_vf,
-                    )
-                else:
-                    values_pred = new_values.flatten()
-                value_loss = self.MseLoss(values_pred, returns)
-                loss = (
-                    action_loss
-                    + self.value_loss_coeff * value_loss
-                    - self.entropy_coeff * entropy
-                )
-                # take gradient step
-                self.optimizer.zero_grad()
-                loss.backward()
-                # clip gradient if applicable
-                if self.max_grad_norm:
-                    torch.nn.utils.clip_grad_norm_(
-                        self.policy.parameters(), self.max_grad_norm
-                    )
-                self.optimizer.step()
-
-                mb_total_losses.append(loss.detach().cpu())
-                mb_action_losses.append(action_loss.detach().cpu())
-                mb_value_losses.append(value_loss.detach().cpu())
-                mb_entropies.append(entropy.detach().cpu())
-
-            total_losses.append(np.mean(mb_total_losses))
-            action_losses.append(np.mean(mb_action_losses))
-            value_losses.append(np.mean(mb_value_losses))
-            entropies.append(np.mean(mb_entropies))
-
-        return (
-            np.mean(total_losses),
-            np.mean(action_losses),
-            np.mean(value_losses),
-            np.mean(entropies),
-        )
+        if self.adv != "hca":
+            return (
+                np.mean(total_losses),
+                np.mean(action_losses),
+                np.mean(value_losses),
+                np.mean(entropies),
+                {},
+            )
+        else:
+            hca_stats_dict = {
+                "max": np.max(hca_ratio_maxes),
+                "min": np.min(hca_ratio_mins),
+                "mean": np.mean(hca_ratio_means),
+                "std": np.mean(hca_ratio_stds),
+            }
+            return (
+                np.mean(total_losses),
+                np.mean(action_losses),
+                0,
+                np.mean(entropies),
+                hca_stats_dict,
+            )
 
     def save(self, checkpoint_path, args):
         torch.save(

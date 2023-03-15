@@ -1,35 +1,33 @@
 defaults:
   # Set default options
   - _self_
-  - agent: ppo
   - env: lorl_state
+  - agent: ppo
 
 hydra_base_dir: ""
 
-logger:
-  wandb: True
-
 training:
+  wandb: True
   device: ""
-  max_training_env_steps: 50000000 # big number
+  max_training_episodes: 100000 # some big number
   seed: 0
   checkpoint: ""
   exp_name_modifier: ""
+  collect_hca_data: False
+  hca_data_save_freq: 1000
 
 env:
   gamma: 0.99
 
 agent:
-  env_steps_per_update: 2048
-  ppo_epochs: 10
-  minibatch_size: 64
+  update_every: 50
+  ppo_epochs: 30
   eps_clip: 0.2
-  clip_range_vf: null # no value function clipping by default
   lamda: 0.95
   entropy_coeff: 0.0
-  value_loss_coeff: 0.5
+  value_loss_coeff: 0.25
   n_layers: 2
   hidden_size: 64
   lr: 3e-4
   activation_fn: "relu"
-  max_grad_norm: 0.5
+  max_grad_norm: null # no clipping by default

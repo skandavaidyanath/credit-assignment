@@ -19,7 +19,6 @@ class HCAModel(nn.Module):
         hidden_size=64,
         activation_fn="relu",
         dropout_p=0,
-        epochs=25,
         batch_size=64,
         lr=3e-4,
         device="cpu",
@@ -54,6 +53,9 @@ class HCAModel(nn.Module):
         else:
             layers.append(nn.Linear(hidden_size, action_dim))
 
+        # if not continuous:
+        #     layers.append(nn.Softmax(dim=-1))
+
         self.net = nn.Sequential(*layers).to(device)
 
         if continuous:
@@ -64,7 +66,6 @@ class HCAModel(nn.Module):
             self.log_std = None
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
-        self.epochs = epochs
         self.batch_size = batch_size
         self.device = torch.device(device)
 
@@ -104,21 +105,20 @@ class HCAModel(nn.Module):
         )
 
         losses, metrics = [], []
-        for epoch in range(self.epochs):
-            for states, actions in train_dataloader:
-                loss, metric = self.train_step(states, actions)
-                losses.append(loss)
-                metrics.append(metric)
+        for states, actions in train_dataloader:
+            loss, metric = self.train_step(states, actions)
+            losses.append(loss)
+            metrics.append(metric)
 
         if self.continuous:
             results = {
-                "hca_train_loss": np.mean(losses),
-                "hca_train_logprobs": np.mean(metrics),
+                "training/hca_train_loss": np.mean(losses),
+                "training/hca_train_logprobs": np.mean(metrics),
             }
         else:
             results = {
-                "hca_train_loss": np.mean(losses),
-                "hca_train_acc": np.mean(metrics),
+                "training/hca_train_loss": np.mean(losses),
+                "training/hca_train_acc": np.mean(metrics),
             }
 
         val_results = self.validate(val_dataloader)
@@ -167,31 +167,30 @@ class HCAModel(nn.Module):
                 metrics.append(accuracy)
         if self.continuous:
             return {
-                "hca_val_loss": np.mean(losses),
-                "hca_val_logprobs": np.mean(metrics),
+                "training/hca_val_loss": np.mean(losses),
+                "training/hca_val_logprobs": np.mean(metrics),
             }
         else:
             return {
-                "hca_val_loss": np.mean(losses),
-                "hca_val_acc": np.mean(metrics),
+                "training/hca_val_loss": np.mean(losses),
+                "training/hca_val_acc": np.mean(metrics),
             }
 
-    def get_hindsight_logprobs(self, states, returns, actions):
+    def get_hindsight_values(self, inputs, actions):
         """
         get the hindsight values for a batch of actions
         """
-        returns = returns.reshape((-1, 1))
-        inputs = torch.concatenate((states, returns), -1)
         inputs = inputs.to(self.device)
-
         actions = actions.to(self.device)
-
         out, dist = self.forward(inputs)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
+            return log_probs.exp()
         else:
             log_probs = dist.log_prob(actions)
-        return log_probs.flatten()
+            # actions = actions.reshape(-1, 1).long()
+            # return out.gather(1, actions)  # B,
+            return log_probs.exp()
 
     def save(self, checkpoint_path, args):
         torch.save(

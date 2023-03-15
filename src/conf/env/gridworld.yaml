@@ -7,13 +7,11 @@ env:
   puzzle_path: "maps/test_v4.txt"
 
 training:
-  log_freq: 50000  # Log every these many env steps.
+  log_freq: 1000  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
-  eval_freq: 500000 # eval every these many env steps.
+  eval_freq: 10000 # eval every these many episodes
 
 agent:
+  value_loss_coeff: 0.25
   n_layers: 2
   hidden_size: 64
-  env_steps_per_hca_update: 25000
-  hca_epochs: 1
-  reset_hca: True

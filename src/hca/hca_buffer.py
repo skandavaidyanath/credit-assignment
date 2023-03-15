@@ -7,34 +7,18 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader, random_split
 
 
-def calculate_mc_returns(rewards, gamma):
+def calculate_mc_returns(rewards, terminals, gamma):
     """
-    Calculates MC returns for a single episode
+    Calculates MC returns
+    Duplicated from ppo_algo.py.
     """
     batch_size = len(rewards)
     returns = [0 for _ in range(batch_size)]
     returns[batch_size - 1] = rewards[batch_size - 1]
     for t in reversed(range(batch_size - 1)):
-        returns[t] = rewards[t] + gamma * returns[t + 1]
+        returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - terminals[t])
 
     return returns
-
-
-class Episode:
-    def __init__(self):
-        self.states = []
-        self.actions = []
-        self.rewards = []
-
-    def add_transition(self, state, action, reward):
-        self.states.append(state)
-        self.actions.append(action)
-        self.rewards.append(reward)
-
-    def clear(self):
-        del self.states[:]
-        del self.actions[:]
-        del self.rewards[:]
 
 
 class HCABuffer:
@@ -55,13 +39,12 @@ class HCABuffer:
         self.train_val_split = train_val_split
 
     def add_episode(
-        self, episode, gamma
+        self, episode_states, episode_actions, episode_rewards, gamma
     ):
-        episode_states, episode_actions, episode_rewards = episode.states, episode.actions, episode.rewards
         rewards = np.array(episode_rewards).reshape(-1, 1)
         episode_returns = list(
             np.array(
-                calculate_mc_returns(rewards, gamma)
+                calculate_mc_returns(rewards, np.zeros_like(rewards), gamma)
             ).flatten()
         )
 
