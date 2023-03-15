@@ -1,8 +1,8 @@
 defaults:
   # Set default options
   - _self_
-  - env: lorl_state
   - agent: ppo
+  - env: lorl_state
 
 hydra_base_dir: ""
 

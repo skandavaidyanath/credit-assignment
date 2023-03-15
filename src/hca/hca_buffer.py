@@ -7,16 +7,15 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader, random_split
 
 
-def calculate_mc_returns(rewards, terminals, gamma):
+def calculate_mc_returns(rewards, gamma):
     """
-    Calculates MC returns
-    Duplicated from ppo_algo.py.
+    Calculates MC returns for a single episode
     """
     batch_size = len(rewards)
     returns = [0 for _ in range(batch_size)]
     returns[batch_size - 1] = rewards[batch_size - 1]
     for t in reversed(range(batch_size - 1)):
-        returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - terminals[t])
+        returns[t] = rewards[t] + gamma * returns[t + 1]
 
     return returns
 
@@ -62,7 +61,7 @@ class HCABuffer:
         rewards = np.array(episode_rewards).reshape(-1, 1)
         episode_returns = list(
             np.array(
-                calculate_mc_returns(rewards, np.zeros_like(rewards), gamma)
+                calculate_mc_returns(rewards, gamma)
             ).flatten()
         )
 

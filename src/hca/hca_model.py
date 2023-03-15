@@ -54,9 +54,6 @@ class HCAModel(nn.Module):
         else:
             layers.append(nn.Linear(hidden_size, action_dim))
 
-        if not continuous:
-            layers.append(nn.Softmax(dim=-1))
-
         self.net = nn.Sequential(*layers).to(device)
 
         if continuous:
@@ -92,7 +89,7 @@ class HCAModel(nn.Module):
             std = torch.diag(self.std)
             dist = MultivariateNormal(out, scale_tril=std)
         else:
-            dist = Categorical(out)
+            dist = Categorical(logits=out)
         return out, dist
 
     def _get_hca_batch(self, buffer):
@@ -193,8 +190,7 @@ class HCAModel(nn.Module):
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
         else:
-            actions = actions.reshape(-1, 1).long()
-            log_probs = torch.log(out.gather(1, actions))  # B,
+            log_probs = dist.log_prob(actions)
         return log_probs.flatten()
 
     def save(self, checkpoint_path, args):

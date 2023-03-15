@@ -99,12 +99,7 @@ class GridWorld(Env):
         if self.sparse:
             reward = 0
             if done:
-                return (
-                    self.get_state(),
-                    sum(self.episode_rewards),
-                    done,
-                    {"success": 0},
-                )
+                reward = sum(self.episode_rewards)
 
         return self.get_state(), reward, done, {"success": 0, "terminal_state": terminal, "timeout": timeout}
 

@@ -154,6 +154,7 @@ def train(args):
     steps_between_hca_updates = 0
     steps_between_evals = 0
     episodes_collected = 0
+    num_ppo_updates = 0
 
     state = env.reset()
     done = False
@@ -201,7 +202,9 @@ def train(args):
                     next_value = 0.0
 
                 # Add in the final value to the reward to account for potentially not reaching terminal state.
-                reward += agent.gamma * next_value
+
+                # TODO: deal with this!!!!!!!!
+                # reward += agent.gamma * next_value
                 total_rewards.append(current_ep_reward)
                 total_successes.append(info.get("success", 0.0))
 
@@ -226,11 +229,12 @@ def train(args):
             state = next_state
 
             # MC returns needs full episodes; keep exploring until there are enough transitions and episode is done.
-            if advantage_type == "mc":
+            if advantage_type == "mc" or args.agent.name == "ppo-hca":
                 explore = not (t >= args.agent.env_steps_per_update and done)
             else:
                 explore = t < args.agent.env_steps_per_update
             t += 1
+            steps_between_hca_updates += 1
 
         # Batch has been collected; compute the last value if needed, and put it in buffer.
         if not done:
@@ -240,7 +244,7 @@ def train(args):
             buffer.rewards[-1] += agent.gamma * final_value
 
         # Credit assignment.
-        if args.agent.name == "ppo-hca" and steps_between_hca_updates > args.agent.env_steps_per_hca_update:
+        if args.agent.name == "ppo-hca" and (steps_between_hca_updates >= args.agent.env_steps_per_hca_update or num_ppo_updates == 0):
             steps_between_hca_updates = 0
             if args.agent.reset_hca:
                 h_model.reset_parameters()
@@ -258,6 +262,8 @@ def train(args):
                 value_loss,
                 entropy,
             ) = agent.update(buffer)
+
+            num_ppo_updates += 1
 
             total_losses.append(total_loss)
             action_losses.append(action_loss)
