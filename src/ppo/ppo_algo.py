@@ -167,7 +167,7 @@ class PPO:
 
         return advantages.to(self.device), hindsight_stats
 
-    def update(self, buffer):
+    def update(self, buffer, hindsight_model=None):
         total_losses, action_losses, value_losses, entropies = [], [], [], []
 
         # Optimize policy for K epochs
@@ -200,6 +200,15 @@ class PPO:
                 logprobs, new_values, entropy = self.policy.evaluate(
                     states, actions
                 )
+
+                if advantages is None:
+                    assert hindsight_model is not None
+                    hindsight_logprobs = hindsight_model.get_hindsight_logprobs(
+                        states, returns, actions
+                    )
+                    hindsight_ratios = torch.exp(logprobs.detach() - hindsight_logprobs.detach())
+                    advantages = (1 - hindsight_ratios) * returns
+                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-7)
 
                 # Compute Surrogate Loss
                 ratios = torch.exp(logprobs - old_logprobs.detach())

@@ -51,6 +51,15 @@ class RolloutBuffer:
                 buffer_dones,
                 normalize_adv=normalize_adv,
             )
+        elif adv_type == "hca":
+            _, returns = estimate_montecarlo_returns_adv(
+                gamma,
+                buffer_rewards,
+                None,
+                buffer_dones,
+                normalize_adv=normalize_adv,
+            )
+            advantages = None
         else:
             raise NotImplementedError
 
@@ -93,11 +102,13 @@ class RolloutBuffer:
             batch_values = (
                 torch.from_numpy(buffer_values[batch_inds]).flatten().to(device)
             )
-            batch_advantages = (
-                torch.from_numpy(buffer_advantages[batch_inds])
-                .flatten()
-                .to(device)
-            )
+            batch_advantages = None
+            if buffer_advantages:
+                batch_advantages = (
+                    torch.from_numpy(buffer_advantages[batch_inds])
+                    .flatten()
+                    .to(device)
+                )
             batch_returns = (
                 torch.from_numpy(buffer_returns[batch_inds])
                 .flatten()
@@ -116,12 +127,12 @@ class RolloutBufferHCA(RolloutBuffer):
         self.hindsight_logprobs = []
         self.hindsight_model = hindsight_model
         self.hindsight_ratio_clip_val = hindsight_ratio_clip_val
-        self.hindsight_ratios = None
+        self.hindsight_logprobs = None
 
     def clear(self):
         super(RolloutBufferHCA, self).clear()
         del self.hindsight_logprobs[:]
-        self.hindsight_ratios = None
+        self.hindsight_logprobs = None
 
     def prep_buffer(self, gamma, lamda, adv_type, normalize_adv=True):
 
@@ -137,26 +148,31 @@ class RolloutBufferHCA(RolloutBuffer):
         _, returns = estimate_montecarlo_returns_adv(
             gamma, buffer_rewards, None, buffer_dones
         )
-
+        # shouldn't get the hindsight ratios or the advantage here: need to estimate it with the new logprobs
+        # return just the hindsight_logprobs
         hindsight_logprobs = self.hindsight_model.get_hindsight_logprobs(
             buffer_states, returns, buffer_actions
         )
-        hindsight_logprobs = hindsight_logprobs.detach().numpy()
-        hindsight_ratios = np.exp(buffer_logprobs - hindsight_logprobs)
-        if self.hindsight_ratio_clip_val:
-            hindsight_ratios = np.clip(hindsight_ratios,
-                                       a_max=self.hindsight_ratio_clip_val
-                                       )
+        # set this as a class variable so that PPO can access it later to calculate the advantages
+        self.hindsight_logprobs = hindsight_logprobs.detach().numpy()
 
-        # set this to be a class variable so we can access it from outside
-        # if required
-        self.hindsight_ratios = hindsight_ratios
-
-        advantages = (1 - hindsight_ratios) * returns
-        if normalize_adv:
-            advantages = (advantages - advantages.mean()) / (
-                advantages.std() + 1e-7
-            )
+        # PPO will calculate the advantage using the policy logprobs
+        advantages = None
+        # hindsight_ratios = np.exp(buffer_logprobs - hindsight_logprobs)
+        # if self.hindsight_ratio_clip_val:
+        #     hindsight_ratios = np.clip(hindsight_ratios,
+        #                                a_max=self.hindsight_ratio_clip_val
+        #                                )
+        #
+        # # set this to be a class variable so we can access it from outside
+        # # if required
+        # self.hindsight_ratios = hindsight_ratios
+        #
+        # advantages = (1 - hindsight_ratios) * returns
+        # if normalize_adv:
+        #     advantages = (advantages - advantages.mean()) / (
+        #         advantages.std() + 1e-7
+        #     )
 
         # What to return: states, actions, logprobs, values, advantages, returns, hca_ratios
         return (

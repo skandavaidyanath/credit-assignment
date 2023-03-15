@@ -12,7 +12,6 @@ training:
   eval_freq: 500000 # eval every these many env steps.
 
 agent:
-  value_loss_coeff: 0.25
   n_layers: 2
   hidden_size: 64
   env_steps_per_hca_update: 25000

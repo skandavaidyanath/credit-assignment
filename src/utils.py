@@ -82,7 +82,7 @@ def estimate_montecarlo_returns_adv(
         returns[t] = rewards[t] + returns[t + 1] * gamma * (1 - dones[t])
 
     advantages = None
-    if values:
+    if values is not None:
         advantages = returns - values
 
         if normalize_adv:

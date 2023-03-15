@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from ppo.ppo_algo import PPO
-from ppo.replay_buffer import RolloutBuffer, RolloutBufferHCA
+from ppo.replay_buffer import RolloutBuffer #, RolloutBufferHCA
 from hca.hca_model import HCAModel
 from hca.hca_buffer import HCABuffer, Episode
 
@@ -127,7 +127,7 @@ def train(args):
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
-        buffer = RolloutBufferHCA(h_model, hindsight_ratio_clip_val=args.agent.hindsight_ratio_clip)
+        buffer = RolloutBuffer() # RolloutBufferHCA(h_model, hindsight_ratio_clip_val=args.agent.hindsight_ratio_clip)
     else:
         # Replay Buffer for PPO
         buffer = RolloutBuffer()
@@ -261,7 +261,7 @@ def train(args):
                 action_loss,
                 value_loss,
                 entropy,
-            ) = agent.update(buffer)
+            ) = agent.update(buffer, hindsight_model=h_model)
 
             num_ppo_updates += 1
 

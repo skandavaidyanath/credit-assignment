@@ -181,10 +181,10 @@ class HCAModel(nn.Module):
         get the hindsight values for a batch of actions
         """
         returns = returns.reshape((-1, 1))
-        inputs = np.concatenate((states, returns), -1)
-        inputs = torch.from_numpy(inputs).to(self.device)
+        inputs = torch.concatenate((states, returns), -1)
+        inputs = inputs.to(self.device)
 
-        actions = torch.from_numpy(actions).to(self.device)
+        actions = actions.to(self.device)
 
         out, dist = self.forward(inputs)
         if self.continuous:  # B x A
