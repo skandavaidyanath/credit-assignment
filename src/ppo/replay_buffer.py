@@ -103,7 +103,7 @@ class RolloutBuffer:
                 torch.from_numpy(buffer_values[batch_inds]).flatten().to(device)
             )
             batch_advantages = None
-            if buffer_advantages:
+            if buffer_advantages is not None:
                 batch_advantages = (
                     torch.from_numpy(buffer_advantages[batch_inds])
                     .flatten()
