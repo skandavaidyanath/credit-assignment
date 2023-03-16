@@ -160,7 +160,7 @@ class PPO:
 
         return advantages.to(self.device), hindsight_stats
 
-    def estimate_montecarlo_returns(self, rewards, terminals):
+    def estimate_montecarlo_returns(self, rewards, terminals, normalize=True):
         # Monte Carlo estimate of returns
         batch_size = len(rewards)
         returns = np.zeros(batch_size)
@@ -169,9 +169,9 @@ class PPO:
             returns[t] = rewards[t] + returns[t + 1] * self.gamma * (
                 1 - terminals[t]
             )
-
         returns = torch.tensor(returns, dtype=torch.float32)
-        returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+        if normalize:
+            returns = (returns - returns.mean()) / (returns.std() + 1e-7)
         return returns.to(self.device)
 
     def estimate_gae(self, rewards, values, terminals):
@@ -206,6 +206,7 @@ class PPO:
         hindsight_logprobs = flatten(buffer.hindsight_logprobs)
 
         if self.adv != "gae":
+            # normalized by default
             returns = self.estimate_montecarlo_returns(
                 batch_rewards, batch_terminals
             )
@@ -260,14 +261,22 @@ class PPO:
                     batch_rewards, state_values.detach(), batch_terminals
                 )
                 returns = advantages + state_values.detach()
-                returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+                # Don't normalize returns for GAE since we're adding
+                # the value to the reward.
+                # We don't want the value to be normalized while the reward
+                # is not normalized
+                # returns = (returns - returns.mean()) / (returns.std() + 1e-7)
             elif self.adv == "mc":
+                # here both the returns and values are normalized
+                # so this shouldb be okay
                 advantages = returns - state_values.detach()
                 advantages = (advantages - advantages.mean()) / (
                     advantages.std() + 1e-7
                 )
             else:
                 # hca adv
+                # normalizing the MC returns seems to help stability
+                # and performance here
                 advantages, hca_info = self.estimate_hca_advantages(
                     returns, logprobs, hindsight_logprobs
                 )

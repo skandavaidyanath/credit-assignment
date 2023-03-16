@@ -10,19 +10,18 @@ os.environ["D4RL_SUPPRESS_IMPORT_ERROR"] = "1"
 import gym
 import numpy as np
 import torch
-import wandb
 
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
 from hca.hca_model import HCAModel
 from hca.hca_buffer import HCABuffer, calculate_mc_returns
 
-from lorl import TASKS
 from utils import (
     get_hindsight_logprobs,
     get_env,
 )
 from eval import eval
+from logger import PPO_Stats, HCA_Stats, Logger
 
 
 def train(args):
@@ -75,13 +74,15 @@ def train(args):
         setattr(args, "savedir", checkpoint_path)
         os.makedirs(checkpoint_path, exist_ok=True)
 
-    # Wandb Initialization
-    if args.training.wandb:
-        wandb.init(
-            name=exp_name,
-            project=args.env.name,
-            config=vars(args),
-            entity="ca-exploration",
+    # Initialize Logger
+    if args.training.log_freq:
+        logger = Logger(
+            exp_name,
+            args.env.name,
+            args.agent.name,
+            vars(args),
+            "ca-exploration",
+            args.logger.wandb,
         )
 
     # Agent
@@ -166,17 +167,18 @@ def train(args):
                 action, action_logprob = agent.select_action(state)
                 if continuous:
                     action = action.numpy().flatten()
-                    action = action.clip(
+                    clipped_action = action.clip(
                         env.action_space.low, env.action_space.high
                     )
                 else:
                     action = action.item()
+                    clipped_action = action
             states.append(state)
             actions.append(action)
             logprobs.append(action_logprob)
 
             # Step in env
-            state, reward, done, info = env.step(action)
+            state, reward, done, info = env.step(clipped_action)
 
             # saving reward and terminals
             rewards.append(float(reward))
@@ -213,33 +215,22 @@ def train(args):
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
+            # always update the HCA model the first time before a PPO update
             # reset the model if you want
             if args.agent.refresh_hca:
                 h_model.reset_parameters()
+
             # update the HCA model
-            hca_results = h_model.update(hca_buffer)
+            for _ in range(args.agent.hca_num_updates):
+                hca_results = h_model.update(hca_buffer)
             # Clear the HCA buffer
             hca_buffer.clear()
 
             # Log every time we update the model and don't use the log freq
-            if args.training.wandb:
-                wandb.log(hca_results, step=episode)
+            hca_stats = HCA_Stats(**hca_results)
+
             print(" ============ Updated HCA model =============")
-            print(f"Episode: {episode}")
-            if h_model.continuous:
-                print(
-                    f"Train Loss: {hca_results['training/hca_train_loss']} | Train Logprobs: {hca_results['training/hca_train_logprobs']}"
-                )
-                print(
-                    f"Val Loss: {hca_results['training/hca_val_loss']} | Val Logprobs: {hca_results['training/hca_val_logprobs']}"
-                )
-            else:
-                print(
-                    f"Train Loss: {hca_results['training/hca_train_loss']} | Train Acc: {hca_results['training/hca_train_acc']}"
-                )
-                print(
-                    f"Val Loss: {hca_results['training/hca_val_loss']} | Val Acc: {hca_results['training/hca_val_acc']}"
-                )
+            logger.log(hca_stats, step=episode, wandb_prefix="training")
             print("=============================================")
 
         # Agent update (PPO)
@@ -284,35 +275,30 @@ def train(args):
                 np.mean(hca_ratio_stds) if len(hca_ratio_stds) > 0 else 0.0
             )
 
-            if args.training.wandb:
-                wandb.log(
-                    {
-                        "training/avg_rewards": avg_reward,
-                        "training/avg_success": avg_success,
-                        "training/total_loss": np.mean(total_losses),
-                        "training/action_loss": np.mean(action_losses),
-                        "training/value_loss": np.mean(value_losses),
-                        "training/entropy": np.mean(entropies),
-                    },
-                    step=episode,
-                )
-                if args.agent.name == "ppo-hca":
-                    wandb.log(
-                        {
-                            "training/hca_ratio_min": hca_ratio_min,
-                            "training/hca_ratio_max": hca_ratio_max,
-                            "training/hca_ratio_mean": hca_ratio_mean,
-                            "training/hca_ratio_std": hca_ratio_std,
-                        },
-                        step=episode,
-                    )
-
-            print(
-                f"Episode: {episode} \t\t Average Reward: {avg_reward:.4f} \t\t Average Success: {avg_success:.4f}"
+            stats = PPO_Stats(
+                avg_rewards=avg_reward,
+                avg_success=avg_success,
+                total_loss=np.mean(total_losses),
+                action_loss=np.mean(action_losses),
+                value_loss=np.mean(value_losses),
+                entropy=np.mean(entropies),
+                hca_ratio_max=hca_ratio_max,
+                hca_ratio_min=hca_ratio_min,
+                hca_ratio_mean=hca_ratio_mean,
+                hca_ratio_std=hca_ratio_std,
             )
+
+            logger.log(stats, step=episode, wandb_prefix="training")
 
             total_rewards, total_successes = [], []
             total_losses, action_losses, value_losses, entropies = (
+                [],
+                [],
+                [],
+                [],
+            )
+
+            hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
                 [],
                 [],
                 [],
@@ -341,14 +327,16 @@ def train(args):
         if args.training.eval_freq and episode % args.training.eval_freq == 0:
             eval_avg_reward, eval_avg_success = eval(env, agent, args)
 
-            if args.training.wandb:
-                wandb.log(
-                    {
-                        "eval/avg_rewards": eval_avg_reward,
-                        "eval/avg_success": eval_avg_success,
-                    },
-                    step=episode,
-                )
+            print(" ============ Evaluating =============")
+            logger.log(
+                {
+                    "avg_rewards": eval_avg_reward,
+                    "avg_success": eval_avg_success,
+                },
+                step=episode,
+                wandb_prefix="eval",
+            )
+            print("======= Finished Evaluating =========")
 
     ## SAVE MODELS
     if args.training.save_model_freq:
