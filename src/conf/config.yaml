@@ -8,13 +8,14 @@ hydra_base_dir: ""
 
 logger:
   wandb: True
+  exp_name_modifier: ""
+  group_name_modifier: ""
 
 training:
   device: ""
   max_training_episodes: 100000 # some big number
   seed: 0
   checkpoint: ""
-  exp_name_modifier: ""
   collect_hca_data: False
   hca_data_save_freq: 1000
 
