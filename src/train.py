@@ -83,6 +83,7 @@ def train(args):
             vars(args),
             "ca-exploration",
             args.logger.wandb,
+            group_modifier=args.training.group_name_modifier
         )
 
     # Agent
@@ -148,6 +149,19 @@ def train(args):
     print(
         "============================================================================================"
     )
+
+    # initial eval
+    print(" ============ Evaluating =============")
+    eval_avg_reward, eval_avg_success = eval(env, agent, args)
+    logger.log(
+        {
+            "avg_rewards": eval_avg_reward,
+            "avg_success": eval_avg_success,
+        },
+        step=0,
+        wandb_prefix="eval",
+    )
+    print("======= Finished Evaluating =========")
 
     for episode in range(1, args.training.max_training_episodes + 1):
         state = env.reset()

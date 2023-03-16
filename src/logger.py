@@ -49,14 +49,14 @@ class Logger:
     Class for logging stats
     """
 
-    def __init__(self, exp_name, env_name, agent_name, config, entity, use_wandb=False):
+    def __init__(self, exp_name, env_name, agent_name, config, entity, use_wandb=False, group_modifier=''):
         self.use_wandb = use_wandb
-
+        group_name = agent_name + "_" + group_modifier if group_modifier else agent_name
         if self.use_wandb:
             wandb.init(
                 name=exp_name,
                 project=env_name,
-                group=agent_name,
+                group=group_name,
                 config=config,
                 entity=entity,
             )
