@@ -32,7 +32,7 @@ def get_env(args):
     if args.env.type == "d4rl":
         env = gym.make(args.env.name)
     elif args.env.type == "gridworld":
-        env = GridWorld(args.env.puzzle_path, sparse=args.env.sparse)
+        env = GridWorld(args.env.puzzle_path, sparse=args.env.sparse, max_steps=args.env.max_steps)
     elif args.env.type == "lorl":
         env = LorlWrapper(
             gym.make(args.env.name),

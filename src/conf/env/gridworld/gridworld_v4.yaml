@@ -5,6 +5,7 @@ env:
   type: "gridworld"
   sparse: True
   puzzle_path: "maps/test_v4.txt"
+  max_steps: 50
 
 training:
   log_freq: 1000  # Log every these many episodes
