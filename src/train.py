@@ -62,8 +62,8 @@ def train(args):
     exp_name = f"{args.agent.name}_{reward_type}_{args.env.name}"
     if args.env.type == "gridworld":
         exp_name += f":{args.env.puzzle_path.lstrip('maps/').rstrip('.txt')}"
-    if args.training.exp_name_modifier:
-        exp_name += "_" + args.training.exp_name_modifier
+    if args.logger.exp_name_modifier:
+        exp_name += "_" + args.logger.exp_name_modifier
 
     # Device
     device = torch.device(args.training.device)
@@ -83,7 +83,7 @@ def train(args):
             vars(args),
             "ca-exploration",
             args.logger.wandb,
-            group_modifier=args.training.group_name_modifier
+            group_modifier=args.logger.group_name_modifier,
         )
 
     # Agent

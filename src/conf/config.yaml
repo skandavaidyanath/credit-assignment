@@ -8,6 +8,8 @@ hydra_base_dir: ""
 
 logger:
   wandb: True
+  exp_name_modifier: ""
+  group_name_modifier: ""
 
 training:
   device: ""
