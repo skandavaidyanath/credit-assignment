@@ -128,7 +128,7 @@ class PPO:
 
         self.MseLoss = nn.MSELoss()
 
-        self.gamma_temp = args.get("gamma_temp", None)
+        self.gamma_temp = args.agent.gamma_temp
 
     def select_action(self, state, greedy=False):
         with torch.no_grad():
@@ -137,12 +137,15 @@ class PPO:
 
         return action.detach().cpu(), action_logprob.detach().cpu().item()
 
-
-    def estimate_hca_discounted_returns(self, rewards, logprobs, hindsight_logprobs, temp=0.25):
+    def estimate_hca_discounted_returns(
+        self, rewards, logprobs, hindsight_logprobs, temp=0.25
+    ):
         """All of the args should be numpy arrays"""
         assert len(rewards) == len(logprobs) == len(hindsight_logprobs)
         ret = []
-        for ep_rew, ep_logprobs, ep_hindsight_logprobs in zip(rewards, logprobs, hindsight_logprobs):
+        for ep_rew, ep_logprobs, ep_hindsight_logprobs in zip(
+            rewards, logprobs, hindsight_logprobs
+        ):
             ep_hindsight_logprobs = np.array(ep_hindsight_logprobs)
             ratios = np.exp(ep_logprobs - ep_hindsight_logprobs)
             gammas = 1 - ratios
@@ -156,7 +159,6 @@ class PPO:
             ret.append(ep_returns)
         # flatten?
         return ret
-
 
     def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
         # Estimate advantages according to Return-conditioned HCA
@@ -309,12 +311,15 @@ class PPO:
                 hca_ratio_stds.append(hca_info["std"])
             elif self.adv == "mc-hca-gamma":
                 assert self.gamma_temp is not None
-                unflattened_logprobs = unflatten(logprobs.detach().numpy(), buffer.rewards)
-                returns = self.estimate_hca_discounted_returns(buffer.rewards,
-                                                               unflattened_logprobs,
-                                                               buffer.hindsight_logprobs,
-                                                               temp=self.gamma_temp
-                                                               )
+                unflattened_logprobs = unflatten(
+                    logprobs.detach().numpy(), buffer.rewards
+                )
+                returns = self.estimate_hca_discounted_returns(
+                    buffer.rewards,
+                    unflattened_logprobs,
+                    buffer.hindsight_logprobs,
+                    temp=self.gamma_temp,
+                )
                 advantages = returns
                 # TODO: VF or not?
                 # TODO: what is the VF trained on?
