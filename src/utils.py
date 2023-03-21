@@ -69,6 +69,23 @@ def tensor_flatten(x):
     return torch.stack(out).squeeze()
 
 
+def unflatten(x, ref_x):
+    """
+    Unflatten a flattened tensor x into a list of iterables, where each list is the same length as the corresponding
+    list in ref_x (which is a list of iterables).
+    """
+    ret = []
+    ind = 0
+    for arr in ref_x:
+        ret.append(x[ind : ind + len(arr)])
+        ind += len(arr)
+    return ret
+
+
+def sigmoid(arr, temp):
+    return 1 / (1 + np.exp(-arr / temp))
+
+
 def get_human_hindsight_logprobs(
     episode_rewards, policy_logprobs, total_reward, max_steps
 ):
