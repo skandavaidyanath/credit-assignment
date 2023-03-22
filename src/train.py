@@ -95,7 +95,7 @@ def train(args):
 
     # HCA model
     h_model = None
-    if args.agent.name == "ppo-hca":
+    if args.agent.name in ["ppo-hca", "hca-gamma"]:
         h_model = HCAModel(
             state_dim + 1,  # this is for return-conditioned
             action_dim,
@@ -208,7 +208,7 @@ def train(args):
 
         hindsight_logprobs = []
 
-        if args.agent.name == "ppo-hca":
+        if args.agent.name in ["ppo-hca", "hca-gamma"]:
             returns = calculate_mc_returns(rewards, terminals, agent.gamma)
             hindsight_logprobs = get_hindsight_logprobs(
                 h_model, states, returns, actions
@@ -221,11 +221,11 @@ def train(args):
         buffer.terminals.append(terminals)
         buffer.hindsight_logprobs.append(hindsight_logprobs)
 
-        if args.agent.name == "ppo-hca":
+        if args.agent.name in ["ppo-hca", "hca-gamma"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # Assign credit
-        if args.agent.name == "ppo-hca" and (
+        if args.agent.name in ["ppo-hca", "hca-gamma"] and (
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
@@ -235,7 +235,7 @@ def train(args):
                 h_model.reset_parameters()
 
             # update the HCA model
-            for _ in range(args.agent.hca_num_updates):
+            for _ in range(args.agent.hca_epochs):
                 hca_results = h_model.update(hca_buffer)
             # Clear the HCA buffer
             hca_buffer.clear()

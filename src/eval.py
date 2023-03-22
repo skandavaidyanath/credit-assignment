@@ -2,7 +2,11 @@ import numpy as np
 import gym
 
 
+<<<<<<< HEAD
 def eval(env, agent, args):
+=======
+def eval(env, agent, args, num_eval_eps=1):
+>>>>>>> a129f1bb14d276c054d8efbd372c02d53e8d61d8
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
     else:

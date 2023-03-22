@@ -18,8 +18,6 @@ training:
   checkpoint: ""
   exp_name_modifier: ""
   group_name_modifier: ""
-  collect_hca_data: False
-  hca_data_save_freq: 1000
 
 env:
   gamma: 0.99
@@ -36,3 +34,4 @@ agent:
   lr: 3e-4
   activation_fn: "relu"
   max_grad_norm: null # no clipping by default
+  gamma_temp: null

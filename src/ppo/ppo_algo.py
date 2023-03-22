@@ -4,7 +4,7 @@ from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
 import numpy as np
 
-from utils import flatten
+from utils import flatten, unflatten, sigmoid
 
 
 class ActorCritic(nn.Module):
@@ -128,12 +128,41 @@ class PPO:
 
         self.MseLoss = nn.MSELoss()
 
+        self.gamma_temp = args.agent.gamma_temp
+
     def select_action(self, state, greedy=False):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(self.device)
             action, action_logprob = self.policy.act(state, greedy=greedy)
 
         return action.detach().cpu(), action_logprob.detach().cpu().item()
+
+    def estimate_hca_discounted_returns(
+        self, rewards, logprobs, hindsight_logprobs, temp=0.25, normalize=True
+    ):
+        """All of the args should be numpy arrays"""
+        assert len(rewards) == len(logprobs) == len(hindsight_logprobs)
+        returns = []
+        for ep_rew, ep_logprobs, ep_hindsight_logprobs in zip(
+            rewards, logprobs, hindsight_logprobs
+        ):
+            ep_hindsight_logprobs = np.array(ep_hindsight_logprobs)
+            ratios = np.exp(ep_logprobs - ep_hindsight_logprobs)
+            gammas = 1 - ratios
+            gammas = sigmoid(gammas, temp=temp)
+            T = len(ratios)
+            ep_returns = []
+            for t in range(T):
+                curr_gamma = np.array([gammas[t] ** i for i in range(T - t)])
+                discounted_return = (curr_gamma * ep_rew[t:]).sum()
+                ep_returns.append(discounted_return)
+            returns.append(ep_returns)
+        returns = torch.from_numpy(flatten(returns))
+
+        if normalize:
+            returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+
+        return returns.to(self.device)
 
     def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
         # Estimate advantages according to Return-conditioned HCA
@@ -273,7 +302,7 @@ class PPO:
                 advantages = (advantages - advantages.mean()) / (
                     advantages.std() + 1e-7
                 )
-            else:
+            elif self.adv == "hca":
                 # hca adv
                 # normalizing the MC returns seems to help stability
                 # and performance here
@@ -284,6 +313,23 @@ class PPO:
                 hca_ratio_maxes.append(hca_info["max"])
                 hca_ratio_means.append(hca_info["mean"])
                 hca_ratio_stds.append(hca_info["std"])
+            elif self.adv == "mc-hca-gamma":
+                # trying by normalizing returns here
+                # could change later if required
+                assert self.gamma_temp is not None
+                unflattened_logprobs = unflatten(
+                    logprobs.detach().numpy(), buffer.rewards
+                )
+                returns = self.estimate_hca_discounted_returns(
+                    buffer.rewards,
+                    unflattened_logprobs,
+                    buffer.hindsight_logprobs,
+                    temp=self.gamma_temp,
+                    normalize=True,
+                )
+                advantages = returns
+                # TODO: VF or not?
+                # TODO: what is the VF trained on? i.e. which gamma
 
             surr1 = ratios * advantages
             surr2 = (
