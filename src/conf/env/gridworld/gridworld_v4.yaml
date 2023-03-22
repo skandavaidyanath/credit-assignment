@@ -11,6 +11,7 @@ training:
   log_freq: 1000  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
   eval_freq: 10000 # eval every these many episodes
+  num_eval_eps: 1
 
 agent:
   value_loss_coeff: 1e-4 # the returns tend to be very large in this env

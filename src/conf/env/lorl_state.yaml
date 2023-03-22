@@ -13,9 +13,15 @@ env:
 training:
   log_freq: 100  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
-  eval_freq: 100 # eval every these many episodes
+  eval_freq: 250 # eval every these many episodes
+  num_eval_eps: 10
 
 agent:
   value_loss_coeff: 0.05
   n_layers: 3
   hidden_size: 128
+  hca_n_layers: 2
+  hca_hidden_size: 128
+  hca_update_every: 5000
+  hca_num_updates: 1
+  refresh_hca: True

@@ -2,7 +2,7 @@ import numpy as np
 import gym
 
 
-def eval(env, agent, args, num_eval_eps=32):
+def eval(env, agent, args):
     if isinstance(env.action_space, gym.spaces.Box):
         continuous = True
     else:
@@ -11,11 +11,8 @@ def eval(env, agent, args, num_eval_eps=32):
     # logging
     total_rewards, total_successes = [], []
 
-    for episode in range(1, num_eval_eps + 1):
-        if args.env.type == "lorl":
-            state = env.reset(args.env.task)
-        else:
-            state = env.reset()
+    for episode in range(1, args.training.num_eval_eps + 1):
+        state = env.reset()
         current_ep_reward = 0
         done = False
 
