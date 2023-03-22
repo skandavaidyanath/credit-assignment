@@ -182,10 +182,12 @@ class HCAModel(nn.Module):
         out, dist = self.forward(inputs)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
-            return log_probs
+            # return log_probs
+            return log_probs.exp()
         else:
             log_probs = dist.log_prob(actions)
-            return log_probs
+            # return log_probs
+            return log_probs.exp()
 
     def save(self, checkpoint_path, args):
         torch.save(

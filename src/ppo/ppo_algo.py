@@ -170,6 +170,9 @@ class PPO:
         hindsight_ratios = torch.exp(
             logprobs.detach() - hindsight_logprobs.detach()
         )
+
+        # hindsight_ratios = torch.clip(hindsight_ratios, min=-1, max=+1)
+
         hindsight_ratio_mean = hindsight_ratios.mean().item()
         hindsight_ratio_max = hindsight_ratios.max().item()
         hindsight_ratio_min = hindsight_ratios.min().item()
