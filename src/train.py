@@ -221,6 +221,13 @@ def train(args):
         buffer.terminals.append(terminals)
         buffer.hindsight_logprobs.append(hindsight_logprobs)
 
+        # if episode >= 20000:
+        #     buffer.hindsight_logprobs.append(hindsight_logprobs)
+        # else:
+        #     buffer.hindsight_logprobs.append(
+        #         [np.exp(x) for x in hindsight_logprobs]
+        #     )
+
         if args.agent.name in ["ppo-hca", "hca-gamma"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
