@@ -18,8 +18,6 @@ training:
   checkpoint: ""
   exp_name_modifier: ""
   group_name_modifier: ""
-  collect_hca_data: False
-  hca_data_save_freq: 1000
 
 env:
   gamma: 0.99

@@ -235,7 +235,7 @@ def train(args):
                 h_model.reset_parameters()
 
             # update the HCA model
-            for _ in range(args.agent.hca_num_updates):
+            for _ in range(args.agent.hca_epochs):
                 hca_results = h_model.update(hca_buffer)
             # Clear the HCA buffer
             hca_buffer.clear()

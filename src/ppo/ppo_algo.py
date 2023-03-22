@@ -138,11 +138,11 @@ class PPO:
         return action.detach().cpu(), action_logprob.detach().cpu().item()
 
     def estimate_hca_discounted_returns(
-        self, rewards, logprobs, hindsight_logprobs, temp=0.25
+        self, rewards, logprobs, hindsight_logprobs, temp=0.25, normalize=True
     ):
         """All of the args should be numpy arrays"""
         assert len(rewards) == len(logprobs) == len(hindsight_logprobs)
-        ret = []
+        returns = []
         for ep_rew, ep_logprobs, ep_hindsight_logprobs in zip(
             rewards, logprobs, hindsight_logprobs
         ):
@@ -156,9 +156,13 @@ class PPO:
                 curr_gamma = np.array([gammas[t] ** i for i in range(T - t)])
                 discounted_return = (curr_gamma * ep_rew[t:]).sum()
                 ep_returns.append(discounted_return)
-            ret.append(ep_returns)
-        # flatten?
-        return ret
+            returns.append(ep_returns)
+        returns = torch.from_numpy(flatten(returns))
+
+        if normalize:
+            returns = (returns - returns.mean()) / (returns.std() + 1e-7)
+
+        return returns.to(self.device)
 
     def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
         # Estimate advantages according to Return-conditioned HCA
@@ -310,6 +314,8 @@ class PPO:
                 hca_ratio_means.append(hca_info["mean"])
                 hca_ratio_stds.append(hca_info["std"])
             elif self.adv == "mc-hca-gamma":
+                # trying by normalizing returns here
+                # could change later if required
                 assert self.gamma_temp is not None
                 unflattened_logprobs = unflatten(
                     logprobs.detach().numpy(), buffer.rewards
@@ -319,10 +325,11 @@ class PPO:
                     unflattened_logprobs,
                     buffer.hindsight_logprobs,
                     temp=self.gamma_temp,
+                    normalize=True,
                 )
                 advantages = returns
                 # TODO: VF or not?
-                # TODO: what is the VF trained on?
+                # TODO: what is the VF trained on? i.e. which gamma
 
             surr1 = ratios * advantages
             surr2 = (

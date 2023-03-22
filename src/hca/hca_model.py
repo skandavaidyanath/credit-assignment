@@ -53,9 +53,6 @@ class HCAModel(nn.Module):
         else:
             layers.append(nn.Linear(hidden_size, action_dim))
 
-        # if not continuous:
-        #     layers.append(nn.Softmax(dim=-1))
-
         self.net = nn.Sequential(*layers).to(device)
 
         if continuous:
@@ -176,7 +173,7 @@ class HCAModel(nn.Module):
                 "hca_val_acc": np.mean(metrics),
             }
 
-    def get_hindsight_values(self, inputs, actions):
+    def get_hindsight_logprobs(self, inputs, actions):
         """
         get the hindsight values for a batch of actions
         """
@@ -185,12 +182,10 @@ class HCAModel(nn.Module):
         out, dist = self.forward(inputs)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
-            return log_probs.exp()
+            return log_probs
         else:
             log_probs = dist.log_prob(actions)
-            # actions = actions.reshape(-1, 1).long()
-            # return out.gather(1, actions)  # B,
-            return log_probs.exp()
+            return log_probs
 
     def save(self, checkpoint_path, args):
         torch.save(
