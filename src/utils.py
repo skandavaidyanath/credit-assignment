@@ -29,6 +29,8 @@ def get_env(args):
             gym.make(args.env.name),
             task=args.env.task,
             use_state=args.env.use_state,
+            reward_multiplier=args.env.reward_multiplier,
+            binary_reward=args.env.binary_reward,
             normalize=args.env.normalize,
         )
     elif args.env.type == "mujoco":

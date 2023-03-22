@@ -11,6 +11,7 @@ env:
   reward_multiplier: 1000
 
 training:
+  max_training_episodes: 20000
   log_freq: 100  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
   eval_freq: 250 # eval every these many episodes
