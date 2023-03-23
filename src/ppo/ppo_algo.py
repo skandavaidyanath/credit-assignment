@@ -202,18 +202,17 @@ class PPO:
             advantages.std() + 1e-7
         )
 
-        hindsight_ratio_mean = hindsight_ratios.mean().item()
-        hindsight_ratio_max = hindsight_ratios.max().item()
-        hindsight_ratio_min = hindsight_ratios.min().item()
-        hindsight_ratio_std = hindsight_ratios.std().item()
+        smoothed_hca_mean = smoothed_hca.mean().item()
+        smoothed_hca_max = smoothed_hca.max().item()
+        smoothed_hca_min = smoothed_hca.min().item()
+        smoothed_hca_std = smoothed_hca.std().item()
 
         hindsight_stats = {
-            "min": hindsight_ratio_min,
-            "max": hindsight_ratio_max,
-            "mean": hindsight_ratio_mean,
-            "std": hindsight_ratio_std,
+            "min": smoothed_hca_min,
+            "max": smoothed_hca_max,
+            "mean": smoothed_hca_mean,
+            "std": smoothed_hca_std,
         }
-
 
         return advantages.to(self.device), hindsight_stats
 
