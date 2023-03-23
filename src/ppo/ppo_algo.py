@@ -116,6 +116,8 @@ class PPO:
         self.ppo_epochs = args.agent.ppo_epochs
         self.max_grad_norm = args.agent.max_grad_norm
 
+        self.hca_smoothing_fn = args.agent.get("hca_smoothing_fn", None)
+
         self.policy = ActorCritic(
             state_dim,
             action_dim,
@@ -164,11 +166,40 @@ class PPO:
 
         return returns.to(self.device)
 
-    def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
+    def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs, hca_smoothing_fn):
         # Estimate advantages according to Return-conditioned HCA
         # A(s, a) = (1 - \frac{\pi(a | s)}{h(a | s, G_s)})G_s
-        hindsight_ratios = torch.exp(
-            logprobs.detach() - hindsight_logprobs.detach()
+
+        hca_smoothing_type = None if hca_smoothing_fn is None else hca_smoothing_fn[0]
+
+        if hca_smoothing_type == "exp":
+            hindsight_ratios = torch.exp(
+                logprobs.detach() - torch.exp(hindsight_logprobs).detach()
+            )
+            smoothed_hca = (1 - hindsight_ratios)
+        else:
+            hindsight_ratios = torch.exp(
+                logprobs.detach() - hindsight_logprobs.detach()
+            )
+            hca_advantages = (1 - hindsight_ratios)
+            if hca_smoothing_type is None:
+                smoothed_hca = hca_advantages
+            elif hca_smoothing_type == "tanh":
+                a, b, c = hca_smoothing_fn[1], hca_smoothing_fn[2], hca_smoothing_fn[3]
+                smoothed_hca = a * torch.tanh(c * hca_advantages) + b
+            elif hca_smoothing_type == "atan":
+                a, b, c = hca_smoothing_fn[1], hca_smoothing_fn[2], hca_smoothing_fn[3]
+
+                def normalized_atan(x):
+                    return torch.atan(x) / (torch.pi / 2)
+
+                smoothed_hca = a * normalized_atan(c * hca_advantages) + b
+            else:
+                raise NotImplementedError
+
+        advantages = smoothed_hca * mc_returns
+        advantages = (advantages - advantages.mean()) / (
+            advantages.std() + 1e-7
         )
 
         # hindsight_ratios = torch.clip(hindsight_ratios, min=-1, max=+1)
@@ -185,10 +216,6 @@ class PPO:
             "std": hindsight_ratio_std,
         }
 
-        advantages = (1 - hindsight_ratios) * mc_returns
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-7
-        )
 
         return advantages.to(self.device), hindsight_stats
 
@@ -310,7 +337,7 @@ class PPO:
                 # normalizing the MC returns seems to help stability
                 # and performance here
                 advantages, hca_info = self.estimate_hca_advantages(
-                    returns, logprobs, hindsight_logprobs
+                    returns, logprobs, hindsight_logprobs, self.hca_smoothing_fn
                 )
                 hca_ratio_mins.append(hca_info["min"])
                 hca_ratio_maxes.append(hca_info["max"])
