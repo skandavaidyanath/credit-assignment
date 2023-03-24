@@ -75,6 +75,10 @@ def unflatten(x, ref_x):
     return ret
 
 
+def normalized_atan(x):
+    return torch.atan(x) / (torch.pi / 2)
+
+
 def sigmoid(arr, temp):
     return 1 / (1 + np.exp(-arr / temp))
 

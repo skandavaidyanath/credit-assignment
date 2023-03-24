@@ -16,3 +16,5 @@ agent:
   hca_activation: "relu"
   hca_train_val_split: [0.9, 0.1]
   refresh_hca: True
+  smoothing_fn: null
+
