@@ -230,7 +230,7 @@ def train(args):
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
-            # TODO: find the dataset statistics, and update the hindsight model with the new statistics
+            
             if h_model.normalize_inputs:
                 input_mean, input_std = hca_buffer.get_input_stats()
                 h_model.update_norm_stats(input_mean, input_std, args.agent.refresh_hca)
