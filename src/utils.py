@@ -94,3 +94,12 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
         inputs, torch.from_numpy(np.array(actions))
     )
     return h_values.detach().tolist()
+
+
+def assign_hindsight_logprobs(buffer, h_model):
+    for ep_ind in range(len(buffer)):
+        curr_ep_hindsight_logprobs = get_hindsight_logprobs(
+            h_model, buffer.states[ep_ind], buffer.returns[ep_ind], buffer.actions[ep_ind]
+        )
+        buffer.hindsight_logprobs.append(curr_ep_hindsight_logprobs)
+

@@ -20,6 +20,7 @@ class RolloutBuffer:
         del self.actions[:]
         del self.logprobs[:]
         del self.rewards[:]
+        del self.returns[:]
         del self.terminals[:]
         del self.hindsight_logprobs[:]
 
