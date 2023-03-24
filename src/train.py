@@ -18,6 +18,7 @@ from hca.hca_buffer import HCABuffer, calculate_mc_returns
 
 from utils import (
     get_hindsight_logprobs,
+    assign_hindsight_logprobs,
     get_env,
 )
 from eval import eval
@@ -208,30 +209,26 @@ def train(args):
         else:
             total_successes.append(0.0)
 
-        hindsight_logprobs = []
 
         if args.agent.name in ["ppo-hca", "hca-gamma"]:
             returns = calculate_mc_returns(rewards, terminals, agent.gamma)
-            hindsight_logprobs = get_hindsight_logprobs(
-                h_model, states, returns, actions
-            )
+            buffer.returns.append(returns)
 
         buffer.states.append(states)
         buffer.actions.append(actions)
         buffer.logprobs.append(logprobs)
         buffer.rewards.append(rewards)
         buffer.terminals.append(terminals)
-        buffer.hindsight_logprobs.append(hindsight_logprobs)
 
         if args.agent.name in ["ppo-hca", "hca-gamma"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
-        # Assign credit
+        # Update credit assignment (hca) model, if needed.
+        # Always update the HCA model the first time before a PPO update.
         if args.agent.name in ["ppo-hca", "hca-gamma"] and (
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
-            # always update the HCA model the first time before a PPO update
             # reset the model if you want
             if args.agent.refresh_hca:
                 h_model.reset_parameters()
@@ -254,6 +251,11 @@ def train(args):
             args.agent.name != "random"
             and episode % args.agent.update_every == 0
         ):
+            if args.agent.name in ["ppo-hca", "hca-gamma"]:
+                # First, assign credit to the actions in the data.
+                assign_hindsight_logprobs(buffer, h_model)
+
+            # Perform the actual PPO update.
             (
                 total_loss,
                 action_loss,
