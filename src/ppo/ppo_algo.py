@@ -144,6 +144,8 @@ class PPO:
         """All of the args should be numpy arrays"""
         assert len(rewards) == len(logprobs) == len(hindsight_logprobs)
         returns = []
+        all_gammas = []
+
         for ep_rew, ep_logprobs, ep_hindsight_logprobs in zip(
             rewards, logprobs, hindsight_logprobs
         ):
@@ -151,6 +153,9 @@ class PPO:
             ratios = np.exp(ep_logprobs - ep_hindsight_logprobs)
             gammas = 1 - ratios
             gammas = sigmoid(gammas, temp=temp)
+
+            all_gammas.append(gammas)
+
             T = len(ratios)
             ep_returns = []
             for t in range(T):
@@ -160,10 +165,25 @@ class PPO:
             returns.append(ep_returns)
         returns = torch.from_numpy(flatten(returns))
 
+        all_gammas = np.concatenate(all_gammas, -1)
+
+        all_gammas_mean = all_gammas.mean().item()
+        all_gammas_max = all_gammas.max().item()
+        all_gammas_min = all_gammas.min().item()
+        all_gammas_std = all_gammas.std().item()
+
+        gamma_stats = {
+            "ca_stat_type": "hca_gamma",
+            "min": all_gammas_min,
+            "max": all_gammas_max,
+            "mean": all_gammas_mean,
+            "std": all_gammas_std,
+        }
+
         if normalize:
             returns = (returns - returns.mean()) / (returns.std() + 1e-7)
 
-        return returns.to(self.device)
+        return returns.to(self.device), gamma_stats
 
     def estimate_hca_advantages(
         self, mc_returns, logprobs, hindsight_logprobs, smoothing_fn
@@ -226,6 +246,7 @@ class PPO:
         smoothed_hca_std = smoothed_hca.std().item()
 
         hindsight_stats = {
+            "ca_stat_type": "smoothed_hca_ratio",
             "min": smoothed_hca_min,
             "max": smoothed_hca_max,
             "mean": smoothed_hca_mean,
@@ -308,12 +329,14 @@ class PPO:
         )
 
         total_losses, action_losses, value_losses, entropies = [], [], [], []
-        hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
+
+        ca_stats_mins, ca_stats_maxes, ca_stats_means, ca_stats_stds = (
             [],
             [],
             [],
             [],
         )
+        ca_stat_type = None
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
@@ -351,13 +374,15 @@ class PPO:
                 # hca adv
                 # normalizing the MC returns seems to help stability
                 # and performance here
-                advantages, hca_info = self.estimate_hca_advantages(
+                advantages, ca_stats = self.estimate_hca_advantages(
                     returns, logprobs, hindsight_logprobs, self.smoothing_fn
                 )
-                hca_ratio_mins.append(hca_info["min"])
-                hca_ratio_maxes.append(hca_info["max"])
-                hca_ratio_means.append(hca_info["mean"])
-                hca_ratio_stds.append(hca_info["std"])
+
+                ca_stat_type = ca_stats["ca_stat_type"]
+                ca_stats_mins.append(ca_stats["min"])
+                ca_stats_maxes.append(ca_stats["max"])
+                ca_stats_means.append(ca_stats["mean"])
+                ca_stats_stds.append(ca_stats["std"])
             elif self.adv == "mc-hca-gamma":
                 # trying by normalizing returns here
                 # could change later if required
@@ -365,7 +390,7 @@ class PPO:
                 unflattened_logprobs = unflatten(
                     logprobs.detach().numpy(), buffer.rewards
                 )
-                returns = self.estimate_hca_discounted_returns(
+                returns, ca_stats = self.estimate_hca_discounted_returns(
                     buffer.rewards,
                     unflattened_logprobs,
                     buffer.hindsight_logprobs,
@@ -373,6 +398,13 @@ class PPO:
                     normalize=True,
                 )
                 advantages = returns
+
+                ca_stat_type = ca_stats["ca_stat_type"]
+                ca_stats_mins.append(ca_stats["min"])
+                ca_stats_maxes.append(ca_stats["max"])
+                ca_stats_means.append(ca_stats["mean"])
+                ca_stats_stds.append(ca_stats["std"])
+
                 # TODO: VF or not?
                 # TODO: what is the VF trained on? i.e. which gamma
 
@@ -406,7 +438,7 @@ class PPO:
             value_losses.append(value_loss.detach().cpu().item())
             entropies.append(dist_entropy.detach().cpu().item())
 
-        if self.adv != "hca":
+        if "hca" not in self.adv:
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
@@ -415,18 +447,19 @@ class PPO:
                 {},
             )
         else:
-            hca_stats_dict = {
-                "max": np.max(hca_ratio_maxes),
-                "min": np.min(hca_ratio_mins),
-                "mean": np.mean(hca_ratio_means),
-                "std": np.mean(hca_ratio_stds),
+            ca_stats_dict = {
+                "ca_stat_type": ca_stat_type,
+                "max": np.max(ca_stats_maxes),
+                "min": np.min(ca_stats_mins),
+                "mean": np.mean(ca_stats_means),
+                "std": np.mean(ca_stats_stds),
             }
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
                 0,
                 np.mean(entropies),
-                hca_stats_dict,
+                ca_stats_dict,
             )
 
     def save(self, checkpoint_path, args):
