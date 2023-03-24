@@ -174,10 +174,16 @@ class PPO:
         smoothing_type = None if smoothing_fn is None else smoothing_fn[0]
 
         if smoothing_type == "exp":
+            # 1 - p/e^x
             hindsight_ratios = torch.exp(
                 logprobs.detach() - torch.exp(hindsight_logprobs).detach()
             )
             smoothed_hca = 1 - hindsight_ratios
+        elif smoothing_type == "fancy_exp":
+            # p - (1+p)/e^x
+            p = torch.exp(logprobs.detach())
+            h = torch.exp(hindsight_logprobs.detach())
+            smoothed_hca = p - (1 + p) / torch.exp(h)
         else:
             hindsight_ratios = torch.exp(
                 logprobs.detach() - hindsight_logprobs.detach()
@@ -185,7 +191,12 @@ class PPO:
             hca_terms = 1 - hindsight_ratios
             if smoothing_type is None:
                 smoothed_hca = hca_terms
+            elif smoothing_type == "clip":
+                # clip(hca_terms, min=a, max=b)
+                a, b = smoothing_fn[1], smoothing_fn[2]
+                smoothed_hca = torch.clamp(hca_terms, min=a, max=b)
             elif smoothing_type == "tanh":
+                # a * tanh(c * (1 - p/h)) + b
                 a, b, c = (
                     smoothing_fn[1],
                     smoothing_fn[2],
@@ -193,6 +204,7 @@ class PPO:
                 )
                 smoothed_hca = a * torch.tanh(c * hca_terms) + b
             elif smoothing_type == "atan":
+                # a * norm_atan(c * (1 - p/h)) + b
                 a, b, c = (
                     smoothing_fn[1],
                     smoothing_fn[2],
