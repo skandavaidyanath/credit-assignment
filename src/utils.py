@@ -31,6 +31,7 @@ def get_env(args):
             use_state=args.env.use_state,
             reward_multiplier=args.env.reward_multiplier,
             binary_reward=args.env.binary_reward,
+            max_steps=args.env.max_steps,
             normalize=args.env.normalize,
         )
     elif args.env.type == "mujoco":
