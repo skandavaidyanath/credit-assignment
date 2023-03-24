@@ -92,6 +92,14 @@ class HCABuffer:
         inds = np.random.choice(size, size=batch_size, replace=False)
         return inp_data[inds], actions[inds]
 
+    def get_input_stats(self):
+        states = np.array(self.states)
+        returns = np.array(self.returns).reshape((-1, 1))
+        inp_data = np.concatenate((states, returns), -1)
+        inp_mean = np.mean(inp_data, 0)
+        inp_std = np.std(inp_data, 0)
+        return inp_mean, inp_std
+
     def save_data(self, num_actions):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))

@@ -46,6 +46,11 @@ class HCA_Stats:
     hca_val_logprobs: float = 0.0
     hca_val_acc: float = 0.0
 
+    hca_train_entropy_min: float = 0.0
+    hca_train_entropy_max: float = 0.0
+    hca_train_entropy_mean: float = 0.0
+    hca_train_entropy_std: float = 0.0
+
 
 class Logger:
     """

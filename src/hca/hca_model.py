@@ -22,12 +22,15 @@ class HCAModel(nn.Module):
         batch_size=64,
         lr=3e-4,
         device="cpu",
+        normalize_inputs=True
     ):
         super(HCAModel, self).__init__()
 
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.continuous = continuous
+        self.normalize_inputs = normalize_inputs
+
         if activation_fn == "tanh":
             activation = nn.Tanh
         elif activation_fn == "relu":
@@ -66,6 +69,9 @@ class HCAModel(nn.Module):
         self.batch_size = batch_size
         self.device = torch.device(device)
 
+        self.input_mean = torch.zeros((state_dim, ), device=device)
+        self.input_std = torch.ones((state_dim, ), device=device)
+
     @property
     def std(self):
         if not self.continuous:
@@ -78,10 +84,20 @@ class HCAModel(nn.Module):
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
 
+    def update_norm_stats(self, mean, std, refresh):
+        if refresh:
+            self.input_mean = torch.from_numpy(mean).to(self.device)
+            self.input_std = torch.from_numpy(std).to(self.device)
+        else:
+            raise NotImplementedError
+
     def forward(self, inputs):
         """
         forward pass a bunch of inputs into the model
         """
+        if self.normalize_inputs:
+            inputs = (inputs - inputs.mean()) / (inputs.std() + 1e-6)
+
         out = self.net(inputs)
         if self.continuous:
             std = torch.diag(self.std)
@@ -102,8 +118,18 @@ class HCAModel(nn.Module):
         )
 
         losses, metrics = [], []
+        entropy_stats = {
+            "entropy_min": [],
+            "entropy_max": [],
+            "entropy_mean": [],
+            "entropy_std": []
+        }
+
         for states, actions in train_dataloader:
-            loss, metric = self.train_step(states, actions)
+            loss, metric, ent_stat = self.train_step(states, actions)
+            for k, v in ent_stat.items():
+                entropy_stats[k].append(v)
+
             losses.append(loss)
             metrics.append(metric)
 
@@ -117,6 +143,8 @@ class HCAModel(nn.Module):
                 "hca_train_loss": np.mean(losses),
                 "hca_train_acc": np.mean(metrics),
             }
+        entropy_stats = {"hca_train_" + k: np.mean(v) for k, v in entropy_stats.items()}
+        results.update(entropy_stats)
 
         val_results = self.validate(val_dataloader)
         results.update(val_results)
@@ -126,6 +154,14 @@ class HCAModel(nn.Module):
         states = states.to(self.device)
         actions = actions.to(self.device)
         preds, dists = self.forward(states)
+
+        entropy = dists.entropy()
+        entropy_stats = {
+            "entropy_mean": entropy.mean().detach().item(),
+            "entropy_std": entropy.std().detach().item(),
+            "entropy_max": entropy.max().detach().item(),
+            "entropy_min": entropy.min().detach().item(),
+        }
 
         if self.continuous:
             loss = F.gaussian_nll_loss(preds, actions, dists.variance)
@@ -139,7 +175,7 @@ class HCAModel(nn.Module):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        return loss.item(), metric.item()
+        return loss.item(), metric.item(), entropy_stats
 
     def validate(self, val_dataloader):
         losses, metrics = [], []

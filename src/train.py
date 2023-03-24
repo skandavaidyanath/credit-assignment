@@ -108,6 +108,7 @@ def train(args):
             batch_size=args.agent.hca_batchsize,
             lr=args.agent.hca_lr,
             device=args.training.device,
+            normalize_inputs=args.agent.hca_normalize_inputs
         )
         h_model = h_model.to(args.training.device)
         if args.agent.hca_checkpoint:
@@ -229,9 +230,15 @@ def train(args):
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
+            # TODO: find the dataset statistics, and update the hindsight model with the new statistics
+            if h_model.normalize_inputs:
+                input_mean, input_std = hca_buffer.get_input_stats()
+                h_model.update_norm_stats(input_mean, input_std, args.agent.refresh_hca)
+
             # reset the model if you want
             if args.agent.refresh_hca:
                 h_model.reset_parameters()
+
 
             # update the HCA model
             for _ in range(args.agent.hca_epochs):
