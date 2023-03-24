@@ -136,12 +136,14 @@ def train(args):
     # logging
     total_rewards, total_successes = [], []
     total_losses, action_losses, value_losses, entropies = [], [], [], []
-    hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
+
+    ca_stat_mins, ca_stat_maxes, ca_stat_means, ca_stat_stds = (
         [],
         [],
         [],
         [],
     )
+    ca_stat_type = None
 
     # track total training time
     start_time = datetime.datetime.now().replace(microsecond=0)
@@ -257,17 +259,18 @@ def train(args):
                 action_loss,
                 value_loss,
                 entropy,
-                hca_ratio_dict,
+                ca_stat_dict,
             ) = agent.update(buffer)
             total_losses.append(total_loss)
             action_losses.append(action_loss)
             value_losses.append(value_loss)
             entropies.append(entropy)
-            if hca_ratio_dict:
-                hca_ratio_mins.append(hca_ratio_dict["min"])
-                hca_ratio_maxes.append(hca_ratio_dict["max"])
-                hca_ratio_means.append(hca_ratio_dict["mean"])
-                hca_ratio_stds.append(hca_ratio_dict["std"])
+            if ca_stat_dict:
+                ca_stat_type = ca_stat_dict["ca_stat_type"]
+                ca_stat_mins.append(ca_stat_dict["min"])
+                ca_stat_maxes.append(ca_stat_dict["max"])
+                ca_stat_means.append(ca_stat_dict["mean"])
+                ca_stat_stds.append(ca_stat_dict["std"])
 
             buffer.clear()
 
@@ -276,17 +279,17 @@ def train(args):
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
-            hca_ratio_min = (
-                np.mean(hca_ratio_mins) if len(hca_ratio_mins) > 0 else 0.0
+            ca_stat_min = (
+                np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else 0.0
             )
-            hca_ratio_max = (
-                np.mean(hca_ratio_maxes) if len(hca_ratio_maxes) > 0 else 0.0
+            ca_stat_max = (
+                np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else 0.0
             )
-            hca_ratio_mean = (
-                np.mean(hca_ratio_means) if len(hca_ratio_means) > 0 else 0.0
+            ca_stat_mean = (
+                np.mean(ca_stat_means) if len(ca_stat_means) > 0 else 0.0
             )
-            hca_ratio_std = (
-                np.mean(hca_ratio_stds) if len(hca_ratio_stds) > 0 else 0.0
+            ca_stat_std = (
+                np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else 0.0
             )
 
             stats = PPO_Stats(
@@ -296,10 +299,11 @@ def train(args):
                 action_loss=np.mean(action_losses),
                 value_loss=np.mean(value_losses),
                 entropy=np.mean(entropies),
-                hca_ratio_max=hca_ratio_max,
-                hca_ratio_min=hca_ratio_min,
-                hca_ratio_mean=hca_ratio_mean,
-                hca_ratio_std=hca_ratio_std,
+                ca_stat=ca_stat_type,
+                ca_stat_mean=ca_stat_mean,
+                ca_stat_std=ca_stat_std,
+                ca_stat_max=ca_stat_max,
+                ca_stat_min=ca_stat_min
             )
 
             logger.log(stats, step=episode, wandb_prefix="training")
@@ -312,7 +316,7 @@ def train(args):
                 [],
             )
 
-            hca_ratio_mins, hca_ratio_maxes, hca_ratio_means, hca_ratio_stds = (
+            ca_stat_mins, ca_stat_maxes, ca_stat_means, ca_stat_stds = (
                 [],
                 [],
                 [],

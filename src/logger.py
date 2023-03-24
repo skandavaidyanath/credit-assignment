@@ -26,10 +26,13 @@ class PPO_Stats:
     action_loss: float
     value_loss: float
     entropy: float
-    hca_ratio_mean: float = 0.0
-    hca_ratio_std: float = 0.0
-    hca_ratio_min: float = 0.0
-    hca_ratio_max: float = 0.0
+
+    ca_stat: str = "ca_stat"
+    ca_stat_mean: float = 0.0
+    ca_stat_std: float = 0.0
+    ca_stat_min: float = 0.0
+    ca_stat_max: float = 0.0
+
 
 
 @dataclass
@@ -91,7 +94,10 @@ class Logger:
         wandb.log(prefixed_stats_dict, step)
 
     def prefix(self, d, pre):
+        ca_stat_type = d.pop("ca_stat", None)
         new_d = {}
         for k, v in d.items():
+            if "ca_stat" in k:
+                k = k.replace("ca_stat", ca_stat_type)
             new_d[pre + "/" + k] = v
         return new_d
