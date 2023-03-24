@@ -16,5 +16,6 @@ agent:
   hca_activation: "relu"
   hca_train_val_split: [0.9, 0.1]
   refresh_hca: True
-  smoothing_fn: null
-
+  hca_normalize_inputs: True
+  smoothing_fn: ["exp", 0.0, 0.0, 0.0]
+#  smoothing_fn: ["atan", 0.625, 0.375, 4.0]
