@@ -9,3 +9,4 @@ hca_data/
 hca/checkpoints/
 .ipynb_checkpoints/
 outputs/
+src/sweep.yaml

@@ -4,7 +4,7 @@ from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
 import numpy as np
 
-from utils import flatten, unflatten, sigmoid
+from utils import flatten, unflatten, sigmoid, normalized_atan
 
 
 class ActorCritic(nn.Module):
@@ -128,7 +128,8 @@ class PPO:
 
         self.MseLoss = nn.MSELoss()
 
-        self.gamma_temp = args.agent.gamma_temp
+        self.gamma_temp = args.agent.get("gamma_temp", None)
+        self.smoothing_fn = args.agent.get("smoothing_fn", None)
 
     def select_action(self, state, greedy=False):
         with torch.no_grad():
@@ -164,29 +165,60 @@ class PPO:
 
         return returns.to(self.device)
 
-    def estimate_hca_advantages(self, mc_returns, logprobs, hindsight_logprobs):
+    def estimate_hca_advantages(
+        self, mc_returns, logprobs, hindsight_logprobs, smoothing_fn
+    ):
         # Estimate advantages according to Return-conditioned HCA
         # A(s, a) = (1 - \frac{\pi(a | s)}{h(a | s, G_s)})G_s
-        hindsight_ratios = torch.exp(
-            logprobs.detach() - hindsight_logprobs.detach()
-        )
 
-        hindsight_ratio_mean = hindsight_ratios.mean().item()
-        hindsight_ratio_max = hindsight_ratios.max().item()
-        hindsight_ratio_min = hindsight_ratios.min().item()
-        hindsight_ratio_std = hindsight_ratios.std().item()
+        smoothing_type = None if smoothing_fn is None else smoothing_fn[0]
 
-        hindsight_stats = {
-            "min": hindsight_ratio_min,
-            "max": hindsight_ratio_max,
-            "mean": hindsight_ratio_mean,
-            "std": hindsight_ratio_std,
-        }
+        if smoothing_type == "exp":
+            hindsight_ratios = torch.exp(
+                logprobs.detach() - torch.exp(hindsight_logprobs).detach()
+            )
+            smoothed_hca = 1 - hindsight_ratios
+        else:
+            hindsight_ratios = torch.exp(
+                logprobs.detach() - hindsight_logprobs.detach()
+            )
+            hca_terms = 1 - hindsight_ratios
+            if smoothing_type is None:
+                smoothed_hca = hca_terms
+            elif smoothing_type == "tanh":
+                a, b, c = (
+                    smoothing_fn[1],
+                    smoothing_fn[2],
+                    smoothing_fn[3],
+                )
+                smoothed_hca = a * torch.tanh(c * hca_terms) + b
+            elif smoothing_type == "atan":
+                a, b, c = (
+                    smoothing_fn[1],
+                    smoothing_fn[2],
+                    smoothing_fn[3],
+                )
 
-        advantages = (1 - hindsight_ratios) * mc_returns
+                smoothed_hca = a * normalized_atan(c * hca_terms) + b
+            else:
+                raise NotImplementedError
+
+        advantages = smoothed_hca * mc_returns
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7
         )
+
+        smoothed_hca_mean = smoothed_hca.mean().item()
+        smoothed_hca_max = smoothed_hca.max().item()
+        smoothed_hca_min = smoothed_hca.min().item()
+        smoothed_hca_std = smoothed_hca.std().item()
+
+        hindsight_stats = {
+            "min": smoothed_hca_min,
+            "max": smoothed_hca_max,
+            "mean": smoothed_hca_mean,
+            "std": smoothed_hca_std,
+        }
 
         return advantages.to(self.device), hindsight_stats
 
@@ -308,7 +340,7 @@ class PPO:
                 # normalizing the MC returns seems to help stability
                 # and performance here
                 advantages, hca_info = self.estimate_hca_advantages(
-                    returns, logprobs, hindsight_logprobs
+                    returns, logprobs, hindsight_logprobs, self.smoothing_fn
                 )
                 hca_ratio_mins.append(hca_info["min"])
                 hca_ratio_maxes.append(hca_info["max"])

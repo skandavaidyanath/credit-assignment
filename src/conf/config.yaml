@@ -16,8 +16,6 @@ training:
   max_training_episodes: 100000 # some big number
   seed: 0
   checkpoint: ""
-  exp_name_modifier: ""
-  group_name_modifier: ""
 
 env:
   gamma: 0.99
@@ -34,4 +32,3 @@ agent:
   lr: 3e-4
   activation_fn: "relu"
   max_grad_norm: null # no clipping by default
-  gamma_temp: null
