@@ -17,7 +17,6 @@ from hca.hca_model import HCAModel
 from hca.hca_buffer import HCABuffer, calculate_mc_returns
 
 from utils import (
-    get_hindsight_logprobs,
     assign_hindsight_logprobs,
     get_env,
 )
@@ -230,7 +229,7 @@ def train(args):
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
-            
+
             if h_model.normalize_inputs:
                 input_mean, input_std = hca_buffer.get_input_stats()
                 h_model.update_norm_stats(input_mean, input_std, args.agent.refresh_hca)
