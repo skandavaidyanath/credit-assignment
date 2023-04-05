@@ -9,6 +9,7 @@ env:
   normalize: True
   binary_reward: False
   reward_multiplier: 1000
+  max_steps: 20
 
 training:
   max_training_episodes: 20000
@@ -23,6 +24,6 @@ agent:
   hidden_size: 128
   hca_n_layers: 2
   hca_hidden_size: 128
-  hca_update_every: 5000
-  hca_num_updates: 1
+  hca_update_every: 500
+  hca_num_updates: 5
   refresh_hca: True

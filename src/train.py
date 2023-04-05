@@ -144,7 +144,7 @@ def train(args):
         [],
         [],
     )
-    ca_stat_type = None
+    ca_stat_type = ""
 
     # track total training time
     start_time = datetime.datetime.now().replace(microsecond=0)

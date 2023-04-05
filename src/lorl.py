@@ -14,6 +14,8 @@ TASKS = [
     "turn faucet left",
     "move black mug right",
     "move white mug down",
+    "open drawer and move black mug right",
+    "move black mug right and close drawer"
 ]
 
 
@@ -47,6 +49,17 @@ def lorl_gt_reward(qpos, initial, task):
     elif task == "move white mug down":
         dist = qpos[10] - initial[10]
         s = dist > 0.02
+    elif task == "open drawer and move black mug right":
+        dist1 = initial[14] - qpos[14]
+        dist2 = initial[11] - qpos[11]
+        s = dist1 > 0.02 and dist2 > 0.02
+        dist = dist1 + dist2
+    elif task == "move white mug down and close drawer":
+        dist1 = qpos[10] - initial[10]
+        dist2 = qpos[14] - initial[14]
+        s = dist1 > 0.02 and dist2 > 0.02
+        dist = dist1 + dist2
+        
     return dist, s
 
 

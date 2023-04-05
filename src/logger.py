@@ -99,7 +99,7 @@ class Logger:
         wandb.log(prefixed_stats_dict, step)
 
     def prefix(self, d, pre):
-        ca_stat_type = d.pop("ca_stat", None)
+        ca_stat_type = d.pop("ca_stat", "")
         new_d = {}
         for k, v in d.items():
             if "ca_stat" in k:
