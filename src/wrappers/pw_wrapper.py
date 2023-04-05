@@ -17,7 +17,6 @@ class PushWorldWrapper(gym.Wrapper):
         self.use_state = use_state
         if self.use_state:
             state = self.reset()
-            bound = np.ones_like(state) * np.inf
             self.observation_space = gym.spaces.Box(low=-1.0*np.inf, high=np.inf, shape=(len(state), ))
 
     def reset(self):
@@ -31,6 +30,7 @@ class PushWorldWrapper(gym.Wrapper):
         assert action in self.action_space
         observation, reward, terminated, truncated, info = self.env.step(action)
         done = terminated or truncated
+        info["success"] = terminated
         if self.use_state:
             return self._get_state(), reward, done, info
         else:

@@ -5,7 +5,7 @@ env:
   type: "pushworld"
   sparse: True
   puzzle_path: "pushworld_env/benchmark/puzzles/level1/Clear The Way.pwp"
-  max_steps: 25
+  max_steps: 50
   use_state: True
   gamma: 1.0
 
