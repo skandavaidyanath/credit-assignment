@@ -6,6 +6,8 @@ env:
   sparse: True
   puzzle_path: "pushworld_env/benchmark/puzzles/level1/Clear The Way.pwp"
   max_steps: 25
+  use_state: True
+  gamma: 1.0
 
 training:
   log_freq: 1000  # Log every these many episodes
