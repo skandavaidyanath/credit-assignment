@@ -18,4 +18,3 @@ agent:
   refresh_hca: True
   hca_normalize_inputs: False
   smoothing_fn: ["exp", 0.0, 0.0, 0.0]
-#  smoothing_fn: ["atan", 0.625, 0.375, 4.0]
