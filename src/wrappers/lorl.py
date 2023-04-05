@@ -15,7 +15,7 @@ TASKS = [
     "move black mug right",
     "move white mug down",
     "open drawer and move black mug right",
-    "move black mug right and close drawer"
+    "move black mug right and close drawer",
 ]
 
 
@@ -59,43 +59,57 @@ def lorl_gt_reward(qpos, initial, task):
         dist2 = qpos[14] - initial[14]
         s = dist1 > 0.02 and dist2 > 0.02
         dist = dist1 + dist2
-        
+
     return dist, s
 
 
 class LorlWrapper(gym.Wrapper):
     """
     Lorl processing wrapper.
-    1) Adds String command to observations
-    2) Preprocess states
+    1) Implements reset() based on the passed task
+    2) Implements get_state() and get_image() methods
+    3) Normalized state if specified
     """
 
-    def __init__(self, env, task, use_state=True, reward_multiplier=1000, binary_reward=False, max_steps=20, normalize=True):
+    def __init__(
+        self,
+        env,
+        task,
+        use_state=True,
+        reward_multiplier=1000,
+        binary_reward=False,
+        max_steps=20,
+        normalize=True,
+    ):
         super(LorlWrapper, self).__init__(env)
 
         self.env = env
-        
+
         if task not in TASKS:
             raise ValueError(f"Unknown task! Choose from {TASKS}")
-        
+
         self.task = task
-        
+
         self.use_state = use_state
         self.reward_multiplier = reward_multiplier
         self.binary_reward = binary_reward
         self.max_steps = max_steps
         self.normalize = normalize
-        
+
         self.state_dim = 15 if use_state else (3, 64, 64)
         self.act_dim = env.action_space.shape[0]
 
         if normalize:
             if self.use_state:
-                stats = pickle.load(open("static/lorl_offline_state_stats.pkl", "rb"))
+                stats = pickle.load(
+                    open("static/lorl_offline_state_stats.pkl", "rb")
+                )
                 # stats = pickle.load(open("static/lorl_state_stats.pkl", "rb"))
                 self.state_mean, self.state_std = stats["mean"], stats["std"]
             else:
-                print("Image observations are normalized by default. Setting mean and std to 0 and 1 respectively.")
+                print(
+                    "Image observations are normalized by default. Setting mean and std to 0 and 1 respectively."
+                )
                 self.state_mean = np.zeros(self.state_dim)
                 self.state_std = np.ones(self.state_dim)
 
@@ -128,7 +142,7 @@ class LorlWrapper(gym.Wrapper):
         env = self.env
         im, _ = env.reset()
         self.cur_step = 0
-        
+
         task = self.task
 
         # Initialize state for different tasks
@@ -209,18 +223,20 @@ class LorlWrapper(gym.Wrapper):
         dist, s = lorl_gt_reward(
             self.env.sim.data.qpos[:], self.initial_state, self.task
         )
-        
+
         reward = 0
         success = int(s)
-        
+
         done = s or (self.cur_step >= self.max_steps)
-        
+
         if done:
             if self.binary_reward:
                 reward = int(s)
             else:
-                reward = dist * self.reward_multiplier  # just increasing reward magnitude to get better gradients
-            
+                reward = (
+                    dist * self.reward_multiplier
+                )  # just increasing reward magnitude to get better gradients
+
         info.update({"success": success})
         return self.get_state(im), reward, done, info
 
@@ -250,19 +266,20 @@ if __name__ == "__main__":
     from stable_baselines3.common.vec_env import DummyVecEnv
 
     env = gym.make("LorlEnv-v0")
-    
+
     def make_env(task):
         def _init():
             wrapped_env = LorlWrapper(gym.make("LorlEnv-v0"), task)
             # Important: use a different seed for each environment
             # wrapped_env.seed(seed + rank)
             return wrapped_env
+
         return _init
 
     env_fns = [make_env("open drawer")] * 3
     vec_env = DummyVecEnv(env_fns)
     # print(vec_env.reset())
-    
+
 #     def get_mean_std(env, use_state=True, steps=10000):
 #         """
 #         Calculate mean and std of Lorl env states if
@@ -307,7 +324,5 @@ if __name__ == "__main__":
 #                 pickle.dump(x, open("static/lorl_img_stats.pkl", "wb"))
 
 #         return x["mean"], x["std"]
-    
-#     print(get_mean_std(env))
 
-    
+#     print(get_mean_std(env))

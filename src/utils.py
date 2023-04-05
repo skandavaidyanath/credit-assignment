@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import gridworld
 from gridworld.gridworld_env import GridWorld
 import gym
 
@@ -12,7 +11,12 @@ try:
     import lorl_env
 except:
     print("Lorl env is not installed!")
-from lorl import LorlWrapper
+try:
+    from pushworld.gym_env import PushWorldEnv
+except:
+    print("PushWorldEnv is not installed!")
+from wrappers.lorl import LorlWrapper
+from wrappers.pw_wrapper import PushWorldWrapper
 
 
 def get_env(args):
@@ -36,6 +40,11 @@ def get_env(args):
         )
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
+    elif args.env.type == "pushworld":
+        pw_env = PushWorldEnv(
+            puzzle_path=args.env.puzzle_path, max_steps=args.env.max_steps
+        )
+        env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
     else:
         raise NotImplementedError
     return env
@@ -99,7 +108,9 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
 def assign_hindsight_logprobs(buffer, h_model):
     for ep_ind in range(len(buffer)):
         curr_ep_hindsight_logprobs = get_hindsight_logprobs(
-            h_model, buffer.states[ep_ind], buffer.returns[ep_ind], buffer.actions[ep_ind]
+            h_model,
+            buffer.states[ep_ind],
+            buffer.returns[ep_ind],
+            buffer.actions[ep_ind],
         )
         buffer.hindsight_logprobs.append(curr_ep_hindsight_logprobs)
-
