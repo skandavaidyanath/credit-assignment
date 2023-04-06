@@ -102,7 +102,7 @@ class Logger:
         ca_stat_type = d.pop("ca_stat", "")
         new_d = {}
         for k, v in d.items():
-            if "ca_stat" in k:
+            if "ca_stat" in k and ca_stat_type:
                 k = k.replace("ca_stat", ca_stat_type)
             new_d[pre + "/" + k] = v
         return new_d
