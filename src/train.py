@@ -107,7 +107,8 @@ def train(args):
             batch_size=args.agent.hca_batchsize,
             lr=args.agent.hca_lr,
             device=args.training.device,
-            normalize_inputs=args.agent.hca_normalize_inputs
+            normalize_inputs=args.agent.hca_normalize_inputs,
+            weight_training_samples=args.agent.hca_weight_training_samples
         )
         h_model = h_model.to(args.training.device)
         if args.agent.hca_checkpoint:

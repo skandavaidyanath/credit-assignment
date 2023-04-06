@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 
 import torch
-from torch.utils.data import TensorDataset, DataLoader, random_split
+from torch.utils.data import TensorDataset, DataLoader, random_split, WeightedRandomSampler
 
 
 def calculate_mc_returns(rewards, terminals, gamma):
@@ -59,7 +59,7 @@ class HCABuffer:
         del self.actions[:]
         del self.returns[:]
 
-    def get_dataloader(self, batch_size):
+    def get_dataloader(self, batch_size, weight_samples=False):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
         X = torch.from_numpy(np.concatenate((states, returns), -1)).float()
@@ -70,9 +70,29 @@ class HCABuffer:
 
         dataset = TensorDataset(X, y)
         train_dataset, val_dataset = random_split(dataset, self.train_val_split)
-        train_dataloader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True
-        )
+
+        if weight_samples:
+            returns = returns.flatten()
+            pos_count = np.sum(returns > 0.0)
+            neg_count = np.sum(returns <= 0.0)
+
+            pos_weight = 1 / pos_count if pos_count > 0 else 0.0
+            neg_weight = 1 / neg_count if neg_count > 0 else 0.0
+
+            weights = np.zeros_like(returns)
+
+            weights[returns > 0] = pos_weight
+            weights[returns <= 0] = neg_weight
+
+            train_weights = weights[train_dataset.indices]
+            sampler = WeightedRandomSampler(train_weights, num_samples=len(train_dataset), replacement=True)
+            train_dataloader = DataLoader(
+                train_dataset, batch_size=batch_size, sampler=sampler
+            )
+        else:
+            train_dataloader = DataLoader(
+                train_dataset, batch_size=batch_size, shuffle=True
+            )
         val_dataloader = DataLoader(
             val_dataset, batch_size=batch_size, shuffle=True
         )
