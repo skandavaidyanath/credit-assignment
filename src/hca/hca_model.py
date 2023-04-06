@@ -22,7 +22,8 @@ class HCAModel(nn.Module):
         batch_size=64,
         lr=3e-4,
         device="cpu",
-        normalize_inputs=True
+        normalize_inputs=True,
+        weight_training_samples=False,
     ):
         super(HCAModel, self).__init__()
 
@@ -69,6 +70,7 @@ class HCAModel(nn.Module):
         self.batch_size = batch_size
         self.device = torch.device(device)
 
+        self.weight_training_samples = weight_training_samples
         self.input_mean = torch.zeros((state_dim, ), device=device)
         self.input_std = torch.ones((state_dim, ), device=device)
 
@@ -114,7 +116,7 @@ class HCAModel(nn.Module):
 
     def update(self, buffer):
         train_dataloader, val_dataloader = buffer.get_dataloader(
-            self.batch_size
+            self.batch_size, weight_samples=self.weight_training_samples
         )
 
         losses, metrics = [], []

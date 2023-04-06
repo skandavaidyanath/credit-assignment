@@ -15,6 +15,7 @@ agent:
   hca_dropout: 0
   hca_activation: "relu"
   hca_train_val_split: [0.9, 0.1]
+  hca_weight_training_samples: True
   refresh_hca: True
   hca_normalize_inputs: False
   smoothing_fn: ["exp", 0.0, 0.0, 0.0]
