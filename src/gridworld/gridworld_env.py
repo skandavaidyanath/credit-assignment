@@ -9,6 +9,7 @@ TILE_MAPPING = {".": 0, "S": 1, "G": 2, "*": 3, "R": 4, "F": 5, "A": 6}
 INVERSE_TILE_MAPPING = {0: ".", 1: "S", 2: "G", 3: "*", 4: "R", 5: "F", 6: "A"}
 ACTION_MAPPING = {0: [0, 1], 1: [0, -1], 2: [1, 0], 3: [-1, 0]}
 REWARD_MAPPING = {"F": -100, "*": +20}
+STEP_REWARD = -1
 
 
 class GridWorld(Env):
@@ -34,7 +35,12 @@ class GridWorld(Env):
         self.episode_rewards = []
 
         # observation and action spaces
-        self.observation_space = Dict({"map": MultiDiscrete(7 * np.ones(self.R * self.C)), "time": Discrete(max_steps+1)})
+        self.observation_space = Dict(
+            {
+                "map": MultiDiscrete(7 * np.ones(self.R * self.C)),
+                "time": Discrete(max_steps + 1),
+            }
+        )
         self.action_space = Discrete(4)
 
     def process(self, gridmap):
@@ -75,21 +81,21 @@ class GridWorld(Env):
         done = self.current_steps >= self.max_steps
 
         if next_state in [TILE_MAPPING["."], TILE_MAPPING["S"]]:
-            reward = -1
+            reward = STEP_REWARD
         if next_state == TILE_MAPPING["R"]:
-            reward = -1
+            reward = STEP_REWARD
             self.agent_location = self.start_location
         if next_state == TILE_MAPPING["F"]:
-            reward = REWARD_MAPPING["F"] - 1
+            reward = REWARD_MAPPING["F"] + STEP_REWARD
         if next_state == TILE_MAPPING["*"]:
             # remove the diamond from the location
             self.current_map[
                 self.agent_location[0], self.agent_location[1]
             ] = TILE_MAPPING["."]
-            reward = REWARD_MAPPING["*"] - 1
+            reward = REWARD_MAPPING["*"] + STEP_REWARD
         if next_state == TILE_MAPPING["G"]:
             done = True
-            reward = -1
+            reward = STEP_REWARD
 
         self.episode_rewards.append(reward)
         if self.sparse:
