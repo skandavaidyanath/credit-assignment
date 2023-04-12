@@ -10,3 +10,4 @@ hca/checkpoints/
 .ipynb_checkpoints/
 outputs/
 src/sweep.yaml
+level0/
