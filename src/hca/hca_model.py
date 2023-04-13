@@ -24,6 +24,7 @@ class HCAModel(nn.Module):
         device="cpu",
         normalize_inputs=True,
         weight_training_samples=False,
+        noise_std=None
     ):
         super(HCAModel, self).__init__()
 
@@ -31,6 +32,7 @@ class HCAModel(nn.Module):
         self.action_dim = action_dim
         self.continuous = continuous
         self.normalize_inputs = normalize_inputs
+        self.noise_std = noise_std
 
         if activation_fn == "tanh":
             activation = nn.Tanh
@@ -93,7 +95,7 @@ class HCAModel(nn.Module):
         else:
             raise NotImplementedError
 
-    def forward(self, inputs):
+    def forward(self, inputs, add_noise=False):
         """
         forward pass a bunch of inputs into the model
         """
@@ -101,6 +103,10 @@ class HCAModel(nn.Module):
             inputs = (inputs - inputs.mean()) / (inputs.std() + 1e-6)
 
         out = self.net(inputs)
+        if self.noise_std and add_noise:
+            # print(out.abs().max())
+            noise = torch.normal(mean=0.0, std=self.noise_std, size=out.shape).to(out.device)
+            out += noise
         if self.continuous:
             std = torch.diag(self.std)
             dist = MultivariateNormal(out, scale_tril=std)
@@ -184,7 +190,7 @@ class HCAModel(nn.Module):
         for states, actions in val_dataloader:
             states = states.to(self.device)
             actions = actions.to(self.device)
-            preds, dists = self.forward(states)
+            preds, dists = self.forward(states, add_noise=True)
             if self.continuous:
                 loss = F.gaussian_nll_loss(
                     preds, actions, dists.variance
@@ -217,7 +223,7 @@ class HCAModel(nn.Module):
         """
         inputs = inputs.to(self.device)
         actions = actions.to(self.device)
-        out, dist = self.forward(inputs)
+        out, dist = self.forward(inputs, add_noise=True)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
             # return log_probs
