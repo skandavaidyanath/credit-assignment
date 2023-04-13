@@ -34,7 +34,6 @@ class PPO_Stats:
     ca_stat_max: float = 0.0
 
 
-
 @dataclass
 class HCA_Stats:
     """Class for HCA training stats logging"""
@@ -57,9 +56,20 @@ class Logger:
     Class for logging stats
     """
 
-    def __init__(self, exp_name, env_name, agent_name, config, entity, use_wandb=False, group_modifier=''):
+    def __init__(
+        self,
+        exp_name,
+        env_name,
+        agent_name,
+        config,
+        entity,
+        use_wandb=False,
+        group_modifier="",
+    ):
         self.use_wandb = use_wandb
-        group_name = agent_name + "_" + group_modifier if group_modifier else agent_name
+        group_name = (
+            agent_name + "_" + group_modifier if group_modifier else agent_name
+        )
         if self.use_wandb:
             wandb.init(
                 name=exp_name,
