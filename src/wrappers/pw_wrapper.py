@@ -10,11 +10,13 @@ class PushWorldWrapper(gym.Wrapper):
     3) Allows modifications to info dict if required
     """
 
-    def __init__(self, pw_env, use_state=False):
+    def __init__(self, pw_env, use_state=False, delay_reward=False):
         super(PushWorldWrapper, self).__init__(pw_env)
 
         self.env = pw_env
         self.use_state = use_state
+        self.delay_reward = delay_reward
+        self.returns = 0.0
         if self.use_state:
             state = self.reset()
             self.observation_space = gym.spaces.Box(low=-1.0*np.inf, high=np.inf, shape=(len(state), ))
@@ -29,12 +31,23 @@ class PushWorldWrapper(gym.Wrapper):
     def step(self, action):
         assert action in self.action_space
         observation, reward, terminated, truncated, info = self.env.step(action)
+        self.returns += reward
+
         done = terminated or truncated
         info["success"] = terminated
-        if self.use_state:
-            return self._get_state(), reward, done, info
+
+        if self.delay_reward:
+            if done:
+                rew = self.returns
+            else:
+                rew = 0.0
         else:
-            return observation, reward, done, info
+            rew = reward
+
+        if self.use_state:
+            return self._get_state(), rew, done, info
+        else:
+            return observation, rew, done, info
 
     def _get_state(self):
         state = np.array(self.env._current_state)

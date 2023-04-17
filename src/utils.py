@@ -44,7 +44,7 @@ def get_env(args):
         pw_env = PushWorldEnv(
             puzzle_path=args.env.puzzle_path, max_steps=args.env.max_steps
         )
-        env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
+        env = PushWorldWrapper(pw_env, use_state=args.env.use_state, delay_reward=args.env.delay_reward)
     else:
         raise NotImplementedError
     return env
