@@ -13,15 +13,20 @@ import torch
 
 from ppo.ppo_algo import PPO
 from ppo.replay_buffer import RolloutBuffer
-from hca.hca_model import HCAModel
-from hca.hca_buffer import HCABuffer, calculate_mc_returns
+
+from hca.model import HCAModel
+from hca.buffer import HCABuffer, calculate_mc_returns
+
+from dualdice.model import DualDICE
+from dualdice.buffer import DualDICEBuffer
 
 from utils import (
     assign_hindsight_logprobs,
+    get_hindsight_actions,
     get_env,
 )
 from eval import eval
-from logger import PPO_Stats, HCA_Stats, Logger
+from logger import PPO_Stats, HCA_Stats, DD_Stats, Logger
 
 
 def train(args):
@@ -94,10 +99,10 @@ def train(args):
         agent.load(checkpoint["policy"])
 
     # HCA model
-    h_model = None
-    if args.agent.name in ["ppo-hca", "hca-gamma"]:
+    h_model, hca_buffer = None, None
+    if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"]:
         h_model = HCAModel(
-            state_dim + 1,  # this is for return-conditioned
+            state_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
             n_layers=args.agent.hca_n_layers,
@@ -108,14 +113,14 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
-            weight_training_samples=args.agent.hca_weight_training_samples
+            weight_training_samples=args.agent.hca_weight_training_samples,
         )
         h_model = h_model.to(args.training.device)
         if args.agent.hca_checkpoint:
             hca_checkpoint = torch.load(args.agent.hca_checkpoint)
             h_model.load(hca_checkpoint["model"], strict=True)
             print(
-                f"Successfully loaded hca model from {args.aget.hca_checkpoint}!"
+                f"Successfully loaded hca model from {args.agent.hca_checkpoint}!"
             )
 
         # HCA Buffer
@@ -131,6 +136,28 @@ def train(args):
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
+
+    # DualDICE model
+    dd_model, dd_buffer = None, None
+    if args.agent.name in ["hca-dualdice"]:
+        dd_model = DualDICE(
+            state_dim=state_dim,
+            action_dim=action_dim,
+            f=args.agent.dd_f,
+            n_layers=args.agent.dd_n_layers,
+            hidden_size=args.agent.dd_hidden_size,
+            activation_fn=args.agent.dd_activation,
+            dropout_p=args.agent.dd_dropout,
+            batch_size=args.agent.dd_batchsize,
+            lr=args.agent.dd_lr,
+            device=args.training.device,
+            normalize_inputs=args.agent.dd_normalize_inputs,
+        )
+
+        dd_buffer = DualDICEBuffer(
+            action_dim=action_dim,
+            train_val_split=args.agent.dd_train_val_split,
+        )
 
     # Replay Buffer for PPO
     buffer = RolloutBuffer()
@@ -210,8 +237,7 @@ def train(args):
         else:
             total_successes.append(0.0)
 
-
-        if args.agent.name in ["ppo-hca", "hca-gamma"]:
+        if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"]:
             returns = calculate_mc_returns(rewards, terminals, agent.gamma)
             buffer.returns.append(returns)
 
@@ -221,24 +247,26 @@ def train(args):
         buffer.rewards.append(rewards)
         buffer.terminals.append(terminals)
 
-        if args.agent.name in ["ppo-hca", "hca-gamma"]:
+        if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # Update credit assignment (hca) model, if needed.
         # Always update the HCA model the first time before a PPO update.
-        if args.agent.name in ["ppo-hca", "hca-gamma"] and (
+        if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"] and (
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
 
+            # normalize inputs if required
             if h_model.normalize_inputs:
                 input_mean, input_std = hca_buffer.get_input_stats()
-                h_model.update_norm_stats(input_mean, input_std, args.agent.refresh_hca)
+                h_model.update_norm_stats(
+                    input_mean, input_std, args.agent.refresh_hca
+                )
 
             # reset the model if you want
             if args.agent.refresh_hca:
                 h_model.reset_parameters()
-
 
             # update the HCA model
             for _ in range(args.agent.hca_epochs):
@@ -254,14 +282,52 @@ def train(args):
             logger.log(hca_stats, step=episode, wandb_prefix="training")
             print("=============================================")
 
+        if args.agent.name in ["hca-dualdice"]:
+            h_actions = get_hindsight_actions(buffer, h_model)
+            pi_actions = actions
+            dd_buffer.add_episode(states, h_actions, pi_actions)
+
+            # normalize inputs if required
+            if dd_model.normalize_inputs:
+                h_mean, h_std, pi_mean, pi_std = dd_buffer.get_input_stats()
+                h_model.update_norm_stats(
+                    h_mean, h_std, pi_mean, pi_std, args.agent.refresh_hca
+                )
+
+            # reset the model if you want
+            if args.agent.refresh_dd:
+                dd_model.reset_parameters()
+
+            # update the DD model
+            for _ in range(args.agent.dd_epochs):
+                dd_results = dd_model.update(dd_buffer)
+
+            # Clear the DD buffer
+            dd_buffer.clear()
+
+            # Log every time we update the model and don't use the log freq
+            dd_stats = DD_Stats(**dd_results)
+
+            print(" ============ Updated DD model =============")
+            logger.log(dd_stats, step=episode, wandb_prefix="training")
+            print("=============================================")
+
         # Agent update (PPO)
         if (
             args.agent.name != "random"
             and episode % args.agent.update_every == 0
         ):
+            # TODO: Need to include DualDICE here as well
             if args.agent.name in ["ppo-hca", "hca-gamma"]:
                 # First, assign credit to the actions in the data.
                 assign_hindsight_logprobs(buffer, h_model)
+            elif args.agent.name in ["hca-dualdice"]:
+                # Assign the density ratios directly using DD model
+                # DD model has learned the \pi/h ratio
+                # TODO: get ratios from dualdice
+                # TODO: need to modify the advantage calculation
+                # TODO: but issues exist, is this model useful?
+                raise NotImplementedError
 
             # Perform the actual PPO update.
             (
@@ -313,7 +379,7 @@ def train(args):
                 ca_stat_mean=ca_stat_mean,
                 ca_stat_std=ca_stat_std,
                 ca_stat_max=ca_stat_max,
-                ca_stat_min=ca_stat_min
+                ca_stat_min=ca_stat_min,
             )
 
             logger.log(stats, step=episode, wandb_prefix="training")

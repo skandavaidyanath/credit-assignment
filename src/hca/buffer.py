@@ -1,10 +1,14 @@
 import datetime
-import os
 import pickle
 import numpy as np
 
 import torch
-from torch.utils.data import TensorDataset, DataLoader, random_split, WeightedRandomSampler
+from torch.utils.data import (
+    TensorDataset,
+    DataLoader,
+    random_split,
+    WeightedRandomSampler,
+)
 
 
 def calculate_mc_returns(rewards, terminals, gamma):
@@ -85,7 +89,9 @@ class HCABuffer:
             weights[returns <= 0] = neg_weight
 
             train_weights = weights[train_dataset.indices]
-            sampler = WeightedRandomSampler(train_weights, num_samples=len(train_dataset), replacement=True)
+            sampler = WeightedRandomSampler(
+                train_weights, num_samples=len(train_dataset), replacement=True
+            )
             train_dataloader = DataLoader(
                 train_dataset, batch_size=batch_size, sampler=sampler
             )

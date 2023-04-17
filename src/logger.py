@@ -51,6 +51,14 @@ class HCA_Stats:
     hca_train_entropy_std: float = 0.0
 
 
+@dataclass
+class DD_Stats:
+    """Class for DualDICE training stats logging"""
+
+    dd_train_loss: float
+    dd_val_loss: float
+
+
 class Logger:
     """
     Class for logging stats
