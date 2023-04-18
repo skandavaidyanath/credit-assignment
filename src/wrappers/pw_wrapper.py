@@ -32,7 +32,6 @@ class PushWorldWrapper(gym.Wrapper):
         done = terminated or truncated
         info["success"] = terminated
 
-
         if self.use_state:
             return self._get_state(), reward, done, info
         else:
