@@ -17,7 +17,7 @@ except:
     print("PushWorldEnv is not installed!")
 from wrappers.lorl import LorlWrapper
 from wrappers.pw_wrapper import PushWorldWrapper
-
+from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
 
 def get_env(args):
     if args.env.type == "d4rl":
@@ -44,9 +44,13 @@ def get_env(args):
         pw_env = PushWorldEnv(
             puzzle_path=args.env.puzzle_path, max_steps=args.env.max_steps
         )
-        env = PushWorldWrapper(pw_env, use_state=args.env.use_state, delay_reward=args.env.delay_reward)
+        env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
     else:
         raise NotImplementedError
+
+    if args.env.delay_reward:
+        env = DelayedRewardWrapper(env)
+
     return env
 
 
