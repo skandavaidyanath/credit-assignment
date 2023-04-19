@@ -45,6 +45,8 @@ def get_env(args):
             puzzle_path=args.env.puzzle_path, max_steps=args.env.max_steps
         )
         env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
+    elif args.env.type == "gym":
+        env = gym.make(args.env.name)
     else:
         raise NotImplementedError
 
@@ -118,3 +120,13 @@ def assign_hindsight_logprobs(buffer, h_model):
             buffer.actions[ep_ind],
         )
         buffer.hindsight_logprobs.append(curr_ep_hindsight_logprobs)
+
+def get_grad_norm(model):
+    parameters = [p for p in model.parameters() if p.grad is not None and p.requires_grad]
+    if len(parameters) == 0:
+        total_norm = 0.0
+    else:
+        device = parameters[0].grad.device
+        total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach()).to(device) for p in parameters]),
+                                2.0).item()
+    return total_norm
