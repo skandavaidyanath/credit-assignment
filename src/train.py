@@ -147,6 +147,7 @@ def train(args):
         [],
     )
     ca_stat_type = ""
+    env_steps_between_policy_updates = 0
 
     # track total training time
     start_time = datetime.datetime.now().replace(microsecond=0)
@@ -167,12 +168,13 @@ def train(args):
         wandb_prefix="eval",
     )
     print("======= Finished Evaluating =========")
-
     for episode in range(1, args.training.max_training_episodes + 1):
         state = env.reset()
 
         current_ep_reward = 0
         done = False
+
+        ep_len = 0
 
         states, actions, logprobs, rewards, terminals = [], [], [], [], []
 
@@ -204,6 +206,7 @@ def train(args):
             terminals.append(done)
 
             current_ep_reward += reward
+            ep_len += 1
 
         total_rewards.append(current_ep_reward)
         if "success" in info:
@@ -222,6 +225,8 @@ def train(args):
         buffer.rewards.append(rewards)
         buffer.terminals.append(terminals)
 
+        env_steps_between_policy_updates += ep_len
+
         if args.agent.name in ["ppo-hca", "hca-gamma"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
@@ -231,7 +236,6 @@ def train(args):
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
-
             if h_model.normalize_inputs:
                 input_mean, input_std = hca_buffer.get_input_stats()
                 h_model.update_norm_stats(input_mean, input_std, args.agent.refresh_hca)
@@ -257,9 +261,13 @@ def train(args):
                 print("=============================================")
 
         # Agent update (PPO)
+        if args.agent.get("update_every_env_steps"):
+            time_for_update = env_steps_between_policy_updates >= args.agent.update_every_env_steps
+        else:
+            time_for_update = episode % args.agent.update_every == 0
         if (
             args.agent.name != "random"
-            and episode % args.agent.update_every == 0
+            and time_for_update
         ):
             if args.agent.name in ["ppo-hca", "hca-gamma"]:
                 # First, assign credit to the actions in the data.
@@ -285,6 +293,7 @@ def train(args):
                 ca_stat_stds.append(ca_stat_dict["std"])
 
             buffer.clear()
+            env_steps_between_policy_updates = 0
 
         # logging
         if args.training.log_freq and episode % args.training.log_freq == 0:
