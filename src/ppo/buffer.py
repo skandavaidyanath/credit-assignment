@@ -1,8 +1,8 @@
 class RolloutBuffer:
-    '''
-        Rollout Buffer: Each element is a list of lists
-        where inner lists corresponds to a single trajectory
-    '''
+    """
+    Rollout Buffer: Each element is a list of lists
+    where inner lists corresponds to a single trajectory
+    """
 
     def __init__(self):
         self.states = []
@@ -13,6 +13,7 @@ class RolloutBuffer:
         self.returns = []
         self.terminals = []
         self.hindsight_logprobs = []
+        self.hindsight_ratios = []
 
     def clear(self):
         del self.states[:]
@@ -23,6 +24,7 @@ class RolloutBuffer:
         del self.returns[:]
         del self.terminals[:]
         del self.hindsight_logprobs[:]
+        del self.hindsight_ratios[:]
 
     def __len__(self):
         return len(self.states)

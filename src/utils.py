@@ -3,6 +3,8 @@ import torch
 from gridworld.gridworld_env import GridWorld
 import gym
 
+from dualdice.return_buffer import quantize_returns
+
 try:
     import d4rl
 except:
@@ -93,7 +95,12 @@ def sigmoid(arr, temp):
     return 1 / (1 + np.exp(-arr / temp))
 
 
-def get_hindsight_logprobs(h_model, states, returns, actions):
+def get_hindsight_logprobs(
+    states,
+    returns,
+    actions,
+    h_model,
+):
     inputs = []
     for state, g in zip(states, returns):
         inputs.append(np.concatenate([state, [g]]))
@@ -105,18 +112,61 @@ def get_hindsight_logprobs(h_model, states, returns, actions):
     return h_values.detach().tolist()
 
 
-def assign_hindsight_logprobs(buffer, h_model):
-    for ep_ind in range(len(buffer)):
-        curr_ep_hindsight_logprobs = get_hindsight_logprobs(
-            h_model,
-            buffer.states[ep_ind],
-            buffer.returns[ep_ind],
-            buffer.actions[ep_ind],
-        )
-        buffer.hindsight_logprobs.append(curr_ep_hindsight_logprobs)
+def get_density_ratios(states, actions, returns, dd_model):
+    states = np.array(states)  # B, D_s
+    actions = np.array(actions)  # B, D_a
+    returns = np.array(returns)  # B, 1
+    density_ratios = dd_model.get_density_ratios(states, actions, returns)
+    return density_ratios
 
 
-def get_hindsight_actions(buffer, h_model):
+def get_ret_probs(states, returns, r_model):
+    states = np.array(states)  # B, D_s
+    returns = np.array(returns)  # B, 1
+    ret_probs = r_model.get_return_probs(states, returns)
+    return ret_probs
+
+
+def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
+    """
+    Assigns hindsight logprobs when h_model is passed, otherwise, calculates
+    and assigns ratios directly using the dd_model and r_model.
+    """
+    if h_model:
+        assert (
+            not dd_model and not r_model
+        ), "Either pass h_model or dd_model and r_model"
+        for ep_ind in range(len(buffer)):
+            curr_ep_hindsight_logprobs = get_hindsight_logprobs(
+                buffer.states[ep_ind],
+                buffer.returns[ep_ind],
+                buffer.actions[ep_ind],
+                h_model,
+            )
+            buffer.hindsight_logprobs.append(curr_ep_hindsight_logprobs)
+    else:
+        assert (
+            dd_model and r_model
+        ), "Either pass h_model or dd_model and r_model"
+        for ep_ind in range(len(buffer)):
+            curr_ep_density_ratios = get_density_ratios(
+                buffer.states[ep_ind],
+                buffer.actions[ep_ind],
+                buffer.returns[ep_ind],
+                dd_model,
+            )
+            curr_ep_ret_probs = get_ret_probs(
+                buffer.states[ep_ind],
+                buffer.returns[ep_ind],
+                r_model,
+            )
+            curr_ep_hindsight_ratios = (
+                curr_ep_density_ratios * curr_ep_ret_probs
+            )
+            buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
+
+
+def get_hindsight_actions(h_model, buffer):
     states = buffer.states
     returns = buffer.returns
     inputs = []

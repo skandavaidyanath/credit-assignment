@@ -104,20 +104,6 @@ class HCABuffer:
         )
         return train_dataloader, val_dataloader
 
-    def get_batch(self, batch_size):
-        if batch_size > self.num_transitions_stored:
-            print(
-                "Warning: tried updating hca model without enough transitions in buffer!"
-            )
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
-        inp_data = np.concatenate((states, returns), -1)
-        actions = np.array(self.actions).reshape((-1, self.action_dim))
-
-        size = states.shape[0]
-        inds = np.random.choice(size, size=batch_size, replace=False)
-        return inp_data[inds], actions[inds]
-
     def get_input_stats(self):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))

@@ -9,6 +9,7 @@ class DualDICE(nn.Module):
     Class that solves the DualDICE optimization
     problem and approximates the density ratio
     \pi/ h
+    Model is S x A x R -> C
     """
 
     def __init__(
@@ -43,7 +44,11 @@ class DualDICE(nn.Module):
         layers = []
         for i in range(n_layers):
             if i == 0:
-                layers.append(nn.Linear(state_dim + action_dim, hidden_size))
+                layers.append(
+                    nn.Linear(
+                        state_dim + action_dim + 1, hidden_size
+                    )  # +1 for return
+                )
                 layers.append(activation())
                 if dropout_p:
                     layers.append(nn.Dropout(p=dropout_p))
@@ -54,7 +59,7 @@ class DualDICE(nn.Module):
                     layers.append(nn.Dropout(p=dropout_p))
 
         if not layers:
-            layers.append(nn.Linear(state_dim + action_dim, 1))
+            layers.append(nn.Linear(state_dim + action_dim + 1, 1))
         else:
             layers.append(nn.Linear(hidden_size, 1))
 
@@ -64,10 +69,18 @@ class DualDICE(nn.Module):
         self.batch_size = batch_size
         self.device = torch.device(device)
 
-        self.input_h_mean = torch.zeros((state_dim,), device=device)
-        self.input_h_std = torch.ones((state_dim,), device=device)
-        self.input_pi_mean = torch.zeros((state_dim,), device=device)
-        self.input_pi_std = torch.ones((state_dim,), device=device)
+        self.input_h_mean = torch.zeros(
+            (state_dim + action_dim + 1,), device=device
+        )
+        self.input_h_std = torch.ones(
+            (state_dim + action_dim + 1,), device=device
+        )
+        self.input_pi_mean = torch.zeros(
+            (state_dim + action_dim + 1,), device=device
+        )
+        self.input_pi_std = torch.ones(
+            (state_dim + action_dim + 1,), device=device
+        )
 
     def _f(self, x):
         """
@@ -104,12 +117,6 @@ class DualDICE(nn.Module):
 
         return out
 
-    def _get_batch(self, buffer):
-        states = np.concatenate(buffer.states, 0)  # B, D_s
-        actions = np.concatenate(buffer.actions, 0).reshape(-1, 1)  # B, D_a
-        X = np.concatenate((states, actions), -1)  # B, D_s + D_a
-        return torch.from_numpy(X).to(self.device)
-
     def update(self, buffer):
         train_dataloader, val_dataloader = buffer.get_dataloader(
             self.batch_size
@@ -117,8 +124,8 @@ class DualDICE(nn.Module):
 
         losses = []
 
-        for h_state_actions, pi_state_actions in train_dataloader:
-            loss = self.train_step(h_state_actions, pi_state_actions)
+        for h_sar, pi_sar in train_dataloader:
+            loss = self.train_step(h_sar, pi_sar)
             losses.append(loss)
 
         results = {"dd_train_loss": np.mean(losses)}
@@ -127,14 +134,14 @@ class DualDICE(nn.Module):
         results.update(val_results)
         return results
 
-    def train_step(self, h_state_actions, pi_state_actions):
-        h_state_actions = h_state_actions.to(self.device)
-        pi_state_actions = pi_state_actions.to(self.device)
+    def train_step(self, h_sar, pi_sar):
+        h_sar = h_sar.to(self.device)
+        pi_sar = pi_sar.to(self.device)
 
-        h_preds = self.forward(h_state_actions)
-        pi_preds = self.forward(pi_state_actions)
+        h_preds = self.forward(h_sar)
+        pi_preds = self.forward(pi_sar)
 
-        loss = self._f(h_preds) - pi_preds
+        loss = torch.mean(self._f(h_preds), -1) - torch.mean(pi_preds, -1)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -144,26 +151,28 @@ class DualDICE(nn.Module):
     @torch.no_grad()
     def validate(self, val_dataloader):
         losses = []
-        for h_state_actions, pi_state_actions in val_dataloader:
-            h_state_actions = h_state_actions.to(self.device)
-            pi_state_actions = pi_state_actions.to(self.device)
+        for h_sar, pi_sar in val_dataloader:
+            h_sar = h_sar.to(self.device)
+            pi_sar = pi_sar.to(self.device)
 
-            h_preds = self.forward(h_state_actions)
-            pi_preds = self.forward(pi_state_actions)
+            h_preds = self.forward(h_sar)
+            pi_preds = self.forward(pi_sar)
 
             loss = self._f(h_preds) - pi_preds
             losses.append(loss.item())
 
         return {"dd_val_loss": np.mean(losses)}
 
-    def get_density_ratios(self, states, actions):
+    @torch.no_grad()
+    def get_density_ratios(self, states, actions, returns):
         """
         get the hindsight values for a batch of state-actions
         """
         states = states.to(self.device)  # B, D_s
         actions = actions.to(self.device)  # B, D_a
-        state_actions = torch.cat([states, actions], dim=-1)  # B, D_s + D_a
-        ratios = self.forward(state_actions)  # B, 1
+        returns = returns.to(self.device)  # B, 1
+        sar = torch.cat([states, actions, returns], dim=-1)  # B, D_s + D_a + 1
+        ratios = self.forward(sar)  # B, 1
         return ratios
 
     def save(self, checkpoint_path, args):

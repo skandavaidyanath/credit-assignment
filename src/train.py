@@ -11,22 +11,24 @@ import gym
 import numpy as np
 import torch
 
-from ppo.ppo_algo import PPO
-from ppo.replay_buffer import RolloutBuffer
+from ppo.model import PPO
+from ppo.buffer import RolloutBuffer
 
 from hca.model import HCAModel
 from hca.buffer import HCABuffer, calculate_mc_returns
 
-from dualdice.model import DualDICE
-from dualdice.buffer import DualDICEBuffer
+from dualdice.dd_model import DualDICE
+from dualdice.dd_buffer import DualDICEBuffer
+from dualdice.return_model import ReturnPredictor
+from dualdice.return_buffer import ReturnBuffer
 
 from utils import (
-    assign_hindsight_logprobs,
+    assign_hindsight_info,
     get_hindsight_actions,
     get_env,
 )
 from eval import eval
-from logger import PPO_Stats, HCA_Stats, DD_Stats, Logger
+from logger import PPO_Stats, HCA_Stats, DD_Stats, Return_Stats, Logger
 
 
 def train(args):
@@ -100,7 +102,7 @@ def train(args):
 
     # HCA model
     h_model, hca_buffer = None, None
-    if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"]:
+    if args.agent.name in ["ppo-hca", "hca-dualdice"]:
         h_model = HCAModel(
             state_dim + 1,  # +1 is for return-conditioned
             action_dim,
@@ -144,19 +146,38 @@ def train(args):
             state_dim=state_dim,
             action_dim=action_dim,
             f=args.agent.dd_f,
-            n_layers=args.agent.dd_n_layers,
-            hidden_size=args.agent.dd_hidden_size,
-            activation_fn=args.agent.dd_activation,
-            dropout_p=args.agent.dd_dropout,
-            batch_size=args.agent.dd_batchsize,
-            lr=args.agent.dd_lr,
+            n_layers=args.agent.hca_n_layers,
+            hidden_size=args.agent.hca_hidden_size,
+            activation_fn=args.agent.hca_activation,
+            dropout_p=args.agent.hca_dropout,
+            batch_size=args.agent.hca_batchsize,
+            lr=args.agent.hca_lr,
             device=args.training.device,
-            normalize_inputs=args.agent.dd_normalize_inputs,
+            normalize_inputs=args.agent.hca_normalize_inputs,
         )
 
         dd_buffer = DualDICEBuffer(
             action_dim=action_dim,
-            train_val_split=args.agent.dd_train_val_split,
+            train_val_split=args.agent.hca_train_val_split,
+        )
+
+        r_model = ReturnPredictor(
+            state_dim=state_dim,
+            quantize=args.agent.r_quant,
+            num_classes=args.agent.r_num_classes,
+            n_layers=args.agent.hca_n_layers,
+            hidden_size=args.agent.hca_hidden_size,
+            activation_fn=args.agent.hca_activation,
+            dropout_p=args.agent.hca_dropout,
+            batch_size=args.agent.hca_batchsize,
+            lr=args.agent.hca_lr,
+            device=args.training.device,
+            normalize_inputs=args.agent.hca_normalize_inputs,
+        )
+
+        r_buffer = ReturnBuffer(
+            num_classes=args.agent.r_num_classes,
+            train_val_split=args.agent.hca_train_val_split,
         )
 
     # Replay Buffer for PPO
@@ -237,7 +258,7 @@ def train(args):
         else:
             total_successes.append(0.0)
 
-        if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"]:
+        if args.agent.name in ["ppo-hca", "hca-dualdice"]:
             returns = calculate_mc_returns(rewards, terminals, agent.gamma)
             buffer.returns.append(returns)
 
@@ -247,12 +268,12 @@ def train(args):
         buffer.rewards.append(rewards)
         buffer.terminals.append(terminals)
 
-        if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"]:
+        if args.agent.name in ["ppo-hca", "hca-dualdice"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
         # Update credit assignment (hca) model, if needed.
         # Always update the HCA model the first time before a PPO update.
-        if args.agent.name in ["ppo-hca", "hca-gamma", "hca-dualdice"] and (
+        if args.agent.name in ["ppo-hca", "hca-dualdice"] and (
             episode % args.agent.hca_update_every == 0
             or episode == args.agent.update_every
         ):
@@ -283,9 +304,10 @@ def train(args):
             print("=============================================")
 
         if args.agent.name in ["hca-dualdice"]:
-            h_actions = get_hindsight_actions(buffer, h_model)
+            # Update the DualDICE model
+            h_actions = get_hindsight_actions(h_model, buffer)
             pi_actions = actions
-            dd_buffer.add_episode(states, h_actions, pi_actions)
+            dd_buffer.add_episode(states, h_actions, pi_actions, returns)
 
             # normalize inputs if required
             if dd_model.normalize_inputs:
@@ -295,10 +317,11 @@ def train(args):
                 )
 
             # reset the model if you want
-            if args.agent.refresh_dd:
+            if args.agent.refresh_hca:
                 dd_model.reset_parameters()
 
             # update the DD model
+            # using a separate argument dd_epochs here
             for _ in range(args.agent.dd_epochs):
                 dd_results = dd_model.update(dd_buffer)
 
@@ -312,22 +335,52 @@ def train(args):
             logger.log(dd_stats, step=episode, wandb_prefix="training")
             print("=============================================")
 
+            # Update the return predictor model
+            r_buffer.add_episode(states, returns)
+
+            # normalize inputs if required
+            if r_model.normalize_inputs:
+                input_mean, input_std = r_buffer.get_input_stats()
+                r_model.update_norm_stats(
+                    input_mean, input_std, args.agent.refresh_hca
+                )
+
+            # reset the model if you want
+            if args.agent.refresh_hca:
+                r_model.reset_parameters()
+
+            # update the Return model
+            # using a separate argument r_epochs here
+            for _ in range(args.agent.r_epochs):
+                ret_results = r_model.update(r_buffer)
+
+            # Clear the Return buffer
+            r_buffer.clear()
+
+            # Log every time we update the model and don't use the log freq
+            ret_stats = Return_Stats(**ret_results)
+
+            print(" ============ Updated Return model =============")
+            logger.log(ret_stats, step=episode, wandb_prefix="training")
+            print("=============================================")
+
         # Agent update (PPO)
         if (
             args.agent.name != "random"
             and episode % args.agent.update_every == 0
         ):
-            # TODO: Need to include DualDICE here as well
-            if args.agent.name in ["ppo-hca", "hca-gamma"]:
+            if args.agent.name in ["ppo-hca"]:
                 # First, assign credit to the actions in the data.
-                assign_hindsight_logprobs(buffer, h_model)
+                assign_hindsight_info(buffer, h_model=h_model)
             elif args.agent.name in ["hca-dualdice"]:
                 # Assign the density ratios directly using DD model
-                # DD model has learned the \pi/h ratio
-                # TODO: get ratios from dualdice
-                # TODO: need to modify the advantage calculation
-                # TODO: but issues exist, is this model useful?
-                raise NotImplementedError
+                # and return model
+                # Product of DD model and R model will give the \pi/h ratio
+                assign_hindsight_info(
+                    buffer,
+                    dd_model=dd_model,
+                    r_model=r_model,
+                )
 
             # Perform the actual PPO update.
             (

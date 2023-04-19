@@ -109,12 +109,6 @@ class HCAModel(nn.Module):
             dist = Categorical(logits=out)
         return out, dist
 
-    def _get_hca_batch(self, buffer):
-        states = np.concatenate(buffer.states, 0)  # B, D
-        returns = np.concatenate(buffer.returns, 0).reshape(-1, 1)  # B, 1
-        X = np.concatenate((states, returns), -1)
-        return torch.from_numpy(X).to(self.device)
-
     def update(self, buffer):
         train_dataloader, val_dataloader = buffer.get_dataloader(
             self.batch_size, weight_samples=self.weight_training_samples
