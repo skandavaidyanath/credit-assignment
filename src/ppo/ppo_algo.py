@@ -287,10 +287,11 @@ class PPO:
             )
 
         advantages = torch.tensor(advantages, dtype=torch.float32)
+        returns = advantages + values.detach()
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7
         )
-        return advantages.to(self.device)
+        return advantages.to(self.device), returns.to(self.device)
 
     def update(self, buffer):
         batch_states = flatten(buffer.states)
@@ -354,10 +355,10 @@ class PPO:
 
             # Finding Surrogate Loss
             if self.adv == "gae":
-                advantages = self.estimate_gae(
+                advantages, returns = self.estimate_gae(
                     batch_rewards, state_values.detach(), batch_terminals
                 )
-                returns = advantages + state_values.detach()
+                # returns = advantages + state_values.detach()
                 # Don't normalize returns for GAE since we're adding
                 # the value to the reward.
                 # We don't want the value to be normalized while the reward
@@ -365,7 +366,7 @@ class PPO:
                 # returns = (returns - returns.mean()) / (returns.std() + 1e-7)
             elif self.adv == "mc":
                 # here both the returns and values are normalized
-                # so this shouldb be okay
+                # so this should be okay
                 advantages = returns - state_values.detach()
                 advantages = (advantages - advantages.mean()) / (
                     advantages.std() + 1e-7
@@ -427,6 +428,7 @@ class PPO:
             # take gradient step
             self.optimizer.zero_grad()
             loss.backward()
+
             if self.max_grad_norm:
                 torch.nn.utils.clip_grad_norm_(
                     self.policy.parameters(), self.max_grad_norm
