@@ -8,6 +8,7 @@ env:
   max_steps: 50
   use_state: True
   gamma: 1.0
+  delay_reward: True
 
 training:
   log_freq: 1000  # Log every these many episodes

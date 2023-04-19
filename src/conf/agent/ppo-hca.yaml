@@ -13,6 +13,7 @@ agent:
   hca_epochs: 1
   hca_batchsize: 256
   hca_dropout: 0
+  hca_noise_std: null
   hca_activation: "relu"
   hca_train_val_split: [0.9, 0.1]
   hca_weight_training_samples: True

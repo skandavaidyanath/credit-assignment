@@ -116,6 +116,7 @@ def train(args):
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
             weight_training_samples=args.agent.hca_weight_training_samples,
+            noise_std=args.agent.hca_noise_std,
         )
         h_model = h_model.to(args.training.device)
         if args.agent.hca_checkpoint:
@@ -296,12 +297,13 @@ def train(args):
             # Clear the HCA buffer
             hca_buffer.clear()
 
-            # Log every time we update the model and don't use the log freq
-            hca_stats = HCA_Stats(**hca_results)
+            if hca_results:
+                # Log every time we update the model and don't use the log freq
+                hca_stats = HCA_Stats(**hca_results)
 
-            print(" ============ Updated HCA model =============")
-            logger.log(hca_stats, step=episode, wandb_prefix="training")
-            print("=============================================")
+                print(" ============ Updated HCA model =============")
+                logger.log(hca_stats, step=episode, wandb_prefix="training")
+                print("=============================================")
 
         if args.agent.name in ["hca-dualdice"]:
             # Update the DualDICE model

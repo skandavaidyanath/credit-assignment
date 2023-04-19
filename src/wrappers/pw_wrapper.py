@@ -19,8 +19,8 @@ class PushWorldWrapper(gym.Wrapper):
             state = self.reset()
             self.observation_space = gym.spaces.Box(low=-1.0*np.inf, high=np.inf, shape=(len(state), ))
 
-    def reset(self):
-        observation, info = self.env.reset()
+    def reset(self, **kwargs):
+        observation, info = self.env.reset(**kwargs)
         if self.use_state:
             return self._get_state()
         else:
@@ -31,6 +31,7 @@ class PushWorldWrapper(gym.Wrapper):
         observation, reward, terminated, truncated, info = self.env.step(action)
         done = terminated or truncated
         info["success"] = terminated
+
         if self.use_state:
             return self._get_state(), reward, done, info
         else:
