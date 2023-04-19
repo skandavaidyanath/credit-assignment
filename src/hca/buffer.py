@@ -1,10 +1,14 @@
 import datetime
-import os
 import pickle
 import numpy as np
 
 import torch
-from torch.utils.data import TensorDataset, DataLoader, random_split, WeightedRandomSampler
+from torch.utils.data import (
+    TensorDataset,
+    DataLoader,
+    random_split,
+    WeightedRandomSampler,
+)
 
 
 def calculate_mc_returns(rewards, terminals, gamma):
@@ -85,7 +89,9 @@ class HCABuffer:
             weights[returns <= 0] = neg_weight
 
             train_weights = weights[train_dataset.indices]
-            sampler = WeightedRandomSampler(train_weights, num_samples=len(train_dataset), replacement=True)
+            sampler = WeightedRandomSampler(
+                train_weights, num_samples=len(train_dataset), replacement=True
+            )
             train_dataloader = DataLoader(
                 train_dataset, batch_size=batch_size, sampler=sampler
             )
@@ -97,20 +103,6 @@ class HCABuffer:
             val_dataset, batch_size=batch_size, shuffle=True
         )
         return train_dataloader, val_dataloader
-
-    def get_batch(self, batch_size):
-        if batch_size > self.num_transitions_stored:
-            print(
-                "Warning: tried updating hca model without enough transitions in buffer!"
-            )
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
-        inp_data = np.concatenate((states, returns), -1)
-        actions = np.array(self.actions).reshape((-1, self.action_dim))
-
-        size = states.shape[0]
-        inds = np.random.choice(size, size=batch_size, replace=False)
-        return inp_data[inds], actions[inds]
 
     def get_input_stats(self):
         states = np.array(self.states)

@@ -138,121 +138,109 @@ class PPO:
 
         return action.detach().cpu(), action_logprob.detach().cpu().item()
 
-    def estimate_hca_discounted_returns(
-        self, rewards, logprobs, hindsight_logprobs, temp=0.25, normalize=True
-    ):
-        """All of the args should be numpy arrays"""
-        assert len(rewards) == len(logprobs) == len(hindsight_logprobs)
-        returns = []
-        all_gammas = []
-
-        for ep_rew, ep_logprobs, ep_hindsight_logprobs in zip(
-            rewards, logprobs, hindsight_logprobs
-        ):
-            ep_hindsight_logprobs = np.array(ep_hindsight_logprobs)
-            ratios = np.exp(ep_logprobs - ep_hindsight_logprobs)
-            gammas = 1 - ratios
-            gammas = sigmoid(gammas, temp=temp)
-
-            all_gammas.append(gammas)
-
-            T = len(ratios)
-            ep_returns = []
-            for t in range(T):
-                curr_gamma = np.array([gammas[t] ** i for i in range(T - t)])
-                discounted_return = (curr_gamma * ep_rew[t:]).sum()
-                ep_returns.append(discounted_return)
-            returns.append(ep_returns)
-        returns = torch.from_numpy(flatten(returns))
-
-        all_gammas = np.concatenate(all_gammas, -1)
-
-        all_gammas_mean = all_gammas.mean().item()
-        all_gammas_max = all_gammas.max().item()
-        all_gammas_min = all_gammas.min().item()
-        all_gammas_std = all_gammas.std().item()
-
-        gamma_stats = {
-            "ca_stat_type": "hca_gamma",
-            "min": all_gammas_min,
-            "max": all_gammas_max,
-            "mean": all_gammas_mean,
-            "std": all_gammas_std,
-        }
-
-        if normalize:
-            returns = (returns - returns.mean()) / (returns.std() + 1e-7)
-
-        return returns.to(self.device), gamma_stats
-
     def estimate_hca_advantages(
-        self, mc_returns, logprobs, hindsight_logprobs, smoothing_fn
+        self,
+        mc_returns,
+        logprobs=None,
+        hindsight_logprobs=None,
+        smoothing_fn=None,
+        hindsight_ratios=None,
     ):
         # Estimate advantages according to Return-conditioned HCA
         # A(s, a) = (1 - \frac{\pi(a | s)}{h(a | s, G_s)})G_s
 
-        smoothing_type = None if smoothing_fn is None else smoothing_fn[0]
+        if hindsight_logprobs is not None:
+            assert (
+                hindsight_ratios is None
+            ), "Provide only one of hindsight logporbs or ratios"
+            smoothing_type = None if smoothing_fn is None else smoothing_fn[0]
 
-        if smoothing_type == "exp":
-            # 1 - p/e^x
-            hindsight_ratios = torch.exp(
-                logprobs.detach() - torch.exp(hindsight_logprobs).detach()
-            )
-            smoothed_hca = 1 - hindsight_ratios
-        elif smoothing_type == "fancy_exp":
-            # p - (1+p)/e^x
-            p = torch.exp(logprobs.detach())
-            h = torch.exp(hindsight_logprobs.detach())
-            smoothed_hca = p - (1 + p) / torch.exp(h)
-        else:
-            hindsight_ratios = torch.exp(
-                logprobs.detach() - hindsight_logprobs.detach()
-            )
-            hca_terms = 1 - hindsight_ratios
-            if smoothing_type is None:
-                smoothed_hca = hca_terms
-            elif smoothing_type == "clip":
-                # clip(hca_terms, min=a, max=b)
-                a, b = smoothing_fn[1], smoothing_fn[2]
-                smoothed_hca = torch.clamp(hca_terms, min=a, max=b)
-            elif smoothing_type == "tanh":
-                # a * tanh(c * (1 - p/h)) + b
-                a, b, c = (
-                    smoothing_fn[1],
-                    smoothing_fn[2],
-                    smoothing_fn[3],
+            if smoothing_type == "exp":
+                # 1 - p/e^x
+                hindsight_ratios = torch.exp(
+                    logprobs.detach() - torch.exp(hindsight_logprobs).detach()
                 )
-                smoothed_hca = a * torch.tanh(c * hca_terms) + b
-            elif smoothing_type == "atan":
-                # a * norm_atan(c * (1 - p/h)) + b
-                a, b, c = (
-                    smoothing_fn[1],
-                    smoothing_fn[2],
-                    smoothing_fn[3],
-                )
-
-                smoothed_hca = a * normalized_atan(c * hca_terms) + b
+                smoothed_hca = 1 - hindsight_ratios
+            elif smoothing_type == "fancy_exp":
+                # p - (1+p)/e^x
+                p = torch.exp(logprobs.detach())
+                h = torch.exp(hindsight_logprobs.detach())
+                smoothed_hca = p - (1 + p) / torch.exp(h)
             else:
-                raise NotImplementedError
+                hindsight_ratios = torch.exp(
+                    logprobs.detach() - hindsight_logprobs.detach()
+                )
+                hca_terms = 1 - hindsight_ratios
+                if smoothing_type is None:
+                    smoothed_hca = hca_terms
+                elif smoothing_type == "clip":
+                    # clip(hca_terms, min=a, max=b)
+                    a, b = smoothing_fn[1], smoothing_fn[2]
+                    smoothed_hca = torch.clamp(hca_terms, min=a, max=b)
+                elif smoothing_type == "tanh":
+                    # a * tanh(c * (1 - p/h)) + b
+                    a, b, c = (
+                        smoothing_fn[1],
+                        smoothing_fn[2],
+                        smoothing_fn[3],
+                    )
+                    smoothed_hca = a * torch.tanh(c * hca_terms) + b
+                elif smoothing_type == "atan":
+                    # a * norm_atan(c * (1 - p/h)) + b
+                    a, b, c = (
+                        smoothing_fn[1],
+                        smoothing_fn[2],
+                        smoothing_fn[3],
+                    )
 
-        advantages = smoothed_hca * mc_returns
+                    smoothed_hca = a * normalized_atan(c * hca_terms) + b
+                else:
+                    raise NotImplementedError
+
+            advantages = smoothed_hca * mc_returns
+
+            smoothed_hca_mean = smoothed_hca.mean().item()
+            smoothed_hca_max = smoothed_hca.max().item()
+            smoothed_hca_min = smoothed_hca.min().item()
+            smoothed_hca_std = smoothed_hca.std().item()
+
+            hindsight_stats = {
+                "ca_stat_type": "smoothed_hca_ratio",
+                "min": smoothed_hca_min,
+                "max": smoothed_hca_max,
+                "mean": smoothed_hca_mean,
+                "std": smoothed_hca_std,
+            }
+
+        elif hindsight_ratios is not None:
+            assert (
+                logprobs is None
+                and hindsight_logprobs is None
+                and smoothing_fn is None
+            ), "Provide only one of hindsight logprobs or ratios"
+            hca_terms = 1 - hindsight_ratios
+            advantages = hca_terms * mc_returns
+
+            hca_mean = hca_terms.mean().item()
+            hca_max = hca_terms.max().item()
+            hca_min = hca_terms.min().item()
+            hca_std = hca_terms.std().item()
+
+            hindsight_stats = {
+                "ca_stat_type": "hca_ratio",
+                "min": hca_min,
+                "max": hca_max,
+                "mean": hca_mean,
+                "std": hca_std,
+            }
+        else:
+            raise ValueError(
+                "Provide at least one of hindsight logprobs or ratios"
+            )
+
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7
         )
-
-        smoothed_hca_mean = smoothed_hca.mean().item()
-        smoothed_hca_max = smoothed_hca.max().item()
-        smoothed_hca_min = smoothed_hca.min().item()
-        smoothed_hca_std = smoothed_hca.std().item()
-
-        hindsight_stats = {
-            "ca_stat_type": "smoothed_hca_ratio",
-            "min": smoothed_hca_min,
-            "max": smoothed_hca_max,
-            "mean": smoothed_hca_mean,
-            "std": smoothed_hca_std,
-        }
-
         return advantages.to(self.device), hindsight_stats
 
     def estimate_montecarlo_returns(self, rewards, terminals, normalize=True):
@@ -300,6 +288,7 @@ class PPO:
         batch_rewards = flatten(buffer.rewards)
         batch_terminals = flatten(buffer.terminals)
         hindsight_logprobs = flatten(buffer.hindsight_logprobs)
+        hindsight_ratios = flatten(buffer.hindsight_ratios)
 
         if self.adv != "gae":
             # normalized by default
@@ -325,6 +314,11 @@ class PPO:
         )
         hindsight_logprobs = (
             torch.squeeze(torch.from_numpy(hindsight_logprobs))
+            .detach()
+            .to(self.device)
+        )
+        hindsight_ratios = (
+            torch.squeeze(torch.from_numpy(hindsight_ratios))
             .detach()
             .to(self.device)
         )
@@ -375,39 +369,32 @@ class PPO:
                 # hca adv
                 # normalizing the MC returns seems to help stability
                 # and performance here
-                advantages, ca_stats = self.estimate_hca_advantages(
-                    returns, logprobs, hindsight_logprobs, self.smoothing_fn
-                )
+                if hindsight_logprobs is not None:
+                    advantages, ca_stats = self.estimate_hca_advantages(
+                        returns,
+                        logprobs=logprobs,
+                        hindsight_logprobs=hindsight_logprobs,
+                        smoothing_fn=self.smoothing_fn,
+                        hindsight_ratios=None,
+                    )
+                elif hindsight_ratios is not None:
+                    advantages, ca_stats = self.estimate_hca_advantages(
+                        returns,
+                        logprobs=None,
+                        hindsight_logprobs=None,
+                        smoothing_fn=None,
+                        hindsight_ratios=hindsight_ratios,
+                    )
+                else:
+                    raise ValueError(
+                        "Unexpected error: One of logprobs or ratios should not be None in buffer!"
+                    )
 
                 ca_stat_type = ca_stats["ca_stat_type"]
                 ca_stats_mins.append(ca_stats["min"])
                 ca_stats_maxes.append(ca_stats["max"])
                 ca_stats_means.append(ca_stats["mean"])
                 ca_stats_stds.append(ca_stats["std"])
-            elif self.adv == "mc-hca-gamma":
-                # trying by normalizing returns here
-                # could change later if required
-                assert self.gamma_temp is not None
-                unflattened_logprobs = unflatten(
-                    logprobs.detach().numpy(), buffer.rewards
-                )
-                returns, ca_stats = self.estimate_hca_discounted_returns(
-                    buffer.rewards,
-                    unflattened_logprobs,
-                    buffer.hindsight_logprobs,
-                    temp=self.gamma_temp,
-                    normalize=True,
-                )
-                advantages = returns
-
-                ca_stat_type = ca_stats["ca_stat_type"]
-                ca_stats_mins.append(ca_stats["min"])
-                ca_stats_maxes.append(ca_stats["max"])
-                ca_stats_means.append(ca_stats["mean"])
-                ca_stats_stds.append(ca_stats["std"])
-
-                # TODO: VF or not?
-                # TODO: what is the VF trained on? i.e. which gamma
 
             surr1 = ratios * advantages
             surr2 = (

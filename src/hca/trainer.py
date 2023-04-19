@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader, random_split
 import wandb
-from hca.hca_model import HCAModel
+from hca.model import HCAModel
 import pickle
 
 

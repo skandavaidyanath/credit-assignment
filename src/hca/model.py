@@ -24,7 +24,7 @@ class HCAModel(nn.Module):
         device="cpu",
         normalize_inputs=True,
         weight_training_samples=False,
-        noise_std=None
+        noise_std=None,
     ):
         super(HCAModel, self).__init__()
 
@@ -73,8 +73,9 @@ class HCAModel(nn.Module):
         self.device = torch.device(device)
 
         self.weight_training_samples = weight_training_samples
-        self.input_mean = torch.zeros((state_dim, ), device=device)
-        self.input_std = torch.ones((state_dim, ), device=device)
+
+        self.input_mean = torch.zeros((state_dim,), device=device)
+        self.input_std = torch.ones((state_dim,), device=device)
 
     @property
     def std(self):
@@ -88,8 +89,8 @@ class HCAModel(nn.Module):
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
 
-    def update_norm_stats(self, mean, std, refresh):
-        if refresh:
+    def update_norm_stats(self, mean, std, refresh=True):
+        if refresh:  # re-calculate stats each time we train model
             self.input_mean = torch.from_numpy(mean).to(self.device)
             self.input_std = torch.from_numpy(std).to(self.device)
         else:
@@ -105,7 +106,9 @@ class HCAModel(nn.Module):
         out = self.net(inputs)
         if self.noise_std and add_noise:
             # print(out.abs().max())
-            noise = torch.normal(mean=0.0, std=self.noise_std, size=out.shape).to(out.device)
+            noise = torch.normal(
+                mean=0.0, std=self.noise_std, size=out.shape
+            ).to(out.device)
             out += noise
         if self.continuous:
             std = torch.diag(self.std)
@@ -113,12 +116,6 @@ class HCAModel(nn.Module):
         else:
             dist = Categorical(logits=out)
         return out, dist
-
-    def _get_hca_batch(self, buffer):
-        states = np.concatenate(buffer.states, 0)  # B, D
-        returns = np.concatenate(buffer.returns, 0).reshape(-1, 1)  # B, 1
-        X = np.concatenate((states, returns), -1)
-        return torch.from_numpy(X).to(self.device)
 
     def update(self, buffer):
         train_dataloader, val_dataloader = buffer.get_dataloader(
@@ -130,7 +127,7 @@ class HCAModel(nn.Module):
             "entropy_min": [],
             "entropy_max": [],
             "entropy_mean": [],
-            "entropy_std": []
+            "entropy_std": [],
         }
 
         for states, actions in train_dataloader:
@@ -151,7 +148,9 @@ class HCAModel(nn.Module):
                 "hca_train_loss": np.mean(losses),
                 "hca_train_acc": np.mean(metrics),
             }
-        entropy_stats = {"hca_train_" + k: np.mean(v) for k, v in entropy_stats.items()}
+        entropy_stats = {
+            "hca_train_" + k: np.mean(v) for k, v in entropy_stats.items()
+        }
         results.update(entropy_stats)
 
         val_results = self.validate(val_dataloader)
@@ -185,6 +184,7 @@ class HCAModel(nn.Module):
         self.optimizer.step()
         return loss.item(), metric.item(), entropy_stats
 
+    @torch.no_grad()
     def validate(self, val_dataloader):
         losses, metrics = [], []
         for states, actions in val_dataloader:
@@ -217,6 +217,7 @@ class HCAModel(nn.Module):
                 "hca_val_acc": np.mean(metrics),
             }
 
+    @torch.no_grad()
     def get_hindsight_logprobs(self, inputs, actions):
         """
         get the hindsight values for a batch of actions
@@ -226,12 +227,29 @@ class HCAModel(nn.Module):
         out, dist = self.forward(inputs, add_noise=True)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
-            # return log_probs
             return log_probs
         else:
             log_probs = dist.log_prob(actions)
-            # return log_probs
             return log_probs
+
+    @torch.no_grad()
+    def get_actions(self, inputs, sample=True):
+        """
+        samples/ gets argmax actions from the hindsight
+        function as if it were a policy.
+        returns the actions as a list.
+        """
+        inputs = inputs.to(self.device)
+        out, dist = self.forward(inputs)
+        if sample:
+            actions = dist.sample()
+        else:
+            actions = dist.mode()
+        if self.continuous:
+            actions = actions.reshape(-1, self.action_dim).tolist()
+        else:
+            actions = actions.flatten().tolist()
+        return actions
 
     def save(self, checkpoint_path, args):
         torch.save(

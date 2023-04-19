@@ -51,6 +51,26 @@ class HCA_Stats:
     hca_train_entropy_std: float = 0.0
 
 
+@dataclass
+class DD_Stats:
+    """Class for DualDICE training stats logging"""
+
+    dd_train_loss: float = 0.0
+    dd_val_loss: float = 0.0
+
+
+@dataclass
+class Return_Stats:
+    """Class for Return predictor training stats logging"""
+
+    ret_train_loss: float = 0.0
+    ret_train_logprobs: float = 0.0
+    ret_train_acc: float = 0.0
+    ret_val_loss: float = 0.0
+    ret_val_logprobs: float = 0.0
+    ret_val_acc: float = 0.0
+
+
 class Logger:
     """
     Class for logging stats
