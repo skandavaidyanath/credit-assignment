@@ -22,6 +22,7 @@ class PPO_Stats:
 
     avg_rewards: float
     avg_success: float
+    avg_ep_len: float
     total_loss: float
     action_loss: float
     value_loss: float
@@ -114,12 +115,8 @@ class Logger:
                 f"HCA Val Stats --- Loss: {stats.hca_val_loss} | Logprobs: {stats.hca_val_logprobs} | Acc: {stats.hca_val_acc}"
             )
         elif isinstance(stats, DD_Stats):
-            print(
-                f"DualDice Train Loss: {stats.dd_train_loss}"
-            )
-            print(
-                f"DualDice Val Loss: {stats.dd_val_loss}"
-            )
+            print(f"DualDice Train Loss: {stats.dd_train_loss}")
+            print(f"DualDice Val Loss: {stats.dd_val_loss}")
         elif isinstance(stats, Return_Stats):
             print(
                 f"Return Model Train Stats --- Loss: {stats.ret_train_loss} | Logprobs: {stats.ret_train_logprobs} | Acc: {stats.ret_train_acc}"

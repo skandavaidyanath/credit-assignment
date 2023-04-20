@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from utils import digitize_returns
+from return_buffer import digitize_returns
+
 
 class ReturnPredictor(nn.Module):
     """

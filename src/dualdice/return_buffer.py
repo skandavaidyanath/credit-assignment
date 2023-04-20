@@ -2,7 +2,21 @@ import numpy as np
 
 import torch
 from torch.utils.data import TensorDataset, DataLoader, random_split
-from utils import digitize_returns
+
+
+def digitize_returns(returns, bins):
+    if isinstance(returns, np.ndarray):
+        digitized_returns = np.digitize(
+            returns, bins
+        )  # these range from 1 to N
+    else:
+        assert isinstance(returns, torch.Tensor)
+        digitized_returns = torch.bucketize(returns, torch.from_numpy(bins))
+    digitized_returns[digitized_returns == 0] = 1
+    digitized_returns[digitized_returns == len(bins)] = len(bins) - 1
+    digitized_returns -= 1  # these range from 0 to N-1
+    return digitized_returns
+
 
 def quantize_returns(returns, num_classes):
     min_returns, max_returns = np.min(returns), np.max(returns)

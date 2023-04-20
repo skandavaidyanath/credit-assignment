@@ -188,6 +188,7 @@ def train(args):
 
     # logging
     total_rewards, total_successes = [], []
+    ep_lens = []
     total_losses, action_losses, value_losses, entropies = [], [], [], []
 
     ca_stat_mins, ca_stat_maxes, ca_stat_means, ca_stat_stds = (
@@ -209,18 +210,18 @@ def train(args):
 
     # initial eval
     print(" ============ Evaluating =============")
-    eval_avg_reward, eval_avg_success = eval(env, agent, args)
+    eval_avg_reward, eval_avg_success, eval_avg_ep_len = eval(env, agent, args)
     logger.log(
         {
             "avg_rewards": eval_avg_reward,
             "avg_success": eval_avg_success,
+            "avg_ep_len": eval_avg_ep_len,
         },
         step=0,
         wandb_prefix="eval",
     )
     print("======= Finished Evaluating =========")
 
-    ep_lens = []
     for episode in range(1, args.training.max_training_episodes + 1):
         state = env.reset()
 
@@ -293,7 +294,10 @@ def train(args):
 
         # Determine whether the policy will be updated now or not.
         if args.agent.get("update_every_env_steps"):
-            time_for_policy_update = env_steps_between_policy_updates >= args.agent.update_every_env_steps
+            time_for_policy_update = (
+                env_steps_between_policy_updates
+                >= args.agent.update_every_env_steps
+            )
         else:
             time_for_policy_update = episode % args.agent.update_every == 0
 
@@ -301,8 +305,7 @@ def train(args):
         # Always update the HCA model the first time before a PPO update.
         first_policy_update = time_for_policy_update and num_policy_updates == 0
         if args.agent.name in ["ppo-hca", "hca-dualdice"] and (
-            episode % args.agent.hca_update_every == 0
-            or first_policy_update
+            episode % args.agent.hca_update_every == 0 or first_policy_update
         ):
 
             # normalize inputs if required
@@ -331,7 +334,6 @@ def train(args):
                 logger.log(hca_stats, step=episode, wandb_prefix="training")
                 print("=============================================")
 
-
             if args.agent.name in ["hca-dualdice"]:
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
@@ -359,7 +361,7 @@ def train(args):
                 logger.log(dd_stats, step=episode, wandb_prefix="training")
                 print("=============================================")
 
-                # Reward model update
+                # Return model update
                 # normalize inputs if required
                 if r_model.normalize_inputs:
                     input_mean, input_std = r_buffer.get_input_stats()
@@ -386,12 +388,8 @@ def train(args):
                 logger.log(ret_stats, step=episode, wandb_prefix="training")
                 print("=============================================")
 
-
         # Agent update (PPO)
-        if (
-            args.agent.name != "random"
-            and time_for_policy_update
-        ):
+        if args.agent.name != "random" and time_for_policy_update:
             if args.agent.name in ["ppo-hca"]:
                 # First, assign credit to the actions in the data.
                 assign_hindsight_info(buffer, h_model=h_model)
@@ -430,11 +428,10 @@ def train(args):
 
         # logging
         if args.training.log_freq and episode % args.training.log_freq == 0:
-            print("Mean ep len: ", np.mean(np.array(ep_lens)))
-            ep_lens = []
 
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
+            avg_ep_len = np.mean(ep_lens)
 
             ca_stat_min = (
                 np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else 0.0
@@ -450,13 +447,16 @@ def train(args):
             )
 
             total_loss = np.nan if not total_losses else np.mean(total_losses)
-            action_loss = np.nan if not action_losses else np.mean(action_losses)
+            action_loss = (
+                np.nan if not action_losses else np.mean(action_losses)
+            )
             value_loss = np.nan if not value_losses else np.mean(value_losses)
             entropy = np.nan if not entropies else np.mean(entropies)
 
             stats = PPO_Stats(
                 avg_rewards=avg_reward,
                 avg_success=avg_success,
+                avg_ep_len=avg_ep_len,
                 total_loss=total_loss,
                 action_loss=action_loss,
                 value_loss=value_loss,
@@ -471,6 +471,7 @@ def train(args):
             logger.log(stats, step=episode, wandb_prefix="training")
 
             total_rewards, total_successes = [], []
+            ep_lens = []
             total_losses, action_losses, value_losses, entropies = (
                 [],
                 [],
@@ -505,13 +506,16 @@ def train(args):
             )
 
         if args.training.eval_freq and episode % args.training.eval_freq == 0:
-            eval_avg_reward, eval_avg_success = eval(env, agent, args)
+            eval_avg_reward, eval_avg_success, eval_avg_ep_len = eval(
+                env, agent, args
+            )
 
             print(" ============ Evaluating =============")
             logger.log(
                 {
                     "avg_rewards": eval_avg_reward,
                     "avg_success": eval_avg_success,
+                    "avg_ep_len": eval_avg_ep_len,
                 },
                 step=episode,
                 wandb_prefix="eval",

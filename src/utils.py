@@ -20,6 +20,7 @@ from wrappers.lorl import LorlWrapper
 from wrappers.pw_wrapper import PushWorldWrapper
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
 
+
 def get_env(args):
     if args.env.type == "d4rl":
         env = gym.make(args.env.name)
@@ -119,7 +120,9 @@ def get_hindsight_logprobs(
 
 def get_density_ratios(states, actions, returns, dd_model):
     states = torch.from_numpy(np.array(states)).float()  # B, D_s
-    actions = torch.from_numpy(np.array(actions).reshape(-1, dd_model.action_dim)).float()  # B, D_a
+    actions = torch.from_numpy(
+        np.array(actions).reshape(-1, dd_model.action_dim)
+    ).float()  # B, D_a
     returns = torch.from_numpy(np.array(returns).reshape(-1, 1)).float()  # B, 1
     density_ratios = dd_model.get_density_ratios(states, actions, returns)
     return density_ratios
@@ -166,21 +169,10 @@ def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
                 r_model,
             )
             curr_ep_hindsight_ratios = (
-                curr_ep_density_ratios * curr_ep_ret_probs
-            ).detach().numpy()
+                (curr_ep_density_ratios * curr_ep_ret_probs).detach().numpy()
+            )
             buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
 
-
-# def get_hindsight_actions(h_model, buffer):
-#     states = buffer.states
-#     returns = buffer.returns
-#     inputs = []
-#     for state, g in zip(states, returns):
-#         inputs.append(np.concatenate([state, [g]]))
-#     inputs = np.array(inputs)
-#     inputs = torch.from_numpy(inputs).reshape(len(inputs), -1).float()  # B x D
-#     actions = h_model.get_actions(inputs)
-#     return actions
 
 def get_hindsight_actions(h_model, states, returns):
     states = np.stack(states).astype(np.float32)
@@ -189,25 +181,19 @@ def get_hindsight_actions(h_model, states, returns):
     actions = h_model.get_actions(inputs)
     return actions
 
+
 def get_grad_norm(model):
-    parameters = [p for p in model.parameters() if p.grad is not None and p.requires_grad]
+    parameters = [
+        p for p in model.parameters() if p.grad is not None and p.requires_grad
+    ]
     if len(parameters) == 0:
         total_norm = 0.0
     else:
         device = parameters[0].grad.device
-        total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach()).to(device) for p in parameters]),
-                                2.0).item()
+        total_norm = torch.norm(
+            torch.stack(
+                [torch.norm(p.grad.detach()).to(device) for p in parameters]
+            ),
+            2.0,
+        ).item()
     return total_norm
-
-def digitize_returns(returns, bins):
-    if isinstance(returns, np.ndarray):
-        digitized_returns = np.digitize(returns, bins)  # these range from 1 to N
-    else:
-        assert isinstance(returns, torch.Tensor)
-        digitized_returns = torch.bucketize(
-            returns, torch.from_numpy(bins)
-        )
-    digitized_returns[digitized_returns == 0.0] = 1.0
-    digitized_returns[digitized_returns == len(bins)] = len(bins) - 1.0
-    digitized_returns -= 1  # these range from 0 to N-1
-    return digitized_returns

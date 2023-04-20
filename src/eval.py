@@ -10,6 +10,7 @@ def eval(env, agent, args):
 
     # logging
     total_rewards, total_successes = [], []
+    ep_lens = []
 
     for episode in range(1, args.training.num_eval_eps + 1):
         state = env.reset()
@@ -17,6 +18,7 @@ def eval(env, agent, args):
         done = False
 
         rewards = []
+        ep_len = 0
 
         while not done:
             # select action with policy
@@ -36,8 +38,10 @@ def eval(env, agent, args):
             rewards.append(float(reward))
 
             current_ep_reward += reward
+            ep_len += 1
 
         total_rewards.append(current_ep_reward)
         total_successes.append(info.get("success", 0.0))
+        ep_lens.append(ep_len)
 
-    return np.mean(total_rewards), np.mean(total_successes)
+    return np.mean(total_rewards), np.mean(total_successes), np.mean(ep_lens)
