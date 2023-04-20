@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-
+from utils import digitize_returns
 
 class ReturnPredictor(nn.Module):
     """
@@ -124,14 +124,14 @@ class ReturnPredictor(nn.Module):
 
         if self.quantize:
             results = {
-                "R_train_loss": np.mean(losses),
-                "R_train_acc": np.mean(metrics),
+                "ret_train_loss": np.mean(losses),
+                "ret_train_acc": np.mean(metrics),
             }
 
         else:
             results = {
-                "R_train_loss": np.mean(losses),
-                "R_train_logprobs": np.mean(metrics),
+                "ret_train_loss": np.mean(losses),
+                "ret_train_logprobs": np.mean(metrics),
             }
 
         val_results = self.validate(val_dataloader)
@@ -145,7 +145,7 @@ class ReturnPredictor(nn.Module):
 
         if self.quantize:
             # return targets are already in the correct class form
-            returns = returns.flatten()
+            returns = returns.flatten().long()
             loss = F.cross_entropy(preds, returns)
             preds = preds.argmax(-1)
             metric = torch.sum(preds == returns) / len(preds)
@@ -172,7 +172,7 @@ class ReturnPredictor(nn.Module):
             preds = self.forward(states)
 
             if self.quantize:
-                returns = returns.flatten()
+                returns = returns.flatten().long()
                 loss = F.cross_entropy(preds, returns).item()
                 preds = preds.argmax(-1)
                 accuracy = torch.sum(preds == returns) / len(preds)
@@ -190,13 +190,13 @@ class ReturnPredictor(nn.Module):
 
         if self.quantize:
             return {
-                "R_val_loss": np.mean(losses),
-                "R_val_acc": np.mean(metrics),
+                "ret_val_loss": np.mean(losses),
+                "ret_val_acc": np.mean(metrics),
             }
         else:
             return {
-                "R_val_loss": np.mean(losses),
-                "R_val_logprobs": np.mean(metrics),
+                "ret_val_loss": np.mean(losses),
+                "ret_val_logprobs": np.mean(metrics),
             }
 
     @torch.no_grad()
@@ -208,11 +208,7 @@ class ReturnPredictor(nn.Module):
         returns = returns.to(self.device)  # B, 1
         preds = self.forward(states)  # B, num_classes
         if self.quantize:
-            # returns are NOT quantized correctly
-            quantized_returns = np.digitize(
-                returns, self.bins
-            )  # these range from 1 to N
-            quantized_returns -= 1  # these range from 0 to N-1
+            quantized_returns = digitize_returns(returns, self.bins)
             return_probs = torch.gather(preds, -1, quantized_returns)
         else:
             # returns are real numbers

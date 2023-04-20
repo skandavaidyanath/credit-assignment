@@ -18,11 +18,13 @@ agent:
   hca_weight_training_samples: True
   refresh_hca: True
   hca_normalize_inputs: False
+  hca_noise_std: null
   # several of the above are assumed as defaults for DD
   # and return predictor training to avoid hyperparam choice
   # blow-up
   # Can always make these different if required
   dd_epochs: 1
   dd_f: square
+  r_epochs: 1
   r_quant: true
   r_num_classes: 10

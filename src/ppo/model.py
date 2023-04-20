@@ -369,7 +369,7 @@ class PPO:
                 # hca adv
                 # normalizing the MC returns seems to help stability
                 # and performance here
-                if hindsight_logprobs is not None:
+                if hindsight_logprobs is not None and len(hindsight_logprobs) > 0:
                     advantages, ca_stats = self.estimate_hca_advantages(
                         returns,
                         logprobs=logprobs,

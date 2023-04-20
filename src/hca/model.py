@@ -29,7 +29,7 @@ class HCAModel(nn.Module):
         super(HCAModel, self).__init__()
 
         self.state_dim = state_dim
-        self.action_dim = action_dim
+        self.action_dim = action_dim if continuous else 1
         self.continuous = continuous
         self.normalize_inputs = normalize_inputs
         self.noise_std = noise_std

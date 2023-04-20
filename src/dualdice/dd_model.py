@@ -141,7 +141,7 @@ class DualDICE(nn.Module):
         h_preds = self.forward(h_sar)
         pi_preds = self.forward(pi_sar)
 
-        loss = torch.mean(self._f(h_preds), -1) - torch.mean(pi_preds, -1)
+        loss = torch.mean(self._f(h_preds)) - torch.mean(pi_preds)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -158,7 +158,7 @@ class DualDICE(nn.Module):
             h_preds = self.forward(h_sar)
             pi_preds = self.forward(pi_sar)
 
-            loss = self._f(h_preds) - pi_preds
+            loss = torch.mean(self._f(h_preds)) - torch.mean(pi_preds)
             losses.append(loss.item())
 
         return {"dd_val_loss": np.mean(losses)}

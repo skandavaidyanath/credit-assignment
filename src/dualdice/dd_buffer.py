@@ -42,7 +42,7 @@ class DualDICEBuffer:
             np.concatenate((states, h_actions, returns), -1)
         ).float()
         X_pi = torch.from_numpy(
-            np.concatenate((states, pi_actions, torch.zeros_like(returns)), -1)
+            np.concatenate((states, pi_actions, np.zeros_like(returns)), -1)
         ).float()  # we concatenate 0 for \pi to indicate we don't use the returns here
 
         dataset = TensorDataset(X_h, X_pi)

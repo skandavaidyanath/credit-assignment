@@ -2,13 +2,12 @@ import numpy as np
 
 import torch
 from torch.utils.data import TensorDataset, DataLoader, random_split
-
+from utils import digitize_returns
 
 def quantize_returns(returns, num_classes):
     min_returns, max_returns = np.min(returns), np.max(returns)
-    bins = np.linspace(min_returns, max_returns, num_classes)
-    quantized_returns = np.digitize(returns, bins)  # these range from 1 to N
-    quantized_returns -= 1  # these range from 0 to N-1
+    bins = np.linspace(min_returns, max_returns, num_classes + 1)
+    quantized_returns = digitize_returns(returns, bins)
     return quantized_returns, bins
 
 
@@ -36,7 +35,8 @@ class ReturnBuffer:
 
     def get_dataloader(self, batch_size):
         states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, self.num_classes))
+        # returns = np.array(self.returns).reshape((-1, self.num_classes))
+        returns = np.array(self.returns).reshape(-1, 1)
 
         if self.num_classes > 1:
             # quantize=True implicitly
@@ -55,6 +55,7 @@ class ReturnBuffer:
             val_dataset, batch_size=batch_size, shuffle=True
         )
         # we need to return bins to use it for test time examples
+        # TODO: have a default for bins.
         return train_dataloader, val_dataloader, bins
 
     def get_input_stats(self):

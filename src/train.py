@@ -143,9 +143,11 @@ def train(args):
     # DualDICE model
     dd_model, dd_buffer = None, None
     if args.agent.name in ["hca-dualdice"]:
+        dd_act_dim = action_dim if continuous else 1
+
         dd_model = DualDICE(
             state_dim=state_dim,
-            action_dim=action_dim,
+            action_dim=dd_act_dim,
             f=args.agent.dd_f,
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
@@ -158,7 +160,7 @@ def train(args):
         )
 
         dd_buffer = DualDICEBuffer(
-            action_dim=action_dim,
+            action_dim=dd_act_dim,
             train_val_split=args.agent.hca_train_val_split,
         )
 
@@ -196,6 +198,7 @@ def train(args):
     )
     ca_stat_type = ""
     env_steps_between_policy_updates = 0
+    num_policy_updates = 0
 
     # track total training time
     start_time = datetime.datetime.now().replace(microsecond=0)
@@ -216,6 +219,8 @@ def train(args):
         wandb_prefix="eval",
     )
     print("======= Finished Evaluating =========")
+
+    ep_lens = []
     for episode in range(1, args.training.max_training_episodes + 1):
         state = env.reset()
 
@@ -273,15 +278,31 @@ def train(args):
         buffer.terminals.append(terminals)
 
         env_steps_between_policy_updates += ep_len
+        ep_lens.append(ep_len)
 
+        # Add data for HCA (and DualDice).
         if args.agent.name in ["ppo-hca", "hca-dualdice"]:
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
+            if args.agent.name in ["hca-dualdice"]:
+                h_actions = get_hindsight_actions(h_model, states, returns)
+                pi_actions = actions
+                dd_buffer.add_episode(states, h_actions, pi_actions, returns)
+
+                r_buffer.add_episode(states, returns)
+
+        # Determine whether the policy will be updated now or not.
+        if args.agent.get("update_every_env_steps"):
+            time_for_policy_update = env_steps_between_policy_updates >= args.agent.update_every_env_steps
+        else:
+            time_for_policy_update = episode % args.agent.update_every == 0
+
         # Update credit assignment (hca) model, if needed.
         # Always update the HCA model the first time before a PPO update.
+        first_policy_update = time_for_policy_update and num_policy_updates == 0
         if args.agent.name in ["ppo-hca", "hca-dualdice"] and (
             episode % args.agent.hca_update_every == 0
-            or episode == args.agent.update_every
+            or first_policy_update
         ):
 
             # normalize inputs if required
@@ -310,75 +331,66 @@ def train(args):
                 logger.log(hca_stats, step=episode, wandb_prefix="training")
                 print("=============================================")
 
-        if args.agent.name in ["hca-dualdice"]:
-            # Update the DualDICE model
-            h_actions = get_hindsight_actions(h_model, buffer)
-            pi_actions = actions
-            dd_buffer.add_episode(states, h_actions, pi_actions, returns)
 
-            # normalize inputs if required
-            if dd_model.normalize_inputs:
-                h_mean, h_std, pi_mean, pi_std = dd_buffer.get_input_stats()
-                h_model.update_norm_stats(
-                    h_mean, h_std, pi_mean, pi_std, args.agent.refresh_hca
-                )
+            if args.agent.name in ["hca-dualdice"]:
+                # normalize inputs if required
+                if dd_model.normalize_inputs:
+                    h_mean, h_std, pi_mean, pi_std = dd_buffer.get_input_stats()
+                    dd_model.update_norm_stats(
+                        h_mean, h_std, pi_mean, pi_std, args.agent.refresh_hca
+                    )
 
-            # reset the model if you want
-            if args.agent.refresh_hca:
-                dd_model.reset_parameters()
+                # reset the model if you want
+                if args.agent.refresh_hca:
+                    dd_model.reset_parameters()
 
-            # update the DD model
-            # using a separate argument dd_epochs here
-            for _ in range(args.agent.dd_epochs):
-                dd_results = dd_model.update(dd_buffer)
+                # update the DD model
+                # using a separate argument dd_epochs here
+                for _ in range(args.agent.dd_epochs):
+                    dd_results = dd_model.update(dd_buffer)
 
-            # Clear the DD buffer
-            dd_buffer.clear()
+                # Clear the DD buffer
+                dd_buffer.clear()
 
-            # Log every time we update the model and don't use the log freq
-            dd_stats = DD_Stats(**dd_results)
+                # Log every time we update the model and don't use the log freq
+                dd_stats = DD_Stats(**dd_results)
 
-            print(" ============ Updated DD model =============")
-            logger.log(dd_stats, step=episode, wandb_prefix="training")
-            print("=============================================")
+                print(" ============ Updated DD model =============")
+                logger.log(dd_stats, step=episode, wandb_prefix="training")
+                print("=============================================")
 
-            # Update the return predictor model
-            r_buffer.add_episode(states, returns)
+                # Reward model update
+                # normalize inputs if required
+                if r_model.normalize_inputs:
+                    input_mean, input_std = r_buffer.get_input_stats()
+                    r_model.update_norm_stats(
+                        input_mean, input_std, args.agent.refresh_hca
+                    )
 
-            # normalize inputs if required
-            if r_model.normalize_inputs:
-                input_mean, input_std = r_buffer.get_input_stats()
-                r_model.update_norm_stats(
-                    input_mean, input_std, args.agent.refresh_hca
-                )
+                # reset the model if you want
+                if args.agent.refresh_hca:
+                    r_model.reset_parameters()
 
-            # reset the model if you want
-            if args.agent.refresh_hca:
-                r_model.reset_parameters()
+                # update the Return model
+                # using a separate argument r_epochs here
+                for _ in range(args.agent.r_epochs):
+                    ret_results = r_model.update(r_buffer)
 
-            # update the Return model
-            # using a separate argument r_epochs here
-            for _ in range(args.agent.r_epochs):
-                ret_results = r_model.update(r_buffer)
+                # Clear the Return buffer
+                r_buffer.clear()
 
-            # Clear the Return buffer
-            r_buffer.clear()
+                # Log every time we update the model and don't use the log freq
+                ret_stats = Return_Stats(**ret_results)
 
-            # Log every time we update the model and don't use the log freq
-            ret_stats = Return_Stats(**ret_results)
+                print(" ============ Updated Return model =============")
+                logger.log(ret_stats, step=episode, wandb_prefix="training")
+                print("=============================================")
 
-            print(" ============ Updated Return model =============")
-            logger.log(ret_stats, step=episode, wandb_prefix="training")
-            print("=============================================")
 
         # Agent update (PPO)
-        if args.agent.get("update_every_env_steps"):
-            time_for_update = env_steps_between_policy_updates >= args.agent.update_every_env_steps
-        else:
-            time_for_update = episode % args.agent.update_every == 0
         if (
             args.agent.name != "random"
-            and time_for_update
+            and time_for_policy_update
         ):
             if args.agent.name in ["ppo-hca"]:
                 # First, assign credit to the actions in the data.
@@ -414,9 +426,13 @@ def train(args):
 
             buffer.clear()
             env_steps_between_policy_updates = 0
+            num_policy_updates += 1
 
         # logging
         if args.training.log_freq and episode % args.training.log_freq == 0:
+            print("Mean ep len: ", np.mean(np.array(ep_lens)))
+            ep_lens = []
+
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
 
@@ -433,13 +449,18 @@ def train(args):
                 np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else 0.0
             )
 
+            total_loss = np.nan if not total_losses else np.mean(total_losses)
+            action_loss = np.nan if not action_losses else np.mean(action_losses)
+            value_loss = np.nan if not value_losses else np.mean(value_losses)
+            entropy = np.nan if not entropies else np.mean(entropies)
+
             stats = PPO_Stats(
                 avg_rewards=avg_reward,
                 avg_success=avg_success,
-                total_loss=np.mean(total_losses),
-                action_loss=np.mean(action_losses),
-                value_loss=np.mean(value_losses),
-                entropy=np.mean(entropies),
+                total_loss=total_loss,
+                action_loss=action_loss,
+                value_loss=value_loss,
+                entropy=entropy,
                 ca_stat=ca_stat_type,
                 ca_stat_mean=ca_stat_mean,
                 ca_stat_std=ca_stat_std,
