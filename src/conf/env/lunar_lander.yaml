@@ -1,0 +1,26 @@
+# @package _global_
+
+env:
+  name: "LunarLander-v2"
+  type: "gym"
+  sparse: false
+  delay_reward: false
+  gamma: 0.99
+
+training:
+  log_freq: 10  # Log every these many episodes
+  save_model_freq: 0 # Save networks every these many episodes
+  eval_freq: 10 # eval every these many episodes
+  num_eval_eps: 10
+
+agent:
+  update_every_env_steps: 2048
+  update_every: 20
+  ppo_epochs: 80
+  value_loss_coeff: 0.5
+  n_layers: 3
+  hidden_size: 128
+  lr: 3e-4
+  lamda: 0.95
+  entropy_coeff: 0.0
+  max_grad_norm: 0.5
