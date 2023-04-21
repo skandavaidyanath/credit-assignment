@@ -6,6 +6,7 @@ env:
   sparse: True
   puzzle_path: "maps/test_v5.txt"
   max_steps: 100
+  delay_reward: false # TODO: should maybe make this true and remove sparse
 
 training:
   log_freq: 1000  # Log every these many episodes

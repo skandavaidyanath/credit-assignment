@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from return_buffer import digitize_returns
+from dualdice.return_buffer import digitize_returns
 
 
 class ReturnPredictor(nn.Module):
@@ -135,8 +135,9 @@ class ReturnPredictor(nn.Module):
                 "ret_train_logprobs": np.mean(metrics),
             }
 
-        val_results = self.validate(val_dataloader)
-        results.update(val_results)
+        if val_dataloader is not None:
+            val_results = self.validate(val_dataloader)
+            results.update(val_results)
         return results
 
     def train_step(self, states, returns):

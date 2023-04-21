@@ -129,7 +129,7 @@ def get_density_ratios(states, actions, returns, dd_model):
 
 
 def get_ret_probs(states, returns, r_model):
-    states = torch.from_numpy(np.array(states))  # B, D_s
+    states = torch.from_numpy(np.array(states)).float()  # B, D_s
     returns = torch.from_numpy(np.array(returns).reshape(-1, 1))  # B, 1
     ret_probs = r_model.get_return_probs(states, returns)
     return ret_probs

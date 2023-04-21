@@ -153,8 +153,9 @@ class HCAModel(nn.Module):
         }
         results.update(entropy_stats)
 
-        val_results = self.validate(val_dataloader)
-        results.update(val_results)
+        if val_dataloader is not None:
+            val_results = self.validate(val_dataloader)
+            results.update(val_results)
         return results
 
     def train_step(self, states, actions):

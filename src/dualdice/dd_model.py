@@ -130,8 +130,9 @@ class DualDICE(nn.Module):
 
         results = {"dd_train_loss": np.mean(losses)}
 
-        val_results = self.validate(val_dataloader)
-        results.update(val_results)
+        if val_dataloader is not None:
+            val_results = self.validate(val_dataloader)
+            results.update(val_results)
         return results
 
     def train_step(self, h_sar, pi_sar):

@@ -5,7 +5,7 @@ from torch.utils.data import TensorDataset, DataLoader, random_split
 
 
 class DualDICEBuffer:
-    def __init__(self, action_dim, train_val_split=[0.9, 0.1]):
+    def __init__(self, action_dim, train_val_split=[1.0, 0.0]):
         self.action_dim = action_dim
 
         self.num_episodes_stored = 0
@@ -51,9 +51,12 @@ class DualDICEBuffer:
         train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=True
         )
-        val_dataloader = DataLoader(
-            val_dataset, batch_size=batch_size, shuffle=True
-        )
+        if self.train_val_split[1] > 0:
+            val_dataloader = DataLoader(
+                val_dataset, batch_size=batch_size, shuffle=True
+            )
+        else:
+            val_dataloader = None
         return train_dataloader, val_dataloader
 
     def get_input_stats(self):

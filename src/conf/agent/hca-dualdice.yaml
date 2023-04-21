@@ -5,26 +5,31 @@ agent:
   adv: "hca"
   value_loss_coeff: 0.0
   entropy_coeff: 0.1
+  update_every: 50
   hca_checkpoint: ""
   hca_n_layers: 2
   hca_hidden_size: 128
   hca_lr: 3e-4
-  hca_update_every: 5000
-  hca_epochs: 1
+  hca_update_every: ${agent.update_every}
+  hca_epochs: 10
   hca_batchsize: 256
   hca_dropout: 0
   hca_activation: "relu"
   hca_train_val_split: [1.0, 0.0]
-  hca_weight_training_samples: True
+  hca_weight_training_samples: false
   refresh_hca: True
-  hca_normalize_inputs: False
+  hca_normalize_inputs: false
   hca_noise_std: null
+  smoothing_fn: null
   # several of the above are assumed as defaults for DD
   # and return predictor training to avoid hyperparam choice
   # blow-up
   # Can always make these different if required
-  dd_epochs: 1
-  dd_f: square
-  r_epochs: 1
+  dd_epochs: 10
+  dd_f: "square"
+  r_epochs: 10
   r_quant: true
   r_num_classes: 10
+
+training:
+  log_freq: 100
