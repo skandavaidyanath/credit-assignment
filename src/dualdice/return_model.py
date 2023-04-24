@@ -82,7 +82,7 @@ class ReturnPredictor(nn.Module):
 
     @property
     def std(self):
-        if not self.continuous:
+        if self.quantize:
             raise ValueError("Calling std() on quantized Return predictor!")
         else:
             return torch.exp(self.log_std)
