@@ -31,6 +31,3 @@ agent:
   r_epochs: 10
   r_quant: false
   r_num_classes: 10
-
-training:
-  log_freq: 100
