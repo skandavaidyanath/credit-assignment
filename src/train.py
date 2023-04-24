@@ -300,6 +300,18 @@ def train(args):
             )
         else:
             time_for_policy_update = episode % args.agent.update_every == 0
+            
+        # Determine whether the hindsight functions will be updated now or not.
+        if args.agent.name in ["ppo-hca", "hca-dualdice"]:
+            if args.agent.get("hca_update_every_env_steps"):
+                time_for_ca_update = (
+                    env_steps_between_policy_updates
+                    >= args.agent.hca_update_every_env_steps
+                )
+            else:
+                time_for_ca_update = episode % args.agent.hca_update_every == 0
+            
+        
 
         # Update credit assignment (hca) model, if needed.
         # Always update the HCA model the first time before a PPO update.

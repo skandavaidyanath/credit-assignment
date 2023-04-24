@@ -169,7 +169,7 @@ def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
                 r_model,
             )
             curr_ep_hindsight_ratios = (
-                (curr_ep_density_ratios * curr_ep_ret_probs).detach().numpy()
+                (curr_ep_density_ratios * curr_ep_ret_probs).detach().cpu().numpy()
             )
             buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
 

@@ -153,7 +153,8 @@ class ReturnPredictor(nn.Module):
             metric = torch.sum(preds == returns) / len(preds)
         else:
             # return targets are real numbers
-            dists = Normal(preds, self.std)
+            std = self.std.to(self.device)
+            dists = Normal(preds, std)
             loss = F.gaussian_nll_loss(preds, returns, dists.variance)
             metric = dists.log_prob(returns).mean()
 
@@ -214,7 +215,8 @@ class ReturnPredictor(nn.Module):
             return_probs = torch.gather(preds, -1, quantized_returns)
         else:
             # returns are real numbers
-            dists = Normal(preds, self.std)
+            std = self.std.to(self.device)
+            dists = Normal(preds, std)
             return_probs = torch.exp(dists.log_prob(returns))
         return return_probs
 
