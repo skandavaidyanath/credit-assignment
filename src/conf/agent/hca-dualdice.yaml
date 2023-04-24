@@ -28,7 +28,7 @@ agent:
   dd_epochs: 10
   dd_f: "square"
   r_epochs: 10
-  r_quant: true
+  r_quant: false
   r_num_classes: 10
 
 training:
