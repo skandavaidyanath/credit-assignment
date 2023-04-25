@@ -179,7 +179,7 @@ def train(args):
         )
 
         r_buffer = ReturnBuffer(
-            num_classes=args.agent.r_num_classes,
+            num_classes=args.agent.r_num_classes if self.quantize else 1,
             train_val_split=args.agent.hca_train_val_split,
         )
 
@@ -317,7 +317,7 @@ def train(args):
         # Always update the HCA model the first time before a PPO update.
         first_policy_update = time_for_policy_update and num_policy_updates == 0
         if args.agent.name in ["ppo-hca", "hca-dualdice"] and (
-            episode % args.agent.hca_update_every == 0 or first_policy_update
+            time_for_ca_update or first_policy_update
         ):
 
             # normalize inputs if required

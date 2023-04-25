@@ -35,6 +35,7 @@ class ReturnPredictor(nn.Module):
         self.quantize = quantize
         if not quantize:
             num_classes = 1
+        self.num_classes = num_classes
 
         self.normalize_inputs = normalize_inputs
 
