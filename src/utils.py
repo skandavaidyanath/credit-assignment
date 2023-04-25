@@ -168,6 +168,7 @@ def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
                 buffer.returns[ep_ind],
                 r_model,
             )
+            # TODO: should we clip these between 0 and 1?
             curr_ep_hindsight_ratios = (
                 (curr_ep_density_ratios * curr_ep_ret_probs).detach().cpu().numpy()
             )
