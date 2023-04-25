@@ -5,9 +5,8 @@ env:
   type: "lorl"
   task: "open drawer"
   use_state: True
-  sparse: True
+  sparse: False
   normalize: True
-  binary_reward: False
   reward_multiplier: 1000
   max_steps: 20
 

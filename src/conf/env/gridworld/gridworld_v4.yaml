@@ -3,10 +3,9 @@
 env:
   name: "GridWorld"
   type: "gridworld"
-  sparse: True
   puzzle_path: "maps/test_v4.txt"
   max_steps: 50
-  delay_reward: false # TODO: should maybe make this true and remove sparse
+  delay_reward: true 
 
 training:
   log_freq: 1000  # Log every these many episodes

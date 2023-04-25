@@ -77,7 +77,7 @@ class LorlWrapper(gym.Wrapper):
         task,
         use_state=True,
         reward_multiplier=1000,
-        binary_reward=False,
+        sparse=False,
         max_steps=20,
         normalize=True,
     ):
@@ -92,7 +92,7 @@ class LorlWrapper(gym.Wrapper):
 
         self.use_state = use_state
         self.reward_multiplier = reward_multiplier
-        self.binary_reward = binary_reward
+        self.sparse = sparse
         self.max_steps = max_steps
         self.normalize = normalize
 
@@ -230,7 +230,7 @@ class LorlWrapper(gym.Wrapper):
         done = s or (self.cur_step >= self.max_steps)
 
         if done:
-            if self.binary_reward:
+            if self.sparse:
                 reward = int(s)
             else:
                 reward = (
