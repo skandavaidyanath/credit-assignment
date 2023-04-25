@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal, Categorical
 import torch.nn.functional as F
 import numpy as np
-
+from utils import weight_reset
 
 class HCAModel(nn.Module):
     """
@@ -88,6 +88,8 @@ class HCAModel(nn.Module):
         for layer in self.children():
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
+            elif isinstance(layer, torch.nn.Sequential):
+                layer.apply(weight_reset)
 
     def update_norm_stats(self, mean, std, refresh=True):
         if refresh:  # re-calculate stats each time we train model

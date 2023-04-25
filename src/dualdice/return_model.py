@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from dualdice.return_buffer import digitize_returns
-
+from utils import weight_reset
 
 class ReturnPredictor(nn.Module):
     """
@@ -92,7 +92,8 @@ class ReturnPredictor(nn.Module):
         for layer in self.children():
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
-        self.bins = None
+            elif isinstance(layer, torch.nn.Sequential):
+                layer.apply(weight_reset)
 
     def update_norm_stats(self, mean, std, refresh=True):
         if refresh:  # re-calculate stats each time we train model
