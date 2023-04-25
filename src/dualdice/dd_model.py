@@ -2,6 +2,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from utils import weight_reset
 
 
 class DualDICE(nn.Module):
@@ -96,6 +97,10 @@ class DualDICE(nn.Module):
         for layer in self.children():
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
+            elif isinstance(layer, torch.nn.Sequential):
+                layer.apply(weight_reset)
+
+
 
     def update_norm_stats(self, h_mean, h_std, pi_mean, pi_std, refresh=True):
         if refresh:  # re-calculate stats each time we train model

@@ -197,3 +197,8 @@ def get_grad_norm(model):
             2.0,
         ).item()
     return total_norm
+
+
+def weight_reset(m):
+    if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Linear):
+        m.reset_parameters()
