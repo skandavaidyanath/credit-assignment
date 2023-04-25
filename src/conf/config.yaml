@@ -22,6 +22,7 @@ env:
 
 agent:
   update_every: 50
+  update_every_env_steps: null
   ppo_epochs: 30
   eps_clip: 0.2
   lamda: 0.95
