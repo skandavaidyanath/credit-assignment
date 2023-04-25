@@ -16,7 +16,6 @@ class GridWorld(Env):
     def __init__(self, filename, sparse=True, max_steps=50):
         gridmap = open(os.path.dirname(__file__) + "/" + filename, "r").read()
 
-        self.sparse = sparse
         self.max_steps = max_steps
         self.current_steps = 0
 
@@ -96,17 +95,6 @@ class GridWorld(Env):
         if next_state == TILE_MAPPING["G"]:
             done = True
             reward = STEP_REWARD
-
-        self.episode_rewards.append(reward)
-        if self.sparse:
-            reward = 0
-            if done:
-                return (
-                    self.get_state(),
-                    sum(self.episode_rewards),
-                    done,
-                    {"success": 0},
-                )
 
         return self.get_state(), reward, done, {"success": 0}
 

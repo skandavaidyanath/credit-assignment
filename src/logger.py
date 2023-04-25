@@ -126,6 +126,7 @@ class Logger:
             )
         else:
             # stats is a dictionary during eval
+            print("\t Episode: ", step)
             print("\t Average eval returns: ", stats["avg_rewards"])
             print("\t Average eval success: ", stats["avg_success"])
 
