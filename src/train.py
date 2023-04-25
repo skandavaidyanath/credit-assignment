@@ -179,7 +179,7 @@ def train(args):
         )
 
         r_buffer = ReturnBuffer(
-            num_classes=args.agent.r_num_classes if self.quantize else 1,
+            num_classes=args.agent.r_num_classes if args.agent.r_quant else 1,
             train_val_split=args.agent.hca_train_val_split,
         )
 

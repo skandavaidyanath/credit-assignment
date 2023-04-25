@@ -51,7 +51,7 @@ class ReturnBuffer:
         states = np.array(self.states)
         # returns = np.array(self.returns).reshape((-1, self.num_classes))
         returns = np.array(self.returns).reshape(-1, 1)
-
+        bins = None
         if self.num_classes > 1:
             # quantize=True implicitly
             returns, bins = quantize_returns(returns, self.num_classes)
