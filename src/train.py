@@ -199,6 +199,7 @@ def train(args):
     )
     ca_stat_type = ""
     env_steps_between_policy_updates = 0
+    env_steps_between_ca_updates = 0
     num_policy_updates = 0
 
     # track total training time
@@ -279,6 +280,7 @@ def train(args):
         buffer.terminals.append(terminals)
 
         env_steps_between_policy_updates += ep_len
+        env_steps_between_ca_updates += ep_len
         ep_lens.append(ep_len)
 
         # Add data for HCA (and DualDice).
@@ -305,7 +307,7 @@ def train(args):
         if args.agent.name in ["ppo-hca", "hca-dualdice"]:
             if args.agent.get("hca_update_every_env_steps"):
                 time_for_ca_update = (
-                    env_steps_between_policy_updates
+                    env_steps_between_ca_updates
                     >= args.agent.hca_update_every_env_steps
                 )
             else:
@@ -399,6 +401,8 @@ def train(args):
                 print(" ============ Updated Return model =============")
                 logger.log(ret_stats, step=episode, wandb_prefix="training")
                 print("=============================================")
+                
+            env_steps_between_ca_updates = 0
 
         # Agent update (PPO)
         if args.agent.name != "random" and time_for_policy_update:
@@ -458,12 +462,12 @@ def train(args):
                 np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else 0.0
             )
 
-            total_loss = np.nan if not total_losses else np.mean(total_losses)
+            total_loss = np.nan if len(total_losses)==0 else np.mean(total_losses)
             action_loss = (
-                np.nan if not action_losses else np.mean(action_losses)
+                np.nan if len(action_losses)==0 else np.mean(action_losses)
             )
-            value_loss = np.nan if not value_losses else np.mean(value_losses)
-            entropy = np.nan if not entropies else np.mean(entropies)
+            value_loss = np.nan if len(value_losses)==0 else np.mean(value_losses)
+            entropy = np.nan if len(entropies)==0 else np.mean(entropies)
 
             stats = PPO_Stats(
                 avg_rewards=avg_reward,

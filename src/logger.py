@@ -134,10 +134,21 @@ class Logger:
             stats_dict = asdict(stats)
         else:
             stats_dict = stats
-
+            
+        stats_dict = self.remove_nans(stats_dict)
+        
         prefixed_stats_dict = self.prefix(stats_dict, wandb_prefix)
 
         wandb.log(prefixed_stats_dict, step)
+        
+    def remove_nans(self, d):
+        """
+        Remove nans that arise from inconcsistent logging schedules 
+        before logging
+        """
+        new_d = {k: v for k,v in d.items() if v is not np.nan}
+        return new_d
+        
 
     def prefix(self, d, pre):
         ca_stat_type = d.pop("ca_stat", "")
