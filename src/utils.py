@@ -168,10 +168,12 @@ def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
                 buffer.returns[ep_ind],
                 r_model,
             )
-            # TODO: should we clip these between 0 and 1?
             curr_ep_hindsight_ratios = (
                 (curr_ep_density_ratios * curr_ep_ret_probs).detach().cpu().numpy()
             )
+            # clipping between 0 and 1. Clipping at 0 is fine but clipping at 1 is a
+            # choice to think about because technically the ratios are unbounded above
+            curr_ep_hindsight_ratios = np.clip(curr_ep_hindsight_ratios, a_min=0.0, a_max=1.0)
             buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
 
 
