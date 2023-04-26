@@ -8,6 +8,7 @@ from dualdice.return_buffer import digitize_returns
 from utils import weight_reset, get_grad_norm
 import warnings
 
+
 class ReturnPredictor(nn.Module):
     """
     Class that learns to predit the probability
@@ -27,6 +28,7 @@ class ReturnPredictor(nn.Module):
         lr=3e-4,
         device="cpu",
         normalize_inputs=True,
+        normalize_targets=False,
         max_grad_norm=None,
     ):
 
@@ -40,6 +42,7 @@ class ReturnPredictor(nn.Module):
         self.num_classes = num_classes
 
         self.normalize_inputs = normalize_inputs
+        self.normalize_targets = normalize_targets
         self.max_grad_norm = max_grad_norm
 
         if activation_fn == "tanh":
@@ -78,8 +81,13 @@ class ReturnPredictor(nn.Module):
         self.batch_size = batch_size
         self.device = torch.device(device)
 
+        # Normalization statistics for input, used only if self.normalize = True
         self.input_mean = torch.zeros((state_dim,), device=device)
         self.input_std = torch.ones((state_dim,), device=device)
+
+        # Normalization statistics for target, used only if self.normalize_targets = True
+        self.target_mean = torch.zeros((1, ), device=device)
+        self.target_std = torch.zeros((1, ), device=device)
 
         # used to quantize returns during test time
         self.bins = None
@@ -102,6 +110,13 @@ class ReturnPredictor(nn.Module):
         if refresh:  # re-calculate stats each time we train model
             self.input_mean = torch.from_numpy(mean).to(self.device)
             self.input_std = torch.from_numpy(std).to(self.device)
+        else:
+            raise NotImplementedError
+
+    def update_target_stats(self, mean, std, refresh=True):
+        if refresh:
+            self.target_mean = torch.from_numpy(mean).to(self.device)
+            self.target_std = torch.from_numpy(std).to(self.device)
         else:
             raise NotImplementedError
 
@@ -148,6 +163,8 @@ class ReturnPredictor(nn.Module):
     def train_step(self, states, returns):
         states = states.to(self.device)
         returns = returns.to(self.device)
+        if self.normalize_targets and not self.quantize:
+            returns = (returns - self.target_mean) / (self.target_std + 1e-6)
         preds = self.forward(states)
 
         if self.quantize:
@@ -196,6 +213,9 @@ class ReturnPredictor(nn.Module):
                 losses.append(loss)
                 metrics.append(accuracy)
             else:
+                if self.normalize_targets:
+                    returns = (returns - self.target_mean) / (self.target_std + 1e-6)
+
                 dists = Normal(preds, self.std)
                 loss = F.gaussian_nll_loss(
                     preds, returns, dists.variance
@@ -228,6 +248,9 @@ class ReturnPredictor(nn.Module):
             quantized_returns = digitize_returns(returns, self.bins)
             return_probs = torch.gather(preds, -1, quantized_returns)
         else:
+            if self.normalize_targets:
+                returns = (returns - self.target_mean) / (self.target_std + 1e-6)
+
             # returns are real numbers
             std = self.std.to(self.device)
             dists = Normal(preds, std)

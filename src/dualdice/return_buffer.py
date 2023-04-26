@@ -79,3 +79,8 @@ class ReturnBuffer:
         states = np.array(self.states)
         inp_mean, inp_std = np.mean(states, 0), np.std(states, 0)
         return inp_mean, inp_std
+
+    def get_target_stats(self):
+        returns = np.array(self.returns).reshape(-1, 1)
+        target_mean, target_std = np.mean(returns, 0), np.std(returns, 0)
+        return target_mean, target_std
