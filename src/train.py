@@ -115,6 +115,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            max_grad_norm=args.agent.hca_max_grad_norm,
             weight_training_samples=args.agent.hca_weight_training_samples,
             noise_std=args.agent.hca_noise_std,
         )
@@ -157,6 +158,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            max_grad_norm=args.agent.dd_max_grad_norm
         )
 
         dd_buffer = DualDICEBuffer(
@@ -176,6 +178,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            max_grad_norm=args.agent.r_max_grad_norm
         )
 
         r_buffer = ReturnBuffer(

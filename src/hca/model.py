@@ -3,7 +3,8 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal, Categorical
 import torch.nn.functional as F
 import numpy as np
-from utils import weight_reset
+from utils import weight_reset, get_grad_norm
+import warnings
 
 class HCAModel(nn.Module):
     """
@@ -23,6 +24,7 @@ class HCAModel(nn.Module):
         lr=3e-4,
         device="cpu",
         normalize_inputs=True,
+        max_grad_norm=None,
         weight_training_samples=False,
         noise_std=None,
     ):
@@ -32,6 +34,7 @@ class HCAModel(nn.Module):
         self.action_dim = action_dim if continuous else 1
         self.continuous = continuous
         self.normalize_inputs = normalize_inputs
+        self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
 
         if activation_fn == "tanh":
@@ -184,6 +187,15 @@ class HCAModel(nn.Module):
 
         self.optimizer.zero_grad()
         loss.backward()
+
+        if self.max_grad_norm:
+            torch.nn.utils.clip_grad_norm_(
+                self.net.parameters(), self.max_grad_norm
+            )
+
+        if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
+            warnings.warn("Hindsight model grad norm is over 100 but is not being clipped!")
+
         self.optimizer.step()
         return loss.item(), metric.item(), entropy_stats
 

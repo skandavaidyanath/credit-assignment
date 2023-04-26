@@ -6,6 +6,7 @@ agent:
   value_loss_coeff: 0.0
   entropy_coeff: 0.1
   update_every: 50
+  update_every_env_steps: null
   hca_checkpoint: ""
   hca_n_layers: 2
   hca_hidden_size: 128
@@ -14,6 +15,7 @@ agent:
   hca_update_every_env_steps: ${agent.update_every_env_steps}   # this overrides hca_update_every 
   hca_epochs: 10
   hca_batchsize: 256
+  hca_max_grad_norm: 10.0
   hca_dropout: 0
   hca_activation: "relu"
   hca_train_val_split: [1.0, 0.0]
@@ -28,6 +30,8 @@ agent:
   # Can always make these different if required
   dd_epochs: 10
   dd_f: "square"
+  dd_max_grad_norm: 10.0
   r_epochs: 10
   r_quant: false
-  r_num_classes: 10
+  r_num_classes: 100
+  r_max_grad_norm: 10.0
