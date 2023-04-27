@@ -65,7 +65,7 @@ def train(args):
         torch.manual_seed(args.training.seed)
         np.random.seed(args.training.seed)
 
-    reward_type = "sparse" if args.env.sparse else "dense"
+    reward_type = "delayed" if args.env.delay_reward else "dense"
     exp_name = f"{args.agent.name}_{reward_type}_{args.env.name}"
     if args.env.type == "gridworld":
         exp_name += f":{args.env.puzzle_path.lstrip('maps/').rstrip('.txt')}"
@@ -92,6 +92,12 @@ def train(args):
             args.logger.wandb,
             group_modifier=args.logger.group_name_modifier,
         )
+
+    # Need to train the Value network if we plan to stop HCA at some point
+    if args.agent.stop_hca:
+        assert (
+            args.agent.value_loss_coeff >= 0.0
+        ), "Please provide a value loss coefficient >=0 when stopping HCA!"
 
     # Agent
     agent = PPO(state_dim, action_dim, args.agent.lr, continuous, device, args)

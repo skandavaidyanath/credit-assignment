@@ -3,7 +3,6 @@
 env:
   name: "GridWorld"
   type: "gridworld"
-  sparse: True
   puzzle_path: "maps/test_v5.txt"
   max_steps: 100
   delay_reward: true 
