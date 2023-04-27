@@ -158,7 +158,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
-            max_grad_norm=args.agent.dd_max_grad_norm
+            max_grad_norm=args.agent.dd_max_grad_norm,
         )
 
         dd_buffer = DualDICEBuffer(
@@ -179,7 +179,7 @@ def train(args):
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
             normalize_targets=args.agent.r_normalize_targets,
-            max_grad_norm=args.agent.r_max_grad_norm
+            max_grad_norm=args.agent.r_max_grad_norm,
         )
 
         r_buffer = ReturnBuffer(
@@ -306,7 +306,7 @@ def train(args):
             )
         else:
             time_for_policy_update = episode % args.agent.update_every == 0
-            
+
         # Determine whether the hindsight functions will be updated now or not.
         if args.agent.name in ["ppo-hca", "hca-dualdice"]:
             if args.agent.get("hca_update_every_env_steps"):
@@ -316,8 +316,6 @@ def train(args):
                 )
             else:
                 time_for_ca_update = episode % args.agent.hca_update_every == 0
-            
-        
 
         # Update credit assignment (hca) model, if needed.
         # Always update the HCA model the first time before a PPO update.
@@ -348,9 +346,9 @@ def train(args):
                 # Log every time we update the model and don't use the log freq
                 hca_stats = HCA_Stats(**hca_results)
 
-                print(" ============ Updated HCA model =============")
+                # print(" ============ Updated HCA model =============")
                 logger.log(hca_stats, step=episode, wandb_prefix="training")
-                print("=============================================")
+                # print("=============================================")
 
             if args.agent.name in ["hca-dualdice"]:
                 # normalize inputs if required
@@ -375,9 +373,9 @@ def train(args):
                 # Log every time we update the model and don't use the log freq
                 dd_stats = DD_Stats(**dd_results)
 
-                print(" ============ Updated DD model =============")
+                # print(" ============ Updated DD model =============")
                 logger.log(dd_stats, step=episode, wandb_prefix="training")
-                print("=============================================")
+                # print("=============================================")
 
                 # Return model update
                 # normalize inputs if required
@@ -407,10 +405,10 @@ def train(args):
                 # Log every time we update the model and don't use the log freq
                 ret_stats = Return_Stats(**ret_results)
 
-                print(" ============ Updated Return model =============")
+                # print(" ============ Updated Return model =============")
                 logger.log(ret_stats, step=episode, wandb_prefix="training")
-                print("=============================================")
-                
+                # print("=============================================")
+
             env_steps_between_ca_updates = 0
 
         # Agent update (PPO)
@@ -426,6 +424,7 @@ def train(args):
                     buffer,
                     dd_model=dd_model,
                     r_model=r_model,
+                    clip_ratios=args.agent.clip_ratios,
                 )
 
             # Perform the actual PPO update.
@@ -451,6 +450,18 @@ def train(args):
             env_steps_between_policy_updates = 0
             num_policy_updates += 1
 
+            # At the end of this update, switch from HCA algo to regular PPO if required
+            if (
+                args.agent.name != "ppo"
+                and args.agent.stop_hca
+                and episode >= args.agent.stop_hca
+            ):
+                print("######################################")
+                print("STOPPING HCA, SWITCHING TO VANILLA PPO")
+                print("######################################")
+                args.agent.name = "ppo"
+                agent.adv = "gae"
+
         # logging
         if args.training.log_freq and episode % args.training.log_freq == 0:
 
@@ -471,12 +482,16 @@ def train(args):
                 np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else 0.0
             )
 
-            total_loss = np.nan if len(total_losses)==0 else np.mean(total_losses)
-            action_loss = (
-                np.nan if len(action_losses)==0 else np.mean(action_losses)
+            total_loss = (
+                np.nan if len(total_losses) == 0 else np.mean(total_losses)
             )
-            value_loss = np.nan if len(value_losses)==0 else np.mean(value_losses)
-            entropy = np.nan if len(entropies)==0 else np.mean(entropies)
+            action_loss = (
+                np.nan if len(action_losses) == 0 else np.mean(action_losses)
+            )
+            value_loss = (
+                np.nan if len(value_losses) == 0 else np.mean(value_losses)
+            )
+            entropy = np.nan if len(entropies) == 0 else np.mean(entropies)
 
             stats = PPO_Stats(
                 avg_rewards=avg_reward,

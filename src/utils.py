@@ -135,7 +135,9 @@ def get_ret_probs(states, returns, r_model):
     return ret_probs
 
 
-def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
+def assign_hindsight_info(
+    buffer, h_model=None, dd_model=None, r_model=None, clip_ratios=True
+):
     """
     Assigns hindsight logprobs when h_model is passed, otherwise, calculates
     and assigns ratios directly using the dd_model and r_model.
@@ -169,11 +171,17 @@ def assign_hindsight_info(buffer, h_model=None, dd_model=None, r_model=None):
                 r_model,
             )
             curr_ep_hindsight_ratios = (
-                (curr_ep_density_ratios * curr_ep_ret_probs).detach().cpu().numpy()
+                (curr_ep_density_ratios * curr_ep_ret_probs)
+                .detach()
+                .cpu()
+                .numpy()
             )
             # clipping between 0 and 1. Clipping at 0 is fine but clipping at 1 is a
             # choice to think about because technically the ratios are unbounded above
-            curr_ep_hindsight_ratios = np.clip(curr_ep_hindsight_ratios, a_min=0.0, a_max=1.0)
+            if clip_ratios:
+                curr_ep_hindsight_ratios = np.clip(
+                    curr_ep_hindsight_ratios, a_min=0.0, a_max=1.0
+                )
             buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
 
 

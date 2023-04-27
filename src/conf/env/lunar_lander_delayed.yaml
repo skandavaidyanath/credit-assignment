@@ -24,3 +24,7 @@ agent:
   lamda: 0.95
   entropy_coeff: 0.0
   max_grad_norm: 0.5
+  hca_max_grad_norm: 10.0
+  dd_max_grad_norm: 10.0
+  r_max_grad_norm: 10.0
+  r_normalize_targets: True

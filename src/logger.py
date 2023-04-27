@@ -108,22 +108,25 @@ class Logger:
                 f"Episode: {step} \t\t Average Reward: {stats.avg_rewards:.4f} \t\t Average Success: {stats.avg_success:.4f}"
             )
         elif isinstance(stats, HCA_Stats):
-            print(
-                f"HCA Train Stats --- Loss: {stats.hca_train_loss} | Logprobs: {stats.hca_train_logprobs} | Acc: {stats.hca_train_acc}"
-            )
-            print(
-                f"HCA Val Stats --- Loss: {stats.hca_val_loss} | Logprobs: {stats.hca_val_logprobs} | Acc: {stats.hca_val_acc}"
-            )
+            # print(
+            #     f"HCA Train Stats --- Loss: {stats.hca_train_loss} | Logprobs: {stats.hca_train_logprobs} | Acc: {stats.hca_train_acc}"
+            # )
+            # print(
+            #     f"HCA Val Stats --- Loss: {stats.hca_val_loss} | Logprobs: {stats.hca_val_logprobs} | Acc: {stats.hca_val_acc}"
+            # )
+            pass
         elif isinstance(stats, DD_Stats):
-            print(f"DualDice Train Loss: {stats.dd_train_loss}")
-            print(f"DualDice Val Loss: {stats.dd_val_loss}")
+            # print(f"DualDice Train Loss: {stats.dd_train_loss}")
+            # print(f"DualDice Val Loss: {stats.dd_val_loss}")
+            pass
         elif isinstance(stats, Return_Stats):
-            print(
-                f"Return Model Train Stats --- Loss: {stats.ret_train_loss} | Logprobs: {stats.ret_train_logprobs} | Acc: {stats.ret_train_acc}"
-            )
-            print(
-                f"Return model Val Stats --- Loss: {stats.ret_val_loss} | Logprobs: {stats.ret_val_logprobs} | Acc: {stats.ret_val_logprobs}"
-            )
+            # print(
+            #     f"Return Model Train Stats --- Loss: {stats.ret_train_loss} | Logprobs: {stats.ret_train_logprobs} | Acc: {stats.ret_train_acc}"
+            # )
+            # print(
+            #     f"Return model Val Stats --- Loss: {stats.ret_val_loss} | Logprobs: {stats.ret_val_logprobs} | Acc: {stats.ret_val_logprobs}"
+            # )
+            pass
         else:
             # stats is a dictionary during eval
             print("\t Episode: ", step)
@@ -135,21 +138,20 @@ class Logger:
             stats_dict = asdict(stats)
         else:
             stats_dict = stats
-            
+
         stats_dict = self.remove_nans(stats_dict)
-        
+
         prefixed_stats_dict = self.prefix(stats_dict, wandb_prefix)
 
         wandb.log(prefixed_stats_dict, step)
-        
+
     def remove_nans(self, d):
         """
-        Remove nans that arise from inconcsistent logging schedules 
+        Remove nans that arise from inconcsistent logging schedules
         before logging
         """
-        new_d = {k: v for k,v in d.items() if v is not np.nan}
+        new_d = {k: v for k, v in d.items() if v is not np.nan}
         return new_d
-        
 
     def prefix(self, d, pre):
         ca_stat_type = d.pop("ca_stat", "")
