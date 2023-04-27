@@ -115,6 +115,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            max_grad_norm=args.agent.hca_max_grad_norm,
             weight_training_samples=args.agent.hca_weight_training_samples,
             noise_std=args.agent.hca_noise_std,
         )
@@ -157,6 +158,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            max_grad_norm=args.agent.dd_max_grad_norm
         )
 
         dd_buffer = DualDICEBuffer(
@@ -176,6 +178,8 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            normalize_targets=args.agent.r_normalize_targets,
+            max_grad_norm=args.agent.r_max_grad_norm
         )
 
         r_buffer = ReturnBuffer(
@@ -381,6 +385,11 @@ def train(args):
                     input_mean, input_std = r_buffer.get_input_stats()
                     r_model.update_norm_stats(
                         input_mean, input_std, args.agent.refresh_hca
+                    )
+                if r_model.normalize_targets:
+                    target_mean, target_std = r_buffer.get_target_stats()
+                    r_model.update_target_stats(
+                        target_mean, target_std, args.agent.refresh_hca
                     )
 
                 # reset the model if you want

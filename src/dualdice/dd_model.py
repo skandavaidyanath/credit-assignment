@@ -2,7 +2,8 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-from utils import weight_reset
+from utils import weight_reset, get_grad_norm
+import warnings
 
 
 class DualDICE(nn.Module):
@@ -26,6 +27,7 @@ class DualDICE(nn.Module):
         lr=3e-4,
         device="cpu",
         normalize_inputs=True,
+        max_grad_norm=None,
     ):
 
         super(DualDICE, self).__init__()
@@ -34,6 +36,7 @@ class DualDICE(nn.Module):
         self.action_dim = action_dim
         self.f = f
         self.normalize_inputs = normalize_inputs
+        self.max_grad_norm = max_grad_norm
 
         if activation_fn == "tanh":
             activation = nn.Tanh
@@ -151,6 +154,15 @@ class DualDICE(nn.Module):
 
         self.optimizer.zero_grad()
         loss.backward()
+
+        if self.max_grad_norm:
+            torch.nn.utils.clip_grad_norm_(
+                self.net.parameters(), self.max_grad_norm
+            )
+
+        if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
+            warnings.warn("DD model grad norm is over 100 but is not being clipped!")
+
         self.optimizer.step()
         return loss.item()
 
