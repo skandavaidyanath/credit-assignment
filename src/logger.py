@@ -136,18 +136,18 @@ class Logger:
         else:
             stats_dict = stats
             
-        stats_dict = self.remove_nans(stats_dict)
+        stats_dict = self.remove_nans_nones(stats_dict)
         
         prefixed_stats_dict = self.prefix(stats_dict, wandb_prefix)
 
         wandb.log(prefixed_stats_dict, step)
         
-    def remove_nans(self, d):
+    def remove_nans_nones(self, d):
         """
         Remove nans that arise from inconcsistent logging schedules 
         before logging
         """
-        new_d = {k: v for k,v in d.items() if v is not np.nan}
+        new_d = {k: v for k,v in d.items() if (v is not np.nan or v is not None)}
         return new_d
         
 

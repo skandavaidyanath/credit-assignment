@@ -49,6 +49,8 @@ def get_env(args):
         env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
     elif args.env.type == "gym":
         env = gym.make(args.env.name)
+        if args.env.max_ep_len:
+            env._max_episode_steps = args.env.max_ep_len
     else:
         raise NotImplementedError
 

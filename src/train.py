@@ -459,24 +459,24 @@ def train(args):
             avg_ep_len = np.mean(ep_lens)
 
             ca_stat_min = (
-                np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else 0.0
+                np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else None
             )
             ca_stat_max = (
-                np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else 0.0
+                np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else None
             )
             ca_stat_mean = (
-                np.mean(ca_stat_means) if len(ca_stat_means) > 0 else 0.0
+                np.mean(ca_stat_means) if len(ca_stat_means) > 0 else None
             )
             ca_stat_std = (
-                np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else 0.0
+                np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else None
             )
 
-            total_loss = np.nan if len(total_losses)==0 else np.mean(total_losses)
+            total_loss = None if len(total_losses)==0 else np.mean(total_losses)
             action_loss = (
-                np.nan if len(action_losses)==0 else np.mean(action_losses)
+                None if len(action_losses)==0 else np.mean(action_losses)
             )
-            value_loss = np.nan if len(value_losses)==0 else np.mean(value_losses)
-            entropy = np.nan if len(entropies)==0 else np.mean(entropies)
+            value_loss = None if len(value_losses)==0 else np.mean(value_losses)
+            entropy = None if len(entropies)==0 else np.mean(entropies)
 
             stats = PPO_Stats(
                 avg_rewards=avg_reward,

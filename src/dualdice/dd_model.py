@@ -66,7 +66,7 @@ class DualDICE(nn.Module):
             layers.append(nn.Linear(state_dim + action_dim + 1, 1))
         else:
             layers.append(nn.Linear(hidden_size, 1))
-
+        layers.append(nn.Sigmoid())
         self.net = nn.Sequential(*layers).to(device)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)

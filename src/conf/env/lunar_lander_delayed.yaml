@@ -6,6 +6,7 @@ env:
   sparse: false
   delay_reward: true
   gamma: 0.99
+  max_ep_len: null
 
 training:
   log_freq: 10  # Log every these many episodes
