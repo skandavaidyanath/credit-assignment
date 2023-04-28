@@ -4,7 +4,7 @@ from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
 import numpy as np
 
-from utils import flatten, unflatten, sigmoid, normalized_atan
+from utils import flatten, normalized_atan
 
 
 class ActorCritic(nn.Module):
@@ -369,7 +369,10 @@ class PPO:
                 # hca adv
                 # normalizing the MC returns seems to help stability
                 # and performance here
-                if hindsight_logprobs is not None and len(hindsight_logprobs) > 0:
+                if (
+                    hindsight_logprobs is not None
+                    and len(hindsight_logprobs) > 0
+                ):
                     advantages, ca_stats = self.estimate_hca_advantages(
                         returns,
                         logprobs=logprobs,

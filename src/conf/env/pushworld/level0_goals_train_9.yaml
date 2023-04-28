@@ -1,10 +1,10 @@
 # @package _global_
 
 env:
-  name: "road_block"
+  name: "level0_goals_train_9"
   type: "pushworld"
   sparse: True
-  puzzle_path: "pushworld_env/benchmark/puzzles/level1/Road Block.pwp"
+  puzzle_path: "pushworld_env/benchmark/puzzles/level0/goals/train/level_0_goals_train_9.pwp"
   max_steps: 50
   use_state: True
   gamma: 1.0
@@ -17,7 +17,7 @@ training:
   num_eval_eps: 1
 
 agent:
-  value_loss_coeff: 0.1
+  value_loss_coeff: 0.1 
   n_layers: 2
   hidden_size: 64
-  entropy_coeff: 0.0
+  entropy_coeff: 0.1

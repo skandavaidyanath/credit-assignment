@@ -3,7 +3,6 @@
 env:
   name: "GridWorld"
   type: "gridworld"
-  sparse: True
   puzzle_path: "maps/test_v5.txt"
   max_steps: 100
   delay_reward: true 
@@ -19,3 +18,7 @@ agent:
   n_layers: 2
   hidden_size: 64
   entropy_coeff: 0.0
+  hca_max_grad_norm: null
+  dd_max_grad_norm: null
+  r_max_grad_norm: null
+  r_normalize_targets: false

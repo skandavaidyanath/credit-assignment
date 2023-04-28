@@ -15,7 +15,6 @@ agent:
   hca_update_every_env_steps: ${agent.update_every_env_steps}   # this overrides hca_update_every 
   hca_epochs: 10
   hca_batchsize: 256
-  hca_max_grad_norm: 10.0
   hca_dropout: 0
   hca_activation: "relu"
   hca_train_val_split: [1.0, 0.0]
@@ -24,15 +23,14 @@ agent:
   hca_normalize_inputs: false
   hca_noise_std: null
   smoothing_fn: null
+  stop_hca: null
+  clip_ratios: true # clips ratios to be between 0 and 1
   # several of the above are assumed as defaults for DD
   # and return predictor training to avoid hyperparam choice
   # blow-up
   # Can always make these different if required
   dd_epochs: 10
   dd_f: "square"
-  dd_max_grad_norm: 10.0
   r_epochs: 10
   r_quant: false
   r_num_classes: 100
-  r_max_grad_norm: 10.0
-  r_normalize_targets: True
