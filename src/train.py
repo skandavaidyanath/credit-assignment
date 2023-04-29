@@ -3,13 +3,23 @@ from omegaconf import DictConfig, OmegaConf
 import datetime
 import os
 import random
+import warnings
 
 # suppress D4RL warnings
 os.environ["D4RL_SUPPRESS_IMPORT_ERROR"] = "1"
 
+# suppress training split warnings in DualDICE training
+warnings.filterwarnings(
+    "ignore",
+    "Length of split at index 1 is 0. This might result in an empty dataset",
+)
+
+
 import gym
 import numpy as np
 import torch
+
+from gridworld.gridworld_env import GridWorld
 
 from ppo.model import PPO
 from ppo.buffer import RolloutBuffer
@@ -45,7 +55,7 @@ def train(args):
     else:
         action_dim = env.action_space.n
 
-    if isinstance(env.observation_space, gym.spaces.Dict):
+    if isinstance(env, GridWorld):
         # gridworld env
         state_dim = env.observation_space["map"].shape[0] + 1
     else:

@@ -1,3 +1,5 @@
+# Code adapted from https://github.com/microsoft/Intrepid/
+
 import numpy as np
 import math
 import gym
@@ -25,7 +27,7 @@ def get_sylvester_hadamhard_matrix_dim(lower_bound):
 class DiabolicalCombinationLock(gym.Env):
 
     env_name = "diabcombolock"
-    BERNOULLI, GAUSSIAN, HADAMHARD, HADAMHARDG = range(4)
+    NONE, BERNOULLI, GAUSSIAN, HADAMHARD, HADAMHARDG = range(5)
 
     def __init__(self, config):
         """
@@ -61,7 +63,13 @@ class DiabolicalCombinationLock(gym.Env):
             low=0, high=self.num_actions, size=self.horizon
         )
 
-        if self.noise_type == DiabolicalCombinationLock.GAUSSIAN:
+        if self.noise_type == DiabolicalCombinationLock.NONE:
+
+            # No noise is added and we return the underlying state directly which is
+            # the state type and the time
+            self.dim = 2
+
+        elif self.noise_type == DiabolicalCombinationLock.GAUSSIAN:
 
             # We encode the state type and time separately. The type is one of the 3 and the time could be any value
             # in 1 to horizon + 1.
@@ -94,7 +102,7 @@ class DiabolicalCombinationLock(gym.Env):
         else:
             raise AssertionError("Unhandled noise type %r" % self.noise_type)
 
-        #######
+        ############
 
         self.curr_state = None  # Current state
         self.timestep = -1  # Current time step
@@ -163,7 +171,9 @@ class DiabolicalCombinationLock(gym.Env):
     @staticmethod
     def get_noise(noise_type_str):
 
-        if noise_type_str == "bernoulli":
+        if noise_type_str == "none":
+            return DiabolicalCombinationLock.NONE
+        elif noise_type_str == "bernoulli":
             return DiabolicalCombinationLock.BERNOULLI
 
         elif noise_type_str == "gaussian":
@@ -215,7 +225,11 @@ class DiabolicalCombinationLock(gym.Env):
 
     def make_obs(self, x):
 
-        if self.noise_type == DiabolicalCombinationLock.BERNOULLI:
+        if self.noise_type == DiabolicalCombinationLock.NONE:
+
+            v = np.array(x)
+
+        elif self.noise_type == DiabolicalCombinationLock.BERNOULLI:
 
             v = np.zeros(self.dim, dtype=float)
             v[x[0]] = 1.0
@@ -284,7 +298,37 @@ class DiabolicalCombinationLock(gym.Env):
 
 
 if __name__ == "__main__":
-    # TODO: Test environment
-    pass
-    # config = ?
-    # env = DiabolicalCombinationLock(config)
+    from collections import namedtuple
+
+    Config = namedtuple("Config", ["env", "training"])
+    Env = namedtuple(
+        "Env",
+        [
+            "horizon",
+            "swap_prob",
+            "spawn_prob",
+            "noise_type",
+            "num_actions",
+            "optimal_reward",
+            "anti_shaping_reward",
+            "anti_shaping_reward2",
+        ],
+    )
+    Training = namedtuple("Training", ["seed"])
+
+    training = Training(seed=0)
+    env = Env(
+        horizon=50,
+        swap_prob=0.0,
+        spawn_prob=0.5,
+        noise_type="none",
+        num_actions=5,
+        optimal_reward=100,
+        anti_shaping_reward=5,
+        anti_shaping_reward2=5,
+    )
+    config = Config(env=env, training=training)
+
+    diab_env = DiabolicalCombinationLock(config)
+
+    print(diab_env.reset())
