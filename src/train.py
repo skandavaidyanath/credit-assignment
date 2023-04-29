@@ -486,16 +486,16 @@ def train(args):
             avg_ep_len = np.mean(ep_lens)
 
             ca_stat_min = (
-                np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else 0.0
+                np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else np.nan
             )
             ca_stat_max = (
-                np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else 0.0
+                np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else np.nan
             )
             ca_stat_mean = (
-                np.mean(ca_stat_means) if len(ca_stat_means) > 0 else 0.0
+                np.mean(ca_stat_means) if len(ca_stat_means) > 0 else np.nan
             )
             ca_stat_std = (
-                np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else 0.0
+                np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else np.nan
             )
 
             total_loss = (
