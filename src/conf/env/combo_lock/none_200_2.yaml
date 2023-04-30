@@ -1,0 +1,31 @@
+# @package _global_
+
+env:
+  name: "DiabolicalComboLock"
+  type: "combo_lock"
+  noise_type: "none"
+  horizon: 200
+  swap_prob: 0.5
+  spawn_prob: 0.5
+  num_actions: 2
+  optimal_reward: 100
+  optimal_reward_prob: 1.0
+  anti_shaping_reward: 5
+  anti_shaping_reward2: 5
+  delay_reward: false # env is delayed reward by default
+
+training:
+  log_freq: 1000  # Log every these many episodes
+  save_model_freq: 0 # Save networks every these many episodes
+  eval_freq: 5000 # eval every these many episodes
+  num_eval_eps: 1
+
+agent:
+  value_loss_coeff: 0.01
+  n_layers: 2
+  hidden_size: 64
+  entropy_coeff: 0.0
+  hca_max_grad_norm: 10.0
+  dd_max_grad_norm: 10.0
+  r_max_grad_norm: 10.0
+  r_normalize_targets: true

@@ -86,8 +86,8 @@ class ReturnPredictor(nn.Module):
         self.input_std = torch.ones((state_dim,), device=device)
 
         # Normalization statistics for target, used only if self.normalize_targets = True
-        self.target_mean = torch.zeros((1, ), device=device)
-        self.target_std = torch.zeros((1, ), device=device)
+        self.target_mean = torch.zeros((1,), device=device)
+        self.target_std = torch.zeros((1,), device=device)
 
         # used to quantize returns during test time
         self.bins = None
@@ -188,8 +188,8 @@ class ReturnPredictor(nn.Module):
                 self.net.parameters(), self.max_grad_norm
             )
 
-        if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
-            warnings.warn("Return model grad norm is over 100 but is not being clipped!")
+        # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
+        #     warnings.warn("Return model grad norm is over 100 but is not being clipped!")
 
         self.optimizer.step()
 
@@ -214,7 +214,9 @@ class ReturnPredictor(nn.Module):
                 metrics.append(accuracy)
             else:
                 if self.normalize_targets:
-                    returns = (returns - self.target_mean) / (self.target_std + 1e-6)
+                    returns = (returns - self.target_mean) / (
+                        self.target_std + 1e-6
+                    )
 
                 dists = Normal(preds, self.std)
                 loss = F.gaussian_nll_loss(
@@ -249,7 +251,9 @@ class ReturnPredictor(nn.Module):
             return_probs = torch.gather(preds, -1, quantized_returns)
         else:
             if self.normalize_targets:
-                returns = (returns - self.target_mean) / (self.target_std + 1e-6)
+                returns = (returns - self.target_mean) / (
+                    self.target_std + 1e-6
+                )
 
             # returns are real numbers
             std = self.std.to(self.device)
