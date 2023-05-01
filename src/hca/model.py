@@ -6,6 +6,7 @@ import numpy as np
 from utils import weight_reset, get_grad_norm
 import warnings
 
+
 class HCAModel(nn.Module):
     """
     HCA model to predict action probabilities conditioned on returns and state
@@ -193,8 +194,8 @@ class HCAModel(nn.Module):
                 self.net.parameters(), self.max_grad_norm
             )
 
-        if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
-            warnings.warn("Hindsight model grad norm is over 100 but is not being clipped!")
+        # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
+        #     warnings.warn("Hindsight model grad norm is over 100 but is not being clipped!")
 
         self.optimizer.step()
         return loss.item(), metric.item(), entropy_stats

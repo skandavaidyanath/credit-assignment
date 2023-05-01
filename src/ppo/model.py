@@ -274,7 +274,7 @@ class PPO:
                 self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
             )
 
-        advantages = torch.tensor(advantages, dtype=torch.float32)
+        advantages = torch.tensor(advantages, dtype=torch.float32).to(self.device)
         returns = advantages + values.detach()
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7

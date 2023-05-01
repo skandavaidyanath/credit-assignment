@@ -66,7 +66,10 @@ class DualDICE(nn.Module):
             layers.append(nn.Linear(state_dim + action_dim + 1, 1))
         else:
             layers.append(nn.Linear(hidden_size, 1))
+
+        # this makes the output positive and within a stable range
         layers.append(nn.Sigmoid())
+
         self.net = nn.Sequential(*layers).to(device)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
@@ -102,8 +105,6 @@ class DualDICE(nn.Module):
                 layer.reset_parameters()
             elif isinstance(layer, torch.nn.Sequential):
                 layer.apply(weight_reset)
-
-
 
     def update_norm_stats(self, h_mean, h_std, pi_mean, pi_std, refresh=True):
         if refresh:  # re-calculate stats each time we train model
@@ -160,8 +161,10 @@ class DualDICE(nn.Module):
                 self.net.parameters(), self.max_grad_norm
             )
 
-        if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
-            warnings.warn("DD model grad norm is over 100 but is not being clipped!")
+        # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
+        #     warnings.warn(
+        #         "DD model grad norm is over 100 but is not being clipped!"
+        #     )
 
         self.optimizer.step()
         return loss.item()

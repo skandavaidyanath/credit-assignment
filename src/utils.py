@@ -19,6 +19,8 @@ except:
 from wrappers.lorl import LorlWrapper
 from wrappers.pw_wrapper import PushWorldWrapper
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
+from blockworld.blockworld import BlockWorldSingleEnv
+from combo_lock.combo_lock import DiabolicalCombinationLock
 
 
 def get_env(args):
@@ -30,6 +32,15 @@ def get_env(args):
             sparse=args.env.sparse,
             max_steps=args.env.max_steps,
         )
+    elif args.env.type == "blockworld":
+        env = BlockWorldSingleEnv(
+            gridlen=args.env.gridlen,
+            num_blocks=args.env.num_blocks,
+            num_colors=args.env.num_colors,
+            blocksize=args.env.blocksize,
+        )
+    elif args.env.type == "combo_lock":
+        env = DiabolicalCombinationLock(args)
     elif args.env.type == "lorl":
         env = LorlWrapper(
             gym.make(args.env.name),
