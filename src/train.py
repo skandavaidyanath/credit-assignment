@@ -133,6 +133,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            normalize_return_inputs_only=args.agent.hca_normalize_return_inputs_only,
             max_grad_norm=args.agent.hca_max_grad_norm,
             weight_training_samples=args.agent.hca_weight_training_samples,
             noise_std=args.agent.hca_noise_std,
@@ -176,6 +177,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            normalize_return_inputs_only=args.agent.hca_normalize_return_inputs_only,
             max_grad_norm=args.agent.dd_max_grad_norm,
         )
 
@@ -342,7 +344,7 @@ def train(args):
 
             # normalize inputs if required
             if h_model.normalize_inputs:
-                input_mean, input_std = hca_buffer.get_input_stats()
+                input_mean, input_std = hca_buffer.get_input_stats(h_model.normalize_return_inputs_only)
                 h_model.update_norm_stats(
                     input_mean, input_std, args.agent.refresh_hca
                 )
@@ -373,9 +375,9 @@ def train(args):
 
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
-                    h_mean, h_std, pi_mean, pi_std = dd_buffer.get_input_stats()
+                    dd_inp_mean, dd_inp_std = dd_buffer.get_input_stats(dd_model.normalize_return_inputs_only)
                     dd_model.update_norm_stats(
-                        h_mean, h_std, pi_mean, pi_std, args.agent.refresh_hca
+                        dd_inp_mean, dd_inp_std, args.agent.refresh_hca
                     )
 
                 # reset the model if you want

@@ -24,7 +24,8 @@ class HCAModel(nn.Module):
         batch_size=64,
         lr=3e-4,
         device="cpu",
-        normalize_inputs=True,
+        normalize_inputs=False,
+        normalize_return_inputs_only=False,
         max_grad_norm=None,
         weight_training_samples=False,
         noise_std=None,
@@ -34,7 +35,8 @@ class HCAModel(nn.Module):
         self.state_dim = state_dim
         self.action_dim = action_dim if continuous else 1
         self.continuous = continuous
-        self.normalize_inputs = normalize_inputs
+        self.normalize_inputs = normalize_inputs or normalize_return_inputs_only
+        self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
 
@@ -97,8 +99,8 @@ class HCAModel(nn.Module):
 
     def update_norm_stats(self, mean, std, refresh=True):
         if refresh:  # re-calculate stats each time we train model
-            self.input_mean = torch.from_numpy(mean).to(self.device)
-            self.input_std = torch.from_numpy(std).to(self.device)
+            self.input_mean = torch.from_numpy(mean).to(self.device).float()
+            self.input_std = torch.from_numpy(std).to(self.device).float()
         else:
             raise NotImplementedError
 
@@ -107,7 +109,8 @@ class HCAModel(nn.Module):
         forward pass a bunch of inputs into the model
         """
         if self.normalize_inputs:
-            inputs = (inputs - inputs.mean()) / (inputs.std() + 1e-6)
+            # if self.normalize_return_inputs_only==True, then the non-return input mean and std will be 0 and 1 resp.
+            inputs = (inputs - self.input_mean) / (self.input_std + 1e-6)
 
         out = self.net(inputs)
         if self.noise_std and add_noise:
