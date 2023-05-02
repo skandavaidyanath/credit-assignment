@@ -122,7 +122,7 @@ def train(args):
     h_model, hca_buffer = None, None
     if args.agent.name in ["ppo-hca", "hca-dualdice"]:
         h_model = HCAModel(
-            state_dim + 1,  # +1 is for return-conditioned
+            input_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
             n_layers=args.agent.hca_n_layers,
@@ -165,7 +165,7 @@ def train(args):
         dd_act_dim = action_dim if continuous else 1
 
         dd_model = DualDICE(
-            state_dim=state_dim,
+            state_dim=input_dim,
             action_dim=dd_act_dim,
             f=args.agent.dd_f,
             n_layers=args.agent.hca_n_layers,
@@ -185,7 +185,7 @@ def train(args):
         )
 
         r_model = ReturnPredictor(
-            state_dim=state_dim,
+            state_dim=input_dim,
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
             n_layers=args.agent.hca_n_layers,
