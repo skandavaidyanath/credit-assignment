@@ -19,7 +19,7 @@ except:
 from wrappers.lorl import LorlWrapper
 from wrappers.pw_wrapper import PushWorldWrapper
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
-from wrappers.atari_wrappers import AtariWrapper
+from wrappers.atari_wrappers import AtariWrapper, PyTorchFrame
 from blockworld.blockworld import BlockWorldSingleEnv
 from combo_lock.combo_lock import DiabolicalCombinationLock
 
@@ -36,6 +36,7 @@ def get_env(args):
     elif args.env.type == "atari":
         env = gym.make(args.env.name)
         env = AtariWrapper(env)
+        env = PyTorchFrame(env)
     elif args.env.type == "blockworld":
         env = BlockWorldSingleEnv(
             gridlen=args.env.gridlen,

@@ -1,0 +1,31 @@
+# @package _global_
+
+env:
+  name: "PongNoFrameskip-v4"
+  type: "atari"
+  sparse: false
+  delay_reward: true
+  gamma: 1.0
+  max_ep_len: null
+
+training:
+  log_freq: 10  # Log every these many episodes
+  save_model_freq: 0 # Save networks every these many episodes
+  eval_freq: 10 # eval every these many episodes
+  num_eval_eps: 10
+
+agent:
+  update_every_env_steps: 2048
+  update_every: null
+  ppo_epochs: 80
+  value_loss_coeff: 0.5
+  n_layers: 3
+  hidden_size: 128
+  lr: 3e-4
+  lamda: 0.95
+  entropy_coeff: 0.0
+  max_grad_norm: 0.5
+  hca_max_grad_norm: 10.0
+  dd_max_grad_norm: 10.0
+  r_max_grad_norm: 10.0
+  r_normalize_targets: True
