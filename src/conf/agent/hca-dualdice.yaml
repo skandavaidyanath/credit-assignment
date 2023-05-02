@@ -34,3 +34,7 @@ agent:
   r_epochs: 10
   r_quant: false
   r_num_classes: 100
+  hca_max_grad_norm: 10.0
+  dd_max_grad_norm: 10.0
+  r_max_grad_norm: 10.0
+  r_normalize_targets: True

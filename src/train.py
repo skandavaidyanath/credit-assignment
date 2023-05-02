@@ -19,8 +19,6 @@ import gym
 import numpy as np
 import torch
 
-from gridworld.gridworld_env import GridWorld
-
 from ppo.model import PPO
 from ppo.buffer import RolloutBuffer
 
@@ -55,11 +53,15 @@ def train(args):
     else:
         action_dim = env.action_space.n
 
-    if isinstance(env, GridWorld):
+    if args.env.type == "gridworld":
         # gridworld env
-        state_dim = env.observation_space["map"].shape[0] + 1
+        input_dim = env.observation_space["map"].shape[0] + 1
+    elif args.env.type == "atari":
+        # Atari env
+        state = env.reset()
+        input_dim = state.shape[0]
     else:
-        state_dim = env.observation_space.shape[0]
+        input_dim = env.observation_space.shape[0]
 
     if args.training.seed:
         print(
@@ -110,7 +112,7 @@ def train(args):
         ), "Please provide a value loss coefficient >=0 when stopping HCA!"
 
     # Agent
-    agent = PPO(state_dim, action_dim, args.agent.lr, continuous, device, args)
+    agent = PPO(input_dim, action_dim, args.agent.lr, continuous, device, args)
 
     if args.training.checkpoint:
         checkpoint = torch.load(args.training.checkpoint)

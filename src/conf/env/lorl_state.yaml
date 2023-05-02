@@ -9,6 +9,7 @@ env:
   normalize: True
   reward_multiplier: 1000
   max_steps: 20
+  delay_reward: False
 
 training:
   max_training_episodes: 20000
