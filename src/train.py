@@ -308,10 +308,8 @@ def train(args):
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
             if args.agent.name in ["hca-dualdice"]:
-                h_actions = get_hindsight_actions(h_model, states, returns)
                 pi_actions = actions
-                dd_buffer.add_episode(states, h_actions, pi_actions, returns)
-
+                dd_buffer.add_episode(states, pi_actions, returns)
                 r_buffer.add_episode(states, returns)
 
         # Determine whether the policy will be updated now or not.
@@ -367,6 +365,10 @@ def train(args):
                 # print("=============================================")
 
             if args.agent.name in ["hca-dualdice"]:
+                # compute the hindsight actions for the dualdice buffer
+                h_actions = get_hindsight_actions(h_model, dd_buffer.states, dd_buffer.returns)
+                dd_buffer.h_actions.extend(h_actions)
+
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
                     h_mean, h_std, pi_mean, pi_std = dd_buffer.get_input_stats()

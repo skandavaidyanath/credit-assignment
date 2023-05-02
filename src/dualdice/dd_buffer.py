@@ -18,9 +18,8 @@ class DualDICEBuffer:
 
         self.train_val_split = train_val_split
 
-    def add_episode(self, states, h_actions, pi_actions, returns):
+    def add_episode(self, states, pi_actions, returns):
         self.states.extend(states)
-        self.h_actions.extend(h_actions)
         self.pi_actions.extend(pi_actions)
         self.returns.extend(returns)
         self.num_episodes_stored += 1
