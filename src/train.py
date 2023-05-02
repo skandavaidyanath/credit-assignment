@@ -19,8 +19,6 @@ import gym
 import numpy as np
 import torch
 
-from gridworld.gridworld_env import GridWorld
-
 from ppo.model import PPO
 from ppo.buffer import RolloutBuffer
 
@@ -55,9 +53,14 @@ def train(args):
     else:
         action_dim = env.action_space.n
 
-    if isinstance(env, GridWorld):
+    if args.env.type == "gridworld":
         # gridworld env
         state_dim = env.observation_space["map"].shape[0] + 1
+    elif args.env.type == "atari":
+        # Atari env
+        state = env.reset()
+        print(state.shape)
+        raise
     else:
         state_dim = env.observation_space.shape[0]
 

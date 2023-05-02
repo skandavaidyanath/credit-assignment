@@ -1,4 +1,4 @@
-"""File taken from: https://github.com/DLR-RM/stable-baselines3/blob/69b94dd6a8f93cf0b9d2201dcae9c146b8a9c75d/stable_baselines3/common/atari_wrappers.py#L41"""
+"""File taken from: https://github.com/DLR-RM/stable-baselines3/blob/69b94dd6a8f93cf0b9d2201dcae9c146b8a9c75d/stable_baselines3/common/atari_wrappers.py"""
 
 import numpy as np
 from gym import spaces
@@ -11,8 +11,6 @@ try:
 except ImportError:
     cv2 = None
 
-from stable_baselines3.common.type_aliases import GymObs, GymStepReturn
-
 
 class StickyActionEnv(gym.Wrapper):
     """
@@ -23,16 +21,16 @@ class StickyActionEnv(gym.Wrapper):
     :param action_repeat_probability: Probability of repeating the last action
     """
 
-    def __init__(self, env: gym.Env, action_repeat_probability: float) -> None:
+    def __init__(self, env: gym.Env, action_repeat_probability: float):
         super().__init__(env)
         self.action_repeat_probability = action_repeat_probability
         assert env.unwrapped.get_action_meanings()[0] == "NOOP"
 
-    def reset(self, **kwargs) -> GymObs:
+    def reset(self, **kwargs):
         self._sticky_action = 0  # NOOP
         return self.env.reset(**kwargs)
 
-    def step(self, action: int) -> GymStepReturn:
+    def step(self, action: int):
         if self.np_random.random() >= self.action_repeat_probability:
             self._sticky_action = action
         return self.env.step(self._sticky_action)
@@ -46,7 +44,7 @@ class NoopResetEnv(gym.Wrapper):
     :param noop_max: Maximum value of no-ops to run
     """
 
-    def __init__(self, env: gym.Env, noop_max: int = 30) -> None:
+    def __init__(self, env: gym.Env, noop_max: int = 30):
         super().__init__(env)
         self.noop_max = noop_max
         self.override_num_noops = None
@@ -102,7 +100,7 @@ class EpisodicLifeEnv(gym.Wrapper):
         self.lives = 0
         self.was_real_done = True
 
-    def step(self, action: int) -> GymStepReturn:
+    def step(self, action: int):
         obs, reward, done, info = self.env.step(action)
         self.was_real_done = done
         # check current lives, make loss of life terminal,
@@ -151,10 +149,13 @@ class MaxAndSkipEnv(gym.Wrapper):
     def __init__(self, env: gym.Env, skip: int = 4) -> None:
         super().__init__(env)
         # most recent raw observations (for max pooling across time steps)
-        self._obs_buffer = np.zeros((2,) + env.observation_space.shape, dtype=env.observation_space.dtype)
+        self._obs_buffer = np.zeros(
+            (2,) + env.observation_space.shape,
+            dtype=env.observation_space.dtype,
+        )
         self._skip = skip
 
-    def step(self, action: int) -> GymStepReturn:
+    def step(self, action: int):
         """
         Step the environment with the given action
         Repeat action, sum reward, and max over last observations.
@@ -211,7 +212,10 @@ class WarpFrame(gym.ObservationWrapper):
         self.width = width
         self.height = height
         self.observation_space = spaces.Box(
-            low=0, high=255, shape=(self.height, self.width, 1), dtype=env.observation_space.dtype
+            low=0,
+            high=255,
+            shape=(self.height, self.width, 1),
+            dtype=env.observation_space.dtype,
         )
 
     def observation(self, frame: np.ndarray) -> np.ndarray:
@@ -221,7 +225,9 @@ class WarpFrame(gym.ObservationWrapper):
         :return: the observation
         """
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
+        frame = cv2.resize(
+            frame, (self.width, self.height), interpolation=cv2.INTER_AREA
+        )
         return frame[:, :, None]
 
 

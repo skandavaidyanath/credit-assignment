@@ -1,104 +1,9 @@
 import torch
 import torch.nn as nn
-from torch.distributions import MultivariateNormal
-from torch.distributions import Categorical
 import numpy as np
 
 from utils import flatten, normalized_atan
-
-
-class ActorCritic(nn.Module):
-    def __init__(
-        self,
-        state_dim,
-        action_dim,
-        continuous=False,
-        n_layers=2,
-        hidden_size=64,
-        activation_fn="tanh",
-    ):
-        super(ActorCritic, self).__init__()
-
-        self.continuous = continuous
-        self.action_dim = action_dim
-
-        if activation_fn == "tanh":
-            activation_fn = nn.Tanh()
-        elif activation_fn == "relu":
-            activation_fn = nn.ReLU()
-        else:
-            raise NotImplementedError()
-
-        if continuous:
-            self.log_std = nn.Parameter(
-                torch.zeros(action_dim), requires_grad=True
-            )
-
-        if n_layers == 0:
-            self.encoder = nn.Sequential(*[])
-            hidden_size = state_dim
-        else:
-            layers = []
-            for i in range(n_layers):
-                if i == 0:
-                    layers.append(nn.Linear(state_dim, hidden_size))
-                    layers.append(activation_fn)
-                else:
-                    layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation_fn)
-            self.encoder = nn.Sequential(*layers)
-
-        # actor
-        if continuous:
-            self.actor = nn.Linear(hidden_size, action_dim)
-        else:
-            self.actor = nn.Sequential(
-                nn.Linear(hidden_size, action_dim), nn.Softmax(dim=-1)
-            )
-
-        # critic
-        self.critic = nn.Linear(hidden_size, 1)
-
-    @property
-    def std(self):
-        if not self.continuous:
-            raise ValueError("Calling std() on Discrete policy!")
-        else:
-            return torch.exp(self.log_std)
-
-    def forward(self, state):
-        encoding = self.encoder(state)
-        if self.continuous:
-            action_mean = self.actor(encoding)
-            std = torch.diag(self.std)
-            dist = MultivariateNormal(action_mean, scale_tril=std)
-        else:
-            action_probs = self.actor(encoding)
-            dist = Categorical(action_probs)
-        return dist
-
-    def act(self, state, greedy=False):
-        dist = self.forward(state)
-        if greedy:
-            action = dist.mode
-        else:
-            action = dist.sample()
-        action_logprob = dist.log_prob(action)
-
-        return action.detach(), action_logprob.detach()
-
-    def evaluate(self, state, action):
-        dist = self.forward(state)
-        # For Single Action Environments.
-        if self.continuous and self.action_dim == 1:
-            action = action.reshape(-1, self.action_dim)
-        action_logprobs = dist.log_prob(action)
-        dist_entropy = dist.entropy().mean()
-        # state_values = self.critic(state)
-        encoding = self.encoder(state)
-        state_values = self.critic(encoding)
-
-        return action_logprobs, state_values, dist_entropy
+from arch.actor_critic import ActorCritic
 
 
 class PPO:
@@ -274,7 +179,9 @@ class PPO:
                 self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
             )
 
-        advantages = torch.tensor(advantages, dtype=torch.float32).to(self.device)
+        advantages = torch.tensor(advantages, dtype=torch.float32).to(
+            self.device
+        )
         returns = advantages + values.detach()
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-7

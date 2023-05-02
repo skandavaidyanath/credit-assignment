@@ -19,6 +19,7 @@ except:
 from wrappers.lorl import LorlWrapper
 from wrappers.pw_wrapper import PushWorldWrapper
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
+from wrappers.atari_wrappers import AtariWrapper
 from blockworld.blockworld import BlockWorldSingleEnv
 from combo_lock.combo_lock import DiabolicalCombinationLock
 
@@ -32,6 +33,9 @@ def get_env(args):
             sparse=args.env.sparse,
             max_steps=args.env.max_steps,
         )
+    elif args.env.type == "atari":
+        env = gym.make(args.env.name)
+        env = AtariWrapper(env)
     elif args.env.type == "blockworld":
         env = BlockWorldSingleEnv(
             gridlen=args.env.gridlen,
