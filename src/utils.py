@@ -47,7 +47,7 @@ def get_env(args):
             task=args.env.task,
             use_state=args.env.use_state,
             reward_multiplier=args.env.reward_multiplier,
-            binary_reward=args.env.binary_reward,
+            sparse=args.env.sparse,
             max_steps=args.env.max_steps,
             normalize=args.env.normalize,
         )
