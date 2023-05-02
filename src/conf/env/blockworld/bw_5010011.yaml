@@ -3,10 +3,10 @@
 env:
   name: "BlockWorld"
   type: "blockworld"
-  gridlen: 10
-  num_blocks: 25
-  num_colors: 2
-  blocksize: 2
+  gridlen: 50
+  num_blocks: 100
+  num_colors: 1
+  blocksize: 1
   delay_reward: false # env is delayed reward by default
 
 training:
@@ -16,10 +16,10 @@ training:
   num_eval_eps: 10
 
 agent:
-  value_loss_coeff: 0.1 
+  value_loss_coeff: 0.1
   n_layers: 2
   hidden_size: 64
-  entropy_coeff: 0.0
+  entropy_coeff: 0.1
   hca_max_grad_norm: 10.0
   dd_max_grad_norm: 10.0
   r_max_grad_norm: 10.0
