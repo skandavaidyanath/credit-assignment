@@ -4,8 +4,8 @@ agent:
   name: "hca-dualdice"
   adv: "hca"
   value_loss_coeff: 0.0
-  entropy_coeff: 0.1
-  update_every: 50
+  entropy_coeff: 0.1 # TUNE
+  update_every: 50 # TUNE
   update_every_env_steps: null
   hca_checkpoint: ""
   hca_n_layers: 2
@@ -13,14 +13,15 @@ agent:
   hca_lr: 3e-4
   hca_update_every: ${agent.update_every}
   hca_update_every_env_steps: ${agent.update_every_env_steps}   # this overrides hca_update_every 
-  hca_epochs: 10
+  hca_epochs: 10 # TUNE
   hca_batchsize: 256
   hca_dropout: 0
   hca_activation: "relu"
   hca_train_val_split: [1.0, 0.0]
   hca_weight_training_samples: false
   refresh_hca: True
-  hca_normalize_inputs: false
+  hca_normalize_inputs: false # TUNE
+  hca_normalize_return_inputs_only: false # TUNE
   hca_noise_std: null
   smoothing_fn: null
   stop_hca: null
@@ -29,7 +30,7 @@ agent:
   # and return predictor training to avoid hyperparam choice
   # blow-up
   # Can always make these different if required
-  dd_epochs: 10
+  dd_epochs: 10 # TUNE
   dd_f: "square"
   r_epochs: 10
   r_quant: false

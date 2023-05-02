@@ -108,8 +108,8 @@ class ReturnPredictor(nn.Module):
 
     def update_norm_stats(self, mean, std, refresh=True):
         if refresh:  # re-calculate stats each time we train model
-            self.input_mean = torch.from_numpy(mean).to(self.device)
-            self.input_std = torch.from_numpy(std).to(self.device)
+            self.input_mean = torch.from_numpy(mean).to(self.device).float()
+            self.input_std = torch.from_numpy(std).to(self.device).float()
         else:
             raise NotImplementedError
 
@@ -125,7 +125,7 @@ class ReturnPredictor(nn.Module):
         forward pass a bunch of inputs into the model
         """
         if self.normalize_inputs:
-            inputs = (inputs - inputs.mean()) / (inputs.std() + 1e-6)
+            inputs = (inputs - self.input_mean) / (self.input_std + 1e-6)
 
         out = self.net(inputs)  # B x 1
 

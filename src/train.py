@@ -132,7 +132,7 @@ def train(args):
     h_model, hca_buffer = None, None
     if args.agent.name in ["ppo-hca", "hca-dualdice"]:
         h_model = HCAModel(
-            state_dim + 1,  # +1 is for return-conditioned
+            input_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
             n_layers=args.agent.hca_n_layers,
@@ -143,6 +143,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            normalize_return_inputs_only=args.agent.hca_normalize_return_inputs_only,
             max_grad_norm=args.agent.hca_max_grad_norm,
             weight_training_samples=args.agent.hca_weight_training_samples,
             noise_std=args.agent.hca_noise_std,
@@ -175,7 +176,7 @@ def train(args):
         dd_act_dim = action_dim if continuous else 1
 
         dd_model = DualDICE(
-            state_dim=state_dim,
+            state_dim=input_dim,
             action_dim=dd_act_dim,
             f=args.agent.dd_f,
             n_layers=args.agent.hca_n_layers,
@@ -186,6 +187,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
+            normalize_return_inputs_only=args.agent.hca_normalize_return_inputs_only,
             max_grad_norm=args.agent.dd_max_grad_norm,
         )
 
@@ -195,7 +197,7 @@ def train(args):
         )
 
         r_model = ReturnPredictor(
-            state_dim=state_dim,
+            state_dim=input_dim,
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
             n_layers=args.agent.hca_n_layers,
@@ -320,10 +322,8 @@ def train(args):
             hca_buffer.add_episode(states, actions, rewards, agent.gamma)
 
             if args.agent.name in ["hca-dualdice"]:
-                h_actions = get_hindsight_actions(h_model, states, returns)
                 pi_actions = actions
-                dd_buffer.add_episode(states, h_actions, pi_actions, returns)
-
+                dd_buffer.add_episode(states, pi_actions, returns)
                 r_buffer.add_episode(states, returns)
 
         # Determine whether the policy will be updated now or not.
@@ -354,7 +354,7 @@ def train(args):
 
             # normalize inputs if required
             if h_model.normalize_inputs:
-                input_mean, input_std = hca_buffer.get_input_stats()
+                input_mean, input_std = hca_buffer.get_input_stats(h_model.normalize_return_inputs_only)
                 h_model.update_norm_stats(
                     input_mean, input_std, args.agent.refresh_hca
                 )
@@ -379,11 +379,15 @@ def train(args):
                 # print("=============================================")
 
             if args.agent.name in ["hca-dualdice"]:
+                # compute the hindsight actions for the dualdice buffer
+                h_actions = get_hindsight_actions(h_model, dd_buffer.states, dd_buffer.returns)
+                dd_buffer.h_actions.extend(h_actions)
+
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
-                    h_mean, h_std, pi_mean, pi_std = dd_buffer.get_input_stats()
+                    dd_inp_mean, dd_inp_std = dd_buffer.get_input_stats(dd_model.normalize_return_inputs_only)
                     dd_model.update_norm_stats(
-                        h_mean, h_std, pi_mean, pi_std, args.agent.refresh_hca
+                        dd_inp_mean, dd_inp_std, args.agent.refresh_hca
                     )
 
                 # reset the model if you want

@@ -108,6 +108,19 @@ class HCABuffer:
             val_dataloader = None
         return train_dataloader, val_dataloader
 
+    def get_input_stats(self, normalize_returns_only):
+        states = np.array(self.states)
+        returns = np.array(self.returns).reshape((-1, 1))
+        if normalize_returns_only:
+            state_mean = np.zeros(states.shape[1])
+            state_std = np.ones(states.shape[1])
+        else:
+            state_mean, state_std = np.mean(states, 0), np.std(states, 0)
+        return_mean, return_std = np.mean(returns, 0), np.std(returns, 0)
+        inp_mean = np.concatenate((state_mean, return_mean), 0)
+        inp_std = np.concatenate((state_std, return_std), 0)
+        return inp_mean, inp_std
+
     def save_data(self, num_actions):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))

@@ -26,7 +26,8 @@ class DualDICE(nn.Module):
         batch_size=64,
         lr=3e-4,
         device="cpu",
-        normalize_inputs=True,
+        normalize_inputs=False,
+        normalize_return_inputs_only=False,
         max_grad_norm=None,
     ):
 
@@ -35,7 +36,9 @@ class DualDICE(nn.Module):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.f = f
-        self.normalize_inputs = normalize_inputs
+        self.normalize_inputs = normalize_inputs or normalize_return_inputs_only
+        # standardize only the return portion of the input.
+        self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
 
         if activation_fn == "tanh":
@@ -76,16 +79,10 @@ class DualDICE(nn.Module):
         self.batch_size = batch_size
         self.device = torch.device(device)
 
-        self.input_h_mean = torch.zeros(
+        self.input_mean = torch.zeros(
             (state_dim + action_dim + 1,), device=device
         )
-        self.input_h_std = torch.ones(
-            (state_dim + action_dim + 1,), device=device
-        )
-        self.input_pi_mean = torch.zeros(
-            (state_dim + action_dim + 1,), device=device
-        )
-        self.input_pi_std = torch.ones(
+        self.input_std = torch.ones(
             (state_dim + action_dim + 1,), device=device
         )
 
@@ -106,12 +103,10 @@ class DualDICE(nn.Module):
             elif isinstance(layer, torch.nn.Sequential):
                 layer.apply(weight_reset)
 
-    def update_norm_stats(self, h_mean, h_std, pi_mean, pi_std, refresh=True):
+    def update_norm_stats(self, inp_mean, inp_std, refresh=True):
         if refresh:  # re-calculate stats each time we train model
-            self.input_h_mean = torch.from_numpy(h_mean).to(self.device)
-            self.input_h_std = torch.from_numpy(h_std).to(self.device)
-            self.input_pi_mean = torch.from_numpy(pi_mean).to(self.device)
-            self.input_pi_std = torch.from_numpy(pi_std).to(self.device)
+            self.input_mean = torch.from_numpy(inp_mean).to(self.device).float()
+            self.input_std = torch.from_numpy(inp_std).to(self.device).float()
         else:
             raise NotImplementedError
 
@@ -120,7 +115,8 @@ class DualDICE(nn.Module):
         forward pass a bunch of inputs into the model
         """
         if self.normalize_inputs:
-            inputs = (inputs - inputs.mean()) / (inputs.std() + 1e-6)
+            # if self.normalize_return_inputs_only==True, then the non-return input mean and std will be 0 and 1 resp.
+            inputs = (inputs - self.input_mean) / (self.input_std + 1e-6)
 
         out = self.net(inputs)  # B x 1
 
