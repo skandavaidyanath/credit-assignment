@@ -33,6 +33,17 @@ class ActorCritic(nn.Module):
             assert isinstance(cnn_base, CNNBase)
             assert cnn_base.hidden_size == hidden_size
             self.encoder = cnn_base
+
+            # CNN models use a orthogonal initialization.
+            critic_init_ = lambda m: model_init(
+                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
+            )
+            actor_init_ = lambda m: model_init(
+                m,
+                nn.init.orthogonal_,
+                lambda x: nn.init.constant_(x, 0),
+                gain=0.01,
+            )
         else:
             if activation_fn == "tanh":
                 activation_fn = nn.Tanh()
@@ -55,19 +66,6 @@ class ActorCritic(nn.Module):
                         layers.append(activation_fn)
                 self.encoder = nn.Sequential(*layers)
 
-        # Critic and actor heads. CNN base models use a orthogonal initialization.
-        if cnn_base:
-            critic_init_ = lambda m: model_init(
-                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
-            )
-            actor_init_ = lambda m: model_init(
-                m,
-                nn.init.orthogonal_,
-                lambda x: nn.init.constant_(x, 0),
-                gain=0.01,
-            )
-
-        else:
             critic_init_ = lambda m: m
             actor_init_ = lambda m: m
 

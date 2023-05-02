@@ -22,6 +22,8 @@ import torch
 from ppo.model import PPO
 from ppo.buffer import RolloutBuffer
 
+from arch.cnn import CNNBase
+
 from hca.model import HCAModel
 from hca.buffer import HCABuffer, calculate_mc_returns
 
@@ -112,7 +114,15 @@ def train(args):
         ), "Please provide a value loss coefficient >=0 when stopping HCA!"
 
     # Agent
-    agent = PPO(input_dim, action_dim, args.agent.lr, continuous, device, args)
+    if args.env.type == "atari":
+        cnn_base = CNNBase(
+            num_inputs=input_dim, hidden_size=args.agent.hidden_size
+        )
+    else:
+        cnn_base = None
+    agent = PPO(
+        input_dim, action_dim, args.agent.lr, continuous, device, args, cnn_base
+    )
 
     if args.training.checkpoint:
         checkpoint = torch.load(args.training.checkpoint)

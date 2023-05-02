@@ -99,7 +99,7 @@ class HCABuffer:
             train_dataloader = DataLoader(
                 train_dataset, batch_size=batch_size, shuffle=True
             )
-        
+
         if self.train_val_split[1] > 0:
             val_dataloader = DataLoader(
                 val_dataset, batch_size=batch_size, shuffle=True
@@ -107,14 +107,6 @@ class HCABuffer:
         else:
             val_dataloader = None
         return train_dataloader, val_dataloader
-
-    def get_input_stats(self):
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
-        inp_data = np.concatenate((states, returns), -1)
-        inp_mean = np.mean(inp_data, 0)
-        inp_std = np.std(inp_data, 0)
-        return inp_mean, inp_std
 
     def save_data(self, num_actions):
         states = np.array(self.states)

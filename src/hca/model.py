@@ -3,8 +3,10 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal, Categorical
 import torch.nn.functional as F
 import numpy as np
-from utils import weight_reset, get_grad_norm
 import warnings
+
+from utils import weight_reset, get_grad_norm, model_init
+from arch.cnn import CNNBase
 
 
 class HCAModel(nn.Module):
@@ -17,6 +19,7 @@ class HCAModel(nn.Module):
         state_dim,
         action_dim,
         continuous=False,
+        cnn_base=None,
         n_layers=2,
         hidden_size=64,
         activation_fn="relu",
@@ -38,30 +41,43 @@ class HCAModel(nn.Module):
         self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
 
-        if activation_fn == "tanh":
-            activation = nn.Tanh
-        elif activation_fn == "relu":
-            activation = nn.ReLU
+        if cnn_base is not None:
+            # if a CNN base is passed in, then use that instead of an MLP.
+            assert isinstance(cnn_base, CNNBase)
+            assert cnn_base.hidden_size == hidden_size
+            self.cnn = cnn_base
+            final_layer_init_ = lambda m: model_init(
+                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
+            )
+            assert state_dim == hidden_size + 1  # +1 for the return
         else:
-            raise NotImplementedError
+            self.cnn = nn.Sequential(*[])
 
-        layers = []
-        for i in range(n_layers):
-            if i == 0:
-                layers.append(nn.Linear(state_dim, hidden_size))
-                layers.append(activation())
-                if dropout_p:
-                    layers.append(nn.Dropout(p=dropout_p))
+            if activation_fn == "tanh":
+                activation = nn.Tanh
+            elif activation_fn == "relu":
+                activation = nn.ReLU
             else:
-                layers.append(nn.Linear(hidden_size, hidden_size))
-                layers.append(activation())
-                if dropout_p:
-                    layers.append(nn.Dropout(p=dropout_p))
+                raise NotImplementedError
 
-        if not layers:
-            layers.append(nn.Linear(state_dim, action_dim))
-        else:
-            layers.append(nn.Linear(hidden_size, action_dim))
+            layers = []
+            if n_layers == 0:
+                hidden_size = state_dim
+            for i in range(n_layers):
+                if i == 0:
+                    layers.append(nn.Linear(state_dim, hidden_size))
+                    layers.append(activation())
+                    if dropout_p:
+                        layers.append(nn.Dropout(p=dropout_p))
+                else:
+                    layers.append(nn.Linear(hidden_size, hidden_size))
+                    layers.append(activation())
+                    if dropout_p:
+                        layers.append(nn.Dropout(p=dropout_p))
+
+            final_layer_init_ = lambda m: m
+
+        layers.append(final_layer_init_(nn.Linear(hidden_size, action_dim)))
 
         self.net = nn.Sequential(*layers).to(device)
 
@@ -78,9 +94,6 @@ class HCAModel(nn.Module):
 
         self.weight_training_samples = weight_training_samples
 
-        self.input_mean = torch.zeros((state_dim,), device=device)
-        self.input_std = torch.ones((state_dim,), device=device)
-
     @property
     def std(self):
         if not self.continuous:
@@ -95,20 +108,15 @@ class HCAModel(nn.Module):
             elif isinstance(layer, torch.nn.Sequential):
                 layer.apply(weight_reset)
 
-    def update_norm_stats(self, mean, std, refresh=True):
-        if refresh:  # re-calculate stats each time we train model
-            self.input_mean = torch.from_numpy(mean).to(self.device)
-            self.input_std = torch.from_numpy(std).to(self.device)
-        else:
-            raise NotImplementedError
-
-    def forward(self, inputs, add_noise=False):
+    def forward(self, states, returns, add_noise=False):
         """
         forward pass a bunch of inputs into the model
         """
         if self.normalize_inputs:
-            inputs = (inputs - inputs.mean()) / (inputs.std() + 1e-6)
+            states = (states - states.mean()) / (states.std() + 1e-6)
 
+        embeds = self.cnn(states)
+        inputs = torch.concat([embeds, returns], dim=-1)
         out = self.net(inputs)
         if self.noise_std and add_noise:
             # print(out.abs().max())
@@ -136,8 +144,8 @@ class HCAModel(nn.Module):
             "entropy_std": [],
         }
 
-        for states, actions in train_dataloader:
-            loss, metric, ent_stat = self.train_step(states, actions)
+        for states, returns, actions in train_dataloader:
+            loss, metric, ent_stat = self.train_step(states, returns, actions)
             for k, v in ent_stat.items():
                 entropy_stats[k].append(v)
 
@@ -164,10 +172,11 @@ class HCAModel(nn.Module):
             results.update(val_results)
         return results
 
-    def train_step(self, states, actions):
+    def train_step(self, states, returns, actions):
         states = states.to(self.device)
+        returns = returns.to(self.device)
         actions = actions.to(self.device)
-        preds, dists = self.forward(states)
+        preds, dists = self.forward(states, returns)
 
         entropy = dists.entropy()
         entropy_stats = {
@@ -203,10 +212,11 @@ class HCAModel(nn.Module):
     @torch.no_grad()
     def validate(self, val_dataloader):
         losses, metrics = [], []
-        for states, actions in val_dataloader:
+        for states, returns, actions in val_dataloader:
             states = states.to(self.device)
+            returns = returns.to(self.device)
             actions = actions.to(self.device)
-            preds, dists = self.forward(states, add_noise=True)
+            preds, dists = self.forward(states, returns)
             if self.continuous:
                 loss = F.gaussian_nll_loss(
                     preds, actions, dists.variance
@@ -234,13 +244,14 @@ class HCAModel(nn.Module):
             }
 
     @torch.no_grad()
-    def get_hindsight_logprobs(self, inputs, actions):
+    def get_hindsight_logprobs(self, states, returns, actions):
         """
         get the hindsight values for a batch of actions
         """
-        inputs = inputs.to(self.device)
+        states = states.to(self.device)
+        returns = returns.to(self.device)
         actions = actions.to(self.device)
-        out, dist = self.forward(inputs, add_noise=True)
+        out, dist = self.forward(states, returns)
         if self.continuous:  # B x A
             log_probs = dist.log_prob(actions).reshape(-1, 1)
             return log_probs
@@ -249,14 +260,15 @@ class HCAModel(nn.Module):
             return log_probs
 
     @torch.no_grad()
-    def get_actions(self, inputs, sample=True):
+    def get_actions(self, states, returns, sample=True):
         """
         samples/ gets argmax actions from the hindsight
         function as if it were a policy.
         returns the actions as a list.
         """
-        inputs = inputs.to(self.device)
-        out, dist = self.forward(inputs)
+        states = states.to(self.device)
+        returns = returns.to(self.device)
+        out, dist = self.forward(states, returns)
         if sample:
             actions = dist.sample()
         else:

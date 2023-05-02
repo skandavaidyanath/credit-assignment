@@ -7,7 +7,9 @@ from arch.actor_critic import ActorCritic
 
 
 class PPO:
-    def __init__(self, state_dim, action_dim, lr, continuous, device, args):
+    def __init__(
+        self, state_dim, action_dim, lr, continuous, device, args, cnn_base=None
+    ):
 
         self.continuous = continuous
         self.device = device
@@ -28,12 +30,12 @@ class PPO:
             n_layers=args.agent.n_layers,
             hidden_size=args.agent.hidden_size,
             activation_fn=args.agent.activation_fn,
+            cnn_base=cnn_base,
         ).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
 
         self.MseLoss = nn.MSELoss()
 
-        self.gamma_temp = args.agent.get("gamma_temp", None)
         self.smoothing_fn = args.agent.get("smoothing_fn", None)
 
     def select_action(self, state, greedy=False):
