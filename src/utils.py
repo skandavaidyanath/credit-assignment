@@ -226,3 +226,10 @@ def get_grad_norm(model):
 def weight_reset(m):
     if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Linear):
         m.reset_parameters()
+
+
+def model_init(module, weight_init, bias_init, gain=1):
+    """Function taken from: https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail/blob/41332b78dfb50321c29bade65f9d244387f68a60/a2c_ppo_acktr/utils.py#L53"""
+    weight_init(module.weight.data, gain=gain)
+    bias_init(module.bias.data)
+    return module
