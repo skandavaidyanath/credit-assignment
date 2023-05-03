@@ -125,14 +125,11 @@ def get_hindsight_logprobs(
     actions,
     h_model,
 ):
-    inputs = []
-    for state, g in zip(states, returns):
-        inputs.append(np.concatenate([state, [g]]))
-    inputs = np.array(inputs)
-    inputs = torch.from_numpy(inputs).reshape(len(inputs), -1).float()  # B x D
-    h_values = h_model.get_hindsight_logprobs(
-        inputs, torch.from_numpy(np.array(actions))
-    )
+    N = len(states)
+    states = torch.Tensor(states).reshape(N, -1).float()
+    returns = torch.Tensor(returns).reshape(N, -1).float()
+    actions = torch.Tensor(actions).reshape(N, -1).float()
+    h_values = h_model.get_hindsight_logprobs(states, returns, actions)
     return h_values.detach().tolist()
 
 
@@ -206,8 +203,7 @@ def assign_hindsight_info(
 def get_hindsight_actions(h_model, states, returns):
     states = np.stack(states).astype(np.float32)
     returns = np.stack(returns).reshape(-1, 1).astype(np.float32)
-    inputs = torch.from_numpy(np.concatenate([states, returns], -1))
-    actions = h_model.get_actions(inputs)
+    actions = h_model.get_actions(states, returns)
     return actions
 
 

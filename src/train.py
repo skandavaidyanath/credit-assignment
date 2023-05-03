@@ -115,13 +115,13 @@ def train(args):
 
     # Agent
     if args.env.type == "atari":
-        cnn_base = CNNBase(
+        ppo_cnn = CNNBase(
             num_inputs=input_dim, hidden_size=args.agent.hidden_size
         )
     else:
-        cnn_base = None
+        ppo_cnn = None
     agent = PPO(
-        input_dim, action_dim, args.agent.lr, continuous, device, args, cnn_base
+        input_dim, action_dim, args.agent.lr, continuous, device, args, ppo_cnn
     )
 
     if args.training.checkpoint:
@@ -131,10 +131,20 @@ def train(args):
     # HCA model
     h_model, hca_buffer = None, None
     if args.agent.name in ["ppo-hca", "hca-dualdice"]:
+
+        if args.env.type == "atari":
+            hca_cnn = CNNBase(
+                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
+            )
+            input_dim = args.agent.hca_hidden_size
+        else:
+            hca_cnn = None
+
         h_model = HCAModel(
             input_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
+            cnn_base=hca_cnn,
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
@@ -159,13 +169,11 @@ def train(args):
         # HCA Buffer
         if continuous:
             hca_buffer = HCABuffer(
-                exp_name,
                 action_dim=action_dim,
                 train_val_split=args.agent.hca_train_val_split,
             )
         else:
             hca_buffer = HCABuffer(
-                exp_name,
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
@@ -178,6 +186,7 @@ def train(args):
         dd_model = DualDICE(
             state_dim=input_dim,
             action_dim=dd_act_dim,
+            cnn_base=hca_cnn,  # using the same CNN as HCA here as well to save on parameters
             f=args.agent.dd_f,
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
@@ -200,6 +209,7 @@ def train(args):
             state_dim=input_dim,
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
+            cnn_base=hca_cnn,  # using the same CNN as HCA here as well to save on parameters
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
@@ -354,9 +364,20 @@ def train(args):
 
             # normalize inputs if required
             if h_model.normalize_inputs:
-                input_mean, input_std = hca_buffer.get_input_stats(h_model.normalize_return_inputs_only)
+                (
+                    h_state_mean,
+                    h_state_std,
+                    h_return_mean,
+                    h_return_std,
+                ) = hca_buffer.get_input_stats(
+                    h_model.normalize_return_inputs_only
+                )
                 h_model.update_norm_stats(
-                    input_mean, input_std, args.agent.refresh_hca
+                    h_state_mean,
+                    h_state_std,
+                    h_return_mean,
+                    h_return_std,
+                    args.agent.refresh_hca,
                 )
 
             # reset the model if you want
@@ -380,14 +401,31 @@ def train(args):
 
             if args.agent.name in ["hca-dualdice"]:
                 # compute the hindsight actions for the dualdice buffer
-                h_actions = get_hindsight_actions(h_model, dd_buffer.states, dd_buffer.returns)
+                h_actions = get_hindsight_actions(
+                    h_model, dd_buffer.states, dd_buffer.returns
+                )
                 dd_buffer.h_actions.extend(h_actions)
 
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
-                    dd_inp_mean, dd_inp_std = dd_buffer.get_input_stats(dd_model.normalize_return_inputs_only)
+                    (
+                        dd_state_mean,
+                        dd_state_std,
+                        dd_action_mean,
+                        dd_action_std,
+                        dd_return_mean,
+                        dd_return_std,
+                    ) = dd_buffer.get_input_stats(
+                        dd_model.normalize_return_inputs_only
+                    )
                     dd_model.update_norm_stats(
-                        dd_inp_mean, dd_inp_std, args.agent.refresh_hca
+                        dd_state_mean,
+                        dd_state_std,
+                        dd_action_mean,
+                        dd_action_std,
+                        dd_return_mean,
+                        dd_return_std,
+                        args.agent.refresh_hca,
                     )
 
                 # reset the model if you want
@@ -412,14 +450,14 @@ def train(args):
                 # Return model update
                 # normalize inputs if required
                 if r_model.normalize_inputs:
-                    input_mean, input_std = r_buffer.get_input_stats()
+                    r_inp_mean, r_inp_std = r_buffer.get_input_stats()
                     r_model.update_norm_stats(
-                        input_mean, input_std, args.agent.refresh_hca
+                        r_inp_mean, r_inp_std, args.agent.refresh_hca
                     )
                 if r_model.normalize_targets:
-                    target_mean, target_std = r_buffer.get_target_stats()
+                    r_target_mean, r_target_std = r_buffer.get_target_stats()
                     r_model.update_target_stats(
-                        target_mean, target_std, args.agent.refresh_hca
+                        r_target_mean, r_target_std, args.agent.refresh_hca
                     )
 
                 # reset the model if you want

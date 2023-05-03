@@ -26,19 +26,13 @@ def calculate_mc_returns(rewards, terminals, gamma):
 
 
 class HCABuffer:
-    def __init__(self, exp_name, action_dim, train_val_split=[1.0, 0.0]):
+    def __init__(self, action_dim, train_val_split=[1.0, 0.0]):
         self.action_dim = action_dim
         self.num_episodes_stored = 0
         self.num_transitions_stored = 0
         self.states = []
         self.actions = []
         self.returns = []
-
-        # Can probably remove this but leaving it in for now
-        self.checkpoint_path = f"hca_data/{exp_name}_"
-        self.checkpoint_path += (
-            f"{datetime.datetime.now().replace(microsecond=0)}"
-        )
 
         self.train_val_split = train_val_split
 
@@ -66,13 +60,12 @@ class HCABuffer:
     def get_dataloader(self, batch_size, weight_samples=False):
         states = np.array(self.states)
         returns = np.array(self.returns).reshape((-1, 1))
-        X = torch.from_numpy(np.concatenate((states, returns), -1)).float()
 
-        y = torch.from_numpy(
+        actions = torch.from_numpy(
             np.array(self.actions).reshape((-1, self.action_dim))
         )
 
-        dataset = TensorDataset(X, y)
+        dataset = TensorDataset(states, returns, actions)
         train_dataset, val_dataset = random_split(dataset, self.train_val_split)
 
         if weight_samples:
@@ -117,9 +110,7 @@ class HCABuffer:
         else:
             state_mean, state_std = np.mean(states, 0), np.std(states, 0)
         return_mean, return_std = np.mean(returns, 0), np.std(returns, 0)
-        inp_mean = np.concatenate((state_mean, return_mean), 0)
-        inp_std = np.concatenate((state_std, return_std), 0)
-        return inp_mean, inp_std
+        return state_mean, state_std, return_mean, return_std
 
     def save_data(self, num_actions):
         states = np.array(self.states)

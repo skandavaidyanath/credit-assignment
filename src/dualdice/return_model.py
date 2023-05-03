@@ -4,9 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from dualdice.return_buffer import digitize_returns
-from utils import weight_reset, get_grad_norm
 import warnings
+
+from dualdice.return_buffer import digitize_returns
+from utils import weight_reset, get_grad_norm, model_init
+from arch.cnn import CNNBase
 
 
 class ReturnPredictor(nn.Module):
@@ -20,6 +22,7 @@ class ReturnPredictor(nn.Module):
         state_dim,
         quantize=False,
         num_classes=10,  # this is used only when quantize is True
+        cnn_base=None,
         n_layers=2,
         hidden_size=64,
         activation_fn="relu",
@@ -45,30 +48,42 @@ class ReturnPredictor(nn.Module):
         self.normalize_targets = normalize_targets
         self.max_grad_norm = max_grad_norm
 
-        if activation_fn == "tanh":
-            activation = nn.Tanh
-        elif activation_fn == "relu":
-            activation = nn.ReLU
-        else:
-            raise NotImplementedError
+        if cnn_base is not None:
+            # if a CNN base is passed in, then use that instead of an MLP.
+            assert isinstance(cnn_base, CNNBase)
+            assert cnn_base.hidden_size == hidden_size
+            self.cnn = cnn_base
+            final_layer_init_ = lambda m: model_init(
+                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
+            )
+            assert state_dim == hidden_size
 
-        layers = []
-        for i in range(n_layers):
-            if i == 0:
-                layers.append(nn.Linear(state_dim, hidden_size))
-                layers.append(activation())
-                if dropout_p:
-                    layers.append(nn.Dropout(p=dropout_p))
+        else:
+            self.cnn = nn.Sequential(*[])
+
+            if activation_fn == "tanh":
+                activation = nn.Tanh
+            elif activation_fn == "relu":
+                activation = nn.ReLU
             else:
-                layers.append(nn.Linear(hidden_size, hidden_size))
-                layers.append(activation())
-                if dropout_p:
-                    layers.append(nn.Dropout(p=dropout_p))
+                raise NotImplementedError
 
-        if not layers:
-            layers.append(nn.Linear(state_dim, num_classes))
-        else:
-            layers.append(nn.Linear(hidden_size, num_classes))
+            layers = []
+            if n_layers == 0:
+                hidden_size = state_dim
+            for i in range(n_layers):
+                if i == 0:
+                    layers.append(nn.Linear(state_dim, hidden_size))
+                    layers.append(activation())
+                    if dropout_p:
+                        layers.append(nn.Dropout(p=dropout_p))
+                else:
+                    layers.append(nn.Linear(hidden_size, hidden_size))
+                    layers.append(activation())
+                    if dropout_p:
+                        layers.append(nn.Dropout(p=dropout_p))
+
+        layers.append(final_layer_init_(nn.Linear(hidden_size, num_classes)))
 
         if not quantize:
             self.log_std = nn.Parameter(torch.zeros(1), requires_grad=True)
@@ -127,7 +142,8 @@ class ReturnPredictor(nn.Module):
         if self.normalize_inputs:
             inputs = (inputs - self.input_mean) / (self.input_std + 1e-6)
 
-        out = self.net(inputs)  # B x 1
+        embeds = self.cnn(inputs)
+        out = self.net(embeds)  # B x 1
 
         return out
 

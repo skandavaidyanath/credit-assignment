@@ -37,14 +37,14 @@ class DualDICEBuffer:
         pi_actions = np.array(self.pi_actions).reshape((-1, self.action_dim))
         returns = np.array(self.returns).reshape((-1, 1))
 
-        X_h = torch.from_numpy(
-            np.concatenate((states, h_actions, returns), -1)
-        ).float()
-        X_pi = torch.from_numpy(
-            np.concatenate((states, pi_actions, np.zeros_like(returns)), -1)
-        ).float()  # we concatenate 0 for \pi to indicate we don't use the returns here
-
-        dataset = TensorDataset(X_h, X_pi)
+        # we concatenate 0 for \pi to indicate we don't use the returns here
+        dataset = TensorDataset(
+            states,
+            h_actions,
+            returns,
+            pi_actions,
+            np.zeros_like(returns),
+        )
         train_dataset, val_dataset = random_split(dataset, self.train_val_split)
 
         train_dataloader = DataLoader(
@@ -66,13 +66,22 @@ class DualDICEBuffer:
         returns = np.array(self.returns).reshape((-1, 1))
 
         if normalize_returns_only:
-            state_mean, state_std = np.zeros(states.shape[1]), np.ones(states.shape[1])
-            action_mean, action_std = np.zeros(actions.shape[1]), np.ones(actions.shape[1])
+            state_mean, state_std = np.zeros(states.shape[1]), np.ones(
+                states.shape[1]
+            )
+            action_mean, action_std = np.zeros(actions.shape[1]), np.ones(
+                actions.shape[1]
+            )
         else:
             state_mean, state_std = np.mean(states, 0), np.std(states, 0)
             action_mean, action_std = np.mean(actions, 0), np.std(actions, 0)
         return_mean, return_std = np.mean(returns, 0), np.std(returns, 0)
 
-        inp_mean = np.concatenate((state_mean, action_mean, return_mean), 0)
-        inp_std = np.concatenate((state_std, action_std, return_std), 0)
-        return inp_mean, inp_std
+        return (
+            state_mean,
+            state_std,
+            action_mean,
+            action_std,
+            return_mean,
+            return_std,
+        )

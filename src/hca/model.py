@@ -96,6 +96,11 @@ class HCAModel(nn.Module):
 
         self.weight_training_samples = weight_training_samples
 
+        self.state_mean = torch.zeros((state_dim,), device=device)
+        self.state_std = torch.ones((state_dim,), device=device)
+        self.return_mean = torch.zeros((1,), device=device)
+        self.return_std = torch.ones((1,), device=device)
+
     @property
     def std(self):
         if not self.continuous:
@@ -110,10 +115,20 @@ class HCAModel(nn.Module):
             elif isinstance(layer, torch.nn.Sequential):
                 layer.apply(weight_reset)
 
-    def update_norm_stats(self, mean, std, refresh=True):
+    def update_norm_stats(
+        self, state_mean, state_std, return_mean, return_std, refresh=True
+    ):
         if refresh:  # re-calculate stats each time we train model
-            self.input_mean = torch.from_numpy(mean).to(self.device).float()
-            self.input_std = torch.from_numpy(std).to(self.device).float()
+            self.state_mean = (
+                torch.from_numpy(state_mean).to(self.device).float()
+            )
+            self.state_std = torch.from_numpy(state_std).to(self.device).float()
+            self.return_mean = (
+                torch.from_numpy(return_mean).to(self.device).float()
+            )
+            self.return_std = (
+                torch.from_numpy(return_std).to(self.device).float()
+            )
         else:
             raise NotImplementedError
 
@@ -123,7 +138,8 @@ class HCAModel(nn.Module):
         """
         if self.normalize_inputs:
             # if self.normalize_return_inputs_only==True, then the non-return input mean and std will be 0 and 1 resp.
-            inputs = (inputs - self.input_mean) / (self.input_std + 1e-6)
+            states = (states - self.state_mean) / (self.state_std + 1e-6)
+            returns = (returns - self.return_mean) / (self.return_std + 1e-6)
 
         embeds = self.cnn(states)
         inputs = torch.concat([embeds, returns], dim=-1)
