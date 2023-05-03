@@ -43,6 +43,7 @@ class HCAModel(nn.Module):
         self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
 
+        layers = []
         if cnn_base is not None:
             # if a CNN base is passed in, then use that instead of an MLP.
             assert isinstance(cnn_base, CNNBase)
@@ -62,7 +63,6 @@ class HCAModel(nn.Module):
             else:
                 raise NotImplementedError
 
-            layers = []
             if n_layers == 0:
                 hidden_size = state_dim
             for i in range(n_layers):

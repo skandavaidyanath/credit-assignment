@@ -48,6 +48,7 @@ class ReturnPredictor(nn.Module):
         self.normalize_targets = normalize_targets
         self.max_grad_norm = max_grad_norm
 
+        layers = []
         if cnn_base is not None:
             # if a CNN base is passed in, then use that instead of an MLP.
             assert isinstance(cnn_base, CNNBase)
@@ -68,7 +69,6 @@ class ReturnPredictor(nn.Module):
             else:
                 raise NotImplementedError
 
-            layers = []
             if n_layers == 0:
                 hidden_size = state_dim
             for i in range(n_layers):
@@ -82,6 +82,7 @@ class ReturnPredictor(nn.Module):
                     layers.append(activation())
                     if dropout_p:
                         layers.append(nn.Dropout(p=dropout_p))
+            final_layer_init_ = lambda m: m
 
         layers.append(final_layer_init_(nn.Linear(hidden_size, num_classes)))
 

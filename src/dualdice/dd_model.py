@@ -44,6 +44,7 @@ class DualDICE(nn.Module):
         self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
 
+        layers = []
         if cnn_base is not None:
             # if a CNN base is passed in, then use that instead of an MLP.
             assert isinstance(cnn_base, CNNBase)
@@ -63,7 +64,6 @@ class DualDICE(nn.Module):
             else:
                 raise NotImplementedError
 
-            layers = []
             if n_layers == 0:
                 hidden_size = state_dim + action_dim + 1
             for i in range(n_layers):
