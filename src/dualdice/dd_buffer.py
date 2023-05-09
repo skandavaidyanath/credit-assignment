@@ -5,7 +5,8 @@ from torch.utils.data import TensorDataset, DataLoader, random_split
 
 
 class DualDICEBuffer:
-    def __init__(self, action_dim, train_val_split=[1.0, 0.0]):
+    def __init__(self, state_dim, action_dim, train_val_split=[1.0, 0.0]):
+        self.state_dim = state_dim
         self.action_dim = action_dim
 
         self.num_episodes_stored = 0
@@ -32,10 +33,16 @@ class DualDICEBuffer:
         del self.returns[:]
 
     def get_dataloader(self, batch_size):
-        states = np.array(self.states)
-        h_actions = np.array(self.h_actions).reshape((-1, self.action_dim))
-        pi_actions = np.array(self.pi_actions).reshape((-1, self.action_dim))
-        returns = np.array(self.returns).reshape((-1, 1))
+        states = torch.from_numpy(np.array(self.states)).reshape(
+            (-1, self.state_dim)
+        )
+        h_actions = torch.from_numpy(np.array(self.h_actions)).reshape(
+            (-1, self.action_dim)
+        )
+        pi_actions = torch.from_numpy(np.array(self.pi_actions)).reshape(
+            (-1, self.action_dim)
+        )
+        returns = torch.from_numpy(np.array(self.returns)).reshape((-1, 1))
 
         # we concatenate 0 for \pi to indicate we don't use the returns here
         dataset = TensorDataset(
@@ -43,7 +50,7 @@ class DualDICEBuffer:
             h_actions,
             returns,
             pi_actions,
-            np.zeros_like(returns),
+            torch.zeros_like(returns),
         )
         train_dataset, val_dataset = random_split(dataset, self.train_val_split)
 

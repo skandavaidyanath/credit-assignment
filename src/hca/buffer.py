@@ -26,7 +26,8 @@ def calculate_mc_returns(rewards, terminals, gamma):
 
 
 class HCABuffer:
-    def __init__(self, action_dim, train_val_split=[1.0, 0.0]):
+    def __init__(self, state_dim, action_dim, train_val_split=[1.0, 0.0]):
+        self.state_dim = state_dim
         self.action_dim = action_dim
         self.num_episodes_stored = 0
         self.num_transitions_stored = 0
@@ -58,8 +59,10 @@ class HCABuffer:
         del self.returns[:]
 
     def get_dataloader(self, batch_size, weight_samples=False):
-        states = np.array(self.states)
-        returns = np.array(self.returns).reshape((-1, 1))
+        states = torch.from_numpy(np.array(self.states)).reshape(
+            (-1, self.state_dim)
+        )
+        returns = torch.from_numpy(np.array(self.returns)).reshape((-1, 1))
 
         actions = torch.from_numpy(
             np.array(self.actions).reshape((-1, self.action_dim))

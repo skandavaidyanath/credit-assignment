@@ -3,10 +3,9 @@
 env:
   name: "LunarLander-v2"
   type: "gym"
-  sparse: false
   delay_reward: true
   gamma: 0.99
-  max_ep_len: null
+  max_steps: null
 
 training:
   log_freq: 10  # Log every these many episodes

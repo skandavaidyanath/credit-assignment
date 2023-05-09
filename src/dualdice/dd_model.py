@@ -163,7 +163,7 @@ class DualDICE(nn.Module):
                 )
 
         embeds = self.cnn(states)
-        inputs = torch.concat([embeds, actions, returns], dim=-1)
+        inputs = torch.concat([embeds, actions, returns], dim=-1).float()
         out = self.net(inputs)  # B x 1
 
         return out

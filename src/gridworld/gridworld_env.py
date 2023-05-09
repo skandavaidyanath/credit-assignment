@@ -13,7 +13,7 @@ STEP_REWARD = -1
 
 
 class GridWorld(Env):
-    def __init__(self, filename, sparse=True, max_steps=50):
+    def __init__(self, filename, max_steps=50):
         gridmap = open(os.path.dirname(__file__) + "/" + filename, "r").read()
 
         self.max_steps = max_steps

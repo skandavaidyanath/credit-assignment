@@ -30,7 +30,6 @@ def get_env(args):
     elif args.env.type == "gridworld":
         env = GridWorld(
             args.env.puzzle_path,
-            sparse=args.env.sparse,
             max_steps=args.env.max_steps,
         )
     elif args.env.type == "atari":
@@ -58,6 +57,8 @@ def get_env(args):
         )
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
+        if args.env.max_steps:
+            env._max_episode_steps = args.env.max_steps
     elif args.env.type == "pushworld":
         pw_env = PushWorldEnv(
             puzzle_path=args.env.puzzle_path, max_steps=args.env.max_steps
@@ -65,8 +66,8 @@ def get_env(args):
         env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
     elif args.env.type == "gym":
         env = gym.make(args.env.name)
-        if args.env.max_ep_len:
-            env._max_episode_steps = args.env.max_ep_len
+        if args.env.max_steps:
+            env._max_episode_steps = args.env.max_steps
     else:
         raise NotImplementedError
 
@@ -203,6 +204,8 @@ def assign_hindsight_info(
 def get_hindsight_actions(h_model, states, returns):
     states = np.stack(states).astype(np.float32)
     returns = np.stack(returns).reshape(-1, 1).astype(np.float32)
+    states = torch.from_numpy(states)
+    returns = torch.from_numpy(returns)
     actions = h_model.get_actions(states, returns)
     return actions
 

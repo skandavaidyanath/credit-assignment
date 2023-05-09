@@ -62,6 +62,7 @@ def train(args):
         # Atari env
         state = env.reset()
         input_dim = state.shape[0]
+        image_dim = state.shape
     else:
         input_dim = env.observation_space.shape[0]
 
@@ -169,11 +170,13 @@ def train(args):
         # HCA Buffer
         if continuous:
             hca_buffer = HCABuffer(
+                state_dim=image_dim if args.env.type == "atari" else input_dim,
                 action_dim=action_dim,
                 train_val_split=args.agent.hca_train_val_split,
             )
         else:
             hca_buffer = HCABuffer(
+                state_dim=image_dim if args.env.type == "atari" else input_dim,
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
@@ -201,6 +204,7 @@ def train(args):
         )
 
         dd_buffer = DualDICEBuffer(
+            state_dim=image_dim if args.env.type == "atari" else input_dim,
             action_dim=dd_act_dim,
             train_val_split=args.agent.hca_train_val_split,
         )

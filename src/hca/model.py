@@ -142,7 +142,7 @@ class HCAModel(nn.Module):
             returns = (returns - self.return_mean) / (self.return_std + 1e-6)
 
         embeds = self.cnn(states)
-        inputs = torch.concat([embeds, returns], dim=-1)
+        inputs = torch.concat([embeds, returns], dim=-1).float()
         out = self.net(inputs)
         if self.noise_std and add_noise:
             # print(out.abs().max())
