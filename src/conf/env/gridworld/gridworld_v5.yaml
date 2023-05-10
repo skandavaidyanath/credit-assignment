@@ -17,8 +17,7 @@ agent:
   value_loss_coeff: 1e-4 # the returns tend to be very large in this env
   n_layers: 2
   hidden_size: 64
-  entropy_coeff: 0.0
-  hca_max_grad_norm: null
-  dd_max_grad_norm: null
-  r_max_grad_norm: null
-  r_normalize_targets: false
+  hca_max_grad_norm: 10.0
+  dd_max_grad_norm: 10.0
+  r_max_grad_norm: 10.0
+  r_normalize_targets: true

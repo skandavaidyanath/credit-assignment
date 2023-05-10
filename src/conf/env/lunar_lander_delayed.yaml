@@ -28,3 +28,6 @@ agent:
   dd_max_grad_norm: 10.0
   r_max_grad_norm: 10.0
   r_normalize_targets: True
+  hca_epochs: 20
+  dd_epochs: 1
+  r_epochs: 20

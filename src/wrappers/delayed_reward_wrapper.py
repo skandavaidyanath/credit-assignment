@@ -1,7 +1,7 @@
 import gym
 
 
-class DelayedRewardWrapper(gym.Env):
+class DelayedRewardWrapper(gym.Wrapper):
     def __init__(self, env):
         self.env = env
         self.returns = 0.0

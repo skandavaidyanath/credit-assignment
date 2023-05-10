@@ -5,16 +5,16 @@ env:
   type: "mujoco"
   delay_reward: true
   gamma: 0.99
-  max_steps: 100
+  max_steps: null
 
 training:
   log_freq: 10  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
-  eval_freq: 10 # eval every these many episodes
+  eval_freq: 50 # eval every these many episodes
   num_eval_eps: 10
 
 agent:
-  update_every_env_steps: 2048*3
+  update_every_env_steps: 6144
   update_every: null
   ppo_epochs: 80
   value_loss_coeff: 0.5
@@ -28,3 +28,6 @@ agent:
   dd_max_grad_norm: 10.0
   r_max_grad_norm: 10.0
   r_normalize_targets: True
+  hca_epochs: 10
+  dd_epochs: 10
+  r_epochs: 10
