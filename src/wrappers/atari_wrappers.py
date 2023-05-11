@@ -286,7 +286,9 @@ class AtariWrapper(gym.Wrapper):
         
         
 class PyTorchFrame(gym.ObservationWrapper):
-    """Image shape to num_channels x height x width"""
+    """
+    Image shape to num_channels x height x width
+    """
 
     def __init__(self, env):
         super(PyTorchFrame, self).__init__(env)
@@ -295,4 +297,5 @@ class PyTorchFrame(gym.ObservationWrapper):
             shape[-1], shape[0], shape[1]), dtype=np.uint8)
 
     def observation(self, observation):
-        return np.rollaxis(observation, 2)
+        observation = np.rollaxis(observation, 2)
+        return observation

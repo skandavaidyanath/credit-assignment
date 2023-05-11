@@ -40,6 +40,9 @@ class PPO:
 
     def select_action(self, state, greedy=False):
         with torch.no_grad():
+            if len(state.shape) == 3:
+                # image input expand batch dim
+                state = np.expand_dims(state, 0)
             state = torch.FloatTensor(state).to(self.device)
             action, action_logprob = self.policy.act(state, greedy=greedy)
 
@@ -198,6 +201,9 @@ class PPO:
         batch_terminals = flatten(buffer.terminals)
         hindsight_logprobs = flatten(buffer.hindsight_logprobs)
         hindsight_ratios = flatten(buffer.hindsight_ratios)
+        
+        print(batch_states.shape, batch_actions.shape, batch_logprobs.shape, batch_rewards.shape, batch_terminals.shape, hindsight_logprobs.shape, hindsight_ratios.shape)
+        raise
 
         if self.adv != "gae":
             # normalized by default

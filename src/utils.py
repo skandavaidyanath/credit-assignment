@@ -76,16 +76,34 @@ def get_env(args):
 
     return env
 
+# def flatten(x):
+#     """
+#     Flattens a list of lists into a numpy array
+#     """
+#     out = []
+#     for episode in x:
+#         for item in episode:
+#             out.append(item)
+#     return np.array(out, dtype=np.float32).squeeze()
+
 
 def flatten(x):
     """
     Flattens a list of lists into a numpy array
     """
+    if not x:
+        return np.array([])
     out = []
     for episode in x:
         for item in episode:
-            out.append(item)
-    return np.array(out, dtype=np.float32).squeeze()
+            if isinstance(item, np.ndarray) and len(item.shape) == 3:
+                # image input
+                out.append(item)
+            elif isinstance(item, np.ndarray):
+                out.append(item.squeeze())
+            else:
+                out.append(item)
+    return np.stack(out, dtype=np.float32)
 
 
 def tensor_flatten(x):

@@ -137,12 +137,11 @@ def train(args):
             hca_cnn = CNNBase(
                 num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
             )
-            input_dim = args.agent.hca_hidden_size
         else:
             hca_cnn = None
 
         h_model = HCAModel(
-            input_dim + 1,  # +1 is for return-conditioned
+            args.agent.hca_hidden_size + 1 if args.env.type == "atari" else input_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
             cnn_base=hca_cnn,
@@ -185,11 +184,21 @@ def train(args):
     dd_model, dd_buffer = None, None
     if args.agent.name in ["hca-dualdice"]:
         dd_act_dim = action_dim if continuous else 1
+        
+        if args.env.type == "atari":
+            dd_cnn = CNNBase(
+                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
+            )
+            r_cnn = CNNBase(
+                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
+            )
+        else:
+            dd_cnn = None 
 
         dd_model = DualDICE(
-            state_dim=input_dim,
+            state_dim=args.agent.hca_hidden_size if args.env.type == "atari" else input_dim,
             action_dim=dd_act_dim,
-            cnn_base=hca_cnn,  # using the same CNN as HCA here as well to save on parameters
+            cnn_base=dd_cnn,  # using different CNNs here not worried about compute
             f=args.agent.dd_f,
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
@@ -210,10 +219,10 @@ def train(args):
         )
 
         r_model = ReturnPredictor(
-            state_dim=input_dim,
+            state_dim=args.agent.hca_hidden_size if args.env.type == "atari" else input_dim,
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
-            cnn_base=hca_cnn,  # using the same CNN as HCA here as well to save on parameters
+            cnn_base=r_cnn,  # using different CNNs here not worried about compute
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
