@@ -182,6 +182,7 @@ def train(args):
 
     # DualDICE model
     dd_model, dd_buffer = None, None
+    dd_cnn, r_cnn = None, None
     if args.agent.name in ["hca-dualdice"]:
         dd_act_dim = action_dim if continuous else 1
         
@@ -192,8 +193,6 @@ def train(args):
             r_cnn = CNNBase(
                 num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
             )
-        else:
-            dd_cnn = None 
 
         dd_model = DualDICE(
             state_dim=args.agent.hca_hidden_size if args.env.type == "atari" else input_dim,

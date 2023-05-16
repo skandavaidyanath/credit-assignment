@@ -201,9 +201,6 @@ class PPO:
         batch_terminals = flatten(buffer.terminals)
         hindsight_logprobs = flatten(buffer.hindsight_logprobs)
         hindsight_ratios = flatten(buffer.hindsight_ratios)
-        
-        print(batch_states.shape, batch_actions.shape, batch_logprobs.shape, batch_rewards.shape, batch_terminals.shape, hindsight_logprobs.shape, hindsight_ratios.shape)
-        raise
 
         if self.adv != "gae":
             # normalized by default
