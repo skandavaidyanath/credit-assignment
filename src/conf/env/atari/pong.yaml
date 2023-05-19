@@ -9,9 +9,9 @@ env:
   max_ep_len: null
 
 training:
-  log_freq: 50  # Log every these many episodes
+  log_freq: 100  # Log every these many episodes
   save_model_freq: 0 # Save networks every these many episodes
-  eval_freq: 100 # eval every these many episodes
+  eval_freq: 500 # eval every these many episodes
   num_eval_eps: 10
 
 agent:

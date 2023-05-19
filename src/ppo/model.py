@@ -209,32 +209,34 @@ class PPO:
             )
 
         # convert list to tensor
+        # removed the torch.squeezes from here.
+        # shouldn't be required with the new flatten function.
         old_states = (
-            torch.squeeze(torch.from_numpy(batch_states))
+            torch.from_numpy(batch_states)
             .detach()
             .to(self.device)
         )
         old_actions = (
-            torch.squeeze(torch.from_numpy(batch_actions))
+            torch.from_numpy(batch_actions)
             .detach()
             .to(self.device)
         )
         old_logprobs = (
-            torch.squeeze(torch.from_numpy(batch_logprobs))
+            torch.from_numpy(batch_logprobs)
             .detach()
             .to(self.device)
         )
         hindsight_logprobs = (
-            torch.squeeze(torch.from_numpy(hindsight_logprobs))
+            torch.from_numpy(hindsight_logprobs)
             .detach()
             .to(self.device)
         )
         hindsight_ratios = (
-            torch.squeeze(torch.from_numpy(hindsight_ratios))
+            torch.from_numpy(hindsight_ratios)
             .detach()
             .to(self.device)
         )
-
+        
         total_losses, action_losses, value_losses, entropies = [], [], [], []
 
         ca_stats_mins, ca_stats_maxes, ca_stats_means, ca_stats_stds = (
