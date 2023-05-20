@@ -43,6 +43,8 @@ class DualDICE(nn.Module):
         # standardize only the return portion of the input.
         self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
+        
+        self.device = torch.device(device)
 
         layers = []
         if cnn_base is not None:
@@ -53,7 +55,8 @@ class DualDICE(nn.Module):
             final_layer_init_ = lambda m: model_init(
                 m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
             )
-            assert state_dim == hidden_size
+            self.cnn = self.cnn.to(self.device)
+            hidden_size = hidden_size + action_dim + 1 # +1 for return
         else:
             self.cnn = nn.Sequential(*[])
 
@@ -92,7 +95,6 @@ class DualDICE(nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         self.batch_size = batch_size
-        self.device = torch.device(device)
 
         self.state_mean = torch.zeros((state_dim,), device=device)
         self.state_std = torch.ones((state_dim,), device=device)

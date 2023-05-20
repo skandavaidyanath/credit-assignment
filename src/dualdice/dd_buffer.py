@@ -33,9 +33,14 @@ class DualDICEBuffer:
         del self.returns[:]
 
     def get_dataloader(self, batch_size):
-        states = torch.from_numpy(np.array(self.states)).reshape(
-            (-1, self.state_dim)
-        )
+        if isinstance(self.state_dim, int):
+            states = torch.from_numpy(np.array(self.states)).reshape(
+                (-1, self.state_dim)
+            )
+        else:
+            states = torch.from_numpy(np.array(self.states)).reshape(
+                (-1, *self.state_dim)
+            )
         h_actions = torch.from_numpy(np.array(self.h_actions)).reshape(
             (-1, self.action_dim)
         )

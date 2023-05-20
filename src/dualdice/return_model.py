@@ -47,6 +47,8 @@ class ReturnPredictor(nn.Module):
         self.normalize_inputs = normalize_inputs
         self.normalize_targets = normalize_targets
         self.max_grad_norm = max_grad_norm
+        
+        self.device = torch.device(device)
 
         layers = []
         if cnn_base is not None:
@@ -57,8 +59,7 @@ class ReturnPredictor(nn.Module):
             final_layer_init_ = lambda m: model_init(
                 m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
             )
-            assert state_dim == hidden_size
-
+            self.cnn = self.cnn.to(self.device)
         else:
             self.cnn = nn.Sequential(*[])
 
@@ -95,7 +96,6 @@ class ReturnPredictor(nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         self.batch_size = batch_size
-        self.device = torch.device(device)
 
         # Normalization statistics for input, used only if self.normalize = True
         self.input_mean = torch.zeros((state_dim,), device=device)

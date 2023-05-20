@@ -363,7 +363,7 @@ class PPO:
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
-                0,
+                np.mean(value_losses) if self.value_loss_coeff > 0 else 0.0, # sometimes using value loss here (by mistake?)
                 np.mean(entropies),
                 ca_stats_dict,
             )

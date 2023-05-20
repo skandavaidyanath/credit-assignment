@@ -42,6 +42,8 @@ class HCAModel(nn.Module):
         self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
+        
+        self.device = torch.device(device)
 
         layers = []
         if cnn_base is not None:
@@ -52,7 +54,8 @@ class HCAModel(nn.Module):
             final_layer_init_ = lambda m: model_init(
                 m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
             )
-            assert state_dim == hidden_size + 1  # +1 for the return
+            hidden_size = hidden_size + 1  # +1 for the return
+            self.cnn = self.cnn.to(self.device)
         else:
             self.cnn = nn.Sequential(*[])
 
@@ -92,7 +95,6 @@ class HCAModel(nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         self.batch_size = batch_size
-        self.device = torch.device(device)
 
         self.weight_training_samples = weight_training_samples
 

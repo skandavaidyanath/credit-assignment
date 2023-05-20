@@ -158,7 +158,6 @@ def train(args):
             weight_training_samples=args.agent.hca_weight_training_samples,
             noise_std=args.agent.hca_noise_std,
         )
-        h_model = h_model.to(args.training.device)
         if args.agent.hca_checkpoint:
             hca_checkpoint = torch.load(args.agent.hca_checkpoint)
             h_model.load(hca_checkpoint["model"], strict=True)

@@ -59,9 +59,15 @@ class HCABuffer:
         del self.returns[:]
 
     def get_dataloader(self, batch_size, weight_samples=False):
-        states = torch.from_numpy(np.array(self.states)).reshape(
-            (-1, self.state_dim)
-        )
+        if isinstance(self.state_dim, int):
+            states = torch.from_numpy(np.array(self.states)).reshape(
+                (-1, self.state_dim)
+            )
+        else:
+            # image input
+            states = torch.from_numpy(np.array(self.states)).reshape(
+                (-1, *self.state_dim)
+            )
         returns = torch.from_numpy(np.array(self.returns)).reshape((-1, 1))
 
         actions = torch.from_numpy(
