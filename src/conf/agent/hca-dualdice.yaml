@@ -25,7 +25,7 @@ agent:
   hca_noise_std: null
   smoothing_fn: null
   stop_hca: null
-  clip_ratios: true # clips ratios to be between 0 and 1
+  clip_ratios: false # clips ratios to be between 0 and 1
   # several of the above are assumed as defaults for DD
   # and return predictor training to avoid hyperparam choice
   # blow-up

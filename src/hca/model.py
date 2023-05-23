@@ -36,13 +36,13 @@ class HCAModel(nn.Module):
         super(HCAModel, self).__init__()
 
         self.state_dim = state_dim
-        self.action_dim = action_dim if continuous else 1
+        self.action_dim = action_dim
         self.continuous = continuous
         self.normalize_inputs = normalize_inputs or normalize_return_inputs_only
         self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
-        
+
         self.device = torch.device(device)
 
         layers = []
@@ -284,7 +284,7 @@ class HCAModel(nn.Module):
             log_probs = dist.log_prob(actions).reshape(-1, 1)
             return log_probs
         else:
-            log_probs = dist.log_prob(actions)
+            log_probs = dist.log_prob(actions.flatten())
             return log_probs
 
     @torch.no_grad()

@@ -76,6 +76,7 @@ def get_env(args):
 
     return env
 
+
 # def flatten(x):
 #     """
 #     Flattens a list of lists into a numpy array
@@ -145,9 +146,9 @@ def get_hindsight_logprobs(
     h_model,
 ):
     N = len(states)
-    states = torch.Tensor(states).reshape(N, -1).float()
-    returns = torch.Tensor(returns).reshape(N, -1).float()
-    actions = torch.Tensor(actions).reshape(N, -1).float()
+    states = torch.from_numpy(np.array(states)).reshape(N, -1).float()
+    returns = torch.from_numpy(np.array(returns)).reshape(N, 1).float()
+    actions = torch.from_numpy(np.array(actions)).reshape(N, -1).float()
     h_values = h_model.get_hindsight_logprobs(states, returns, actions)
     return h_values.detach().tolist()
 
@@ -212,6 +213,7 @@ def assign_hindsight_info(
             )
             # clipping between 0 and 1. Clipping at 0 is fine but clipping at 1 is a
             # choice to think about because technically the ratios are unbounded above
+            # TODO: This should not be required anymore after Sigmoid-ing the DD output?
             if clip_ratios:
                 curr_ep_hindsight_ratios = np.clip(
                     curr_ep_hindsight_ratios, a_min=0.0, a_max=1.0

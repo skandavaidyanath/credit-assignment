@@ -10,7 +10,6 @@ class PPO:
     def __init__(
         self, state_dim, action_dim, lr, continuous, device, args, cnn_base=None
     ):
-
         self.continuous = continuous
         self.device = device
 
@@ -211,32 +210,16 @@ class PPO:
         # convert list to tensor
         # removed the torch.squeezes from here.
         # shouldn't be required with the new flatten function.
-        old_states = (
-            torch.from_numpy(batch_states)
-            .detach()
-            .to(self.device)
-        )
-        old_actions = (
-            torch.from_numpy(batch_actions)
-            .detach()
-            .to(self.device)
-        )
-        old_logprobs = (
-            torch.from_numpy(batch_logprobs)
-            .detach()
-            .to(self.device)
-        )
+        old_states = torch.from_numpy(batch_states).detach().to(self.device)
+        old_actions = torch.from_numpy(batch_actions).detach().to(self.device)
+        old_logprobs = torch.from_numpy(batch_logprobs).detach().to(self.device)
         hindsight_logprobs = (
-            torch.from_numpy(hindsight_logprobs)
-            .detach()
-            .to(self.device)
+            torch.from_numpy(hindsight_logprobs).detach().to(self.device)
         )
         hindsight_ratios = (
-            torch.from_numpy(hindsight_ratios)
-            .detach()
-            .to(self.device)
+            torch.from_numpy(hindsight_ratios).detach().to(self.device)
         )
-        
+
         total_losses, action_losses, value_losses, entropies = [], [], [], []
 
         ca_stats_mins, ca_stats_maxes, ca_stats_means, ca_stats_stds = (
@@ -249,7 +232,6 @@ class PPO:
 
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
-
             # Evaluating old actions and values
             logprobs, state_values, dist_entropy = self.policy.evaluate(
                 old_states, old_actions
@@ -363,7 +345,9 @@ class PPO:
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
-                np.mean(value_losses) if self.value_loss_coeff > 0 else 0.0, # sometimes using value loss here (by mistake?)
+                np.mean(value_losses)
+                if self.value_loss_coeff > 0
+                else 0.0,  # sometimes using value loss here (by mistake?)
                 np.mean(entropies),
                 ca_stats_dict,
             )
