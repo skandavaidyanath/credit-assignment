@@ -89,7 +89,7 @@ class HCAModel(nn.Module):
         if continuous:
             self.log_std = nn.Parameter(
                 torch.zeros(action_dim), requires_grad=True
-            )
+            ).to(self.device)
         else:
             self.log_std = None
 
