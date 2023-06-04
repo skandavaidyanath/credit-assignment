@@ -35,6 +35,7 @@ from dualdice.return_buffer import ReturnBuffer
 from utils import (
     assign_hindsight_info,
     get_hindsight_actions,
+    get_dualdice_update_return_samples,
     get_env,
 )
 from eval import eval
@@ -411,11 +412,49 @@ def train(args):
                 # print("=============================================")
 
             if args.agent.name in ["hca-dualdice"]:
+                # Update return model first, as this is needed for the dualdice model update.
+                # normalize inputs if required
+                if r_model.normalize_inputs:
+                    r_inp_mean, r_inp_std = r_buffer.get_input_stats()
+                    r_model.update_norm_stats(
+                        r_inp_mean, r_inp_std, args.agent.refresh_hca
+                    )
+                if r_model.normalize_targets:
+                    r_target_mean, r_target_std = r_buffer.get_target_stats()
+                    r_model.update_target_stats(
+                        r_target_mean, r_target_std, args.agent.refresh_hca
+                    )
+
+                # reset the model if you want
+                if args.agent.refresh_hca:
+                    r_model.reset_parameters()
+
+                # update the Return model
+                # using a separate argument r_epochs here
+                for _ in range(args.agent.r_epochs):
+                    ret_results = r_model.update(r_buffer)
+
+                # Clear the Return buffer
+                r_buffer.clear()
+
+                # Log every time we update the model and don't use the log freq
+                ret_stats = Return_Stats(**ret_results)
+
+                # print(" ============ Updated Return model =============")
+                logger.log(ret_stats, step=episode, wandb_prefix="training")
+                # print("=============================================")
+
+
                 # compute the hindsight actions for the dualdice buffer
                 h_actions = get_hindsight_actions(
                     h_model, dd_buffer.states, dd_buffer.returns
                 )
                 dd_buffer.h_actions.extend(h_actions)
+
+                # Compute the return samples used to estimate the second expectation in the DualDice Loss.
+                r_min, r_max = np.array(dd_buffer.returns).min(), np.array(dd_buffer.returns).max()
+                r_samples = get_dualdice_update_return_samples("uniform", r_model, dd_buffer.states, r_min, r_max)
+                dd_buffer.return_samples.extend(r_samples)
 
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
@@ -456,38 +495,6 @@ def train(args):
 
                 # print(" ============ Updated DD model =============")
                 logger.log(dd_stats, step=episode, wandb_prefix="training")
-                # print("=============================================")
-
-                # Return model update
-                # normalize inputs if required
-                if r_model.normalize_inputs:
-                    r_inp_mean, r_inp_std = r_buffer.get_input_stats()
-                    r_model.update_norm_stats(
-                        r_inp_mean, r_inp_std, args.agent.refresh_hca
-                    )
-                if r_model.normalize_targets:
-                    r_target_mean, r_target_std = r_buffer.get_target_stats()
-                    r_model.update_target_stats(
-                        r_target_mean, r_target_std, args.agent.refresh_hca
-                    )
-
-                # reset the model if you want
-                if args.agent.refresh_hca:
-                    r_model.reset_parameters()
-
-                # update the Return model
-                # using a separate argument r_epochs here
-                for _ in range(args.agent.r_epochs):
-                    ret_results = r_model.update(r_buffer)
-
-                # Clear the Return buffer
-                r_buffer.clear()
-
-                # Log every time we update the model and don't use the log freq
-                ret_stats = Return_Stats(**ret_results)
-
-                # print(" ============ Updated Return model =============")
-                logger.log(ret_stats, step=episode, wandb_prefix="training")
                 # print("=============================================")
 
             env_steps_between_ca_updates = 0

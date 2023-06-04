@@ -230,6 +230,22 @@ def get_hindsight_actions(h_model, states, returns):
     return actions
 
 
+def get_dualdice_update_return_samples(sample_method, r_model, states, r_min, r_max):
+    """
+    Get return samples to use for the second term in the dualdice loss. If sample_method == "uniform", sample a return
+    from Uniform[r_min, r_max]. If sample_method == "r_model", sample the returns from r_model, conditioned on state.
+    """
+    if sample_method == "uniform":
+        num_samples = len(states)
+        return_samples = np.random.uniform(low=r_min, high=r_max, size=(num_samples, 1))
+    elif sample_method == "r_model":
+        raise NotImplementedError
+    else:
+        raise NotImplementedError
+
+    return return_samples
+
+
 def get_grad_norm(model):
     parameters = [
         p for p in model.parameters() if p.grad is not None and p.requires_grad

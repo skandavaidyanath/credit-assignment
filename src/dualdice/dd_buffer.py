@@ -17,6 +17,10 @@ class DualDICEBuffer:
         self.pi_actions = []
         self.returns = []
 
+        # Stores return samples to estimate the second term in the DD loss. These samples can in principle
+        # come from an arbitrary distribution.
+        self.return_samples = []
+
         self.train_val_split = train_val_split
 
     def add_episode(self, states, pi_actions, returns):
@@ -31,6 +35,7 @@ class DualDICEBuffer:
         del self.h_actions[:]
         del self.pi_actions[:]
         del self.returns[:]
+        del self.return_samples[:]
 
     def get_dataloader(self, batch_size):
         if isinstance(self.state_dim, int):
@@ -48,6 +53,8 @@ class DualDICEBuffer:
             (-1, self.action_dim)
         )
         returns = torch.from_numpy(np.array(self.returns)).reshape((-1, 1))
+        return_samples = torch.from_numpy(np.array(self.return_samples)).reshape((-1, 1))
+        # return_samples = torch.zeros_like(returns)
 
         # we concatenate 0 for \pi to indicate we don't use the returns here
         dataset = TensorDataset(
@@ -55,7 +62,7 @@ class DualDICEBuffer:
             h_actions,
             returns,
             pi_actions,
-            torch.zeros_like(returns),
+            return_samples,
         )
         train_dataset, val_dataset = random_split(dataset, self.train_val_split)
 
