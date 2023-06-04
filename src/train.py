@@ -453,7 +453,8 @@ def train(args):
 
                 # Compute the return samples used to estimate the second expectation in the DualDice Loss.
                 r_min, r_max = np.array(dd_buffer.returns).min(), np.array(dd_buffer.returns).max()
-                r_samples = get_dualdice_update_return_samples("uniform", r_model, dd_buffer.states, r_min, r_max)
+                r_samples = get_dualdice_update_return_samples(args.agent.dd_return_sample_method,
+                                                               r_model, dd_buffer.states, r_min, r_max)
                 dd_buffer.return_samples.extend(r_samples)
 
                 # normalize inputs if required
@@ -505,14 +506,18 @@ def train(args):
                 # First, assign credit to the actions in the data.
                 assign_hindsight_info(buffer, h_model=h_model)
             elif args.agent.name in ["hca-dualdice"]:
-                # Assign the density ratios directly using DD model
-                # and return model
-                # Product of DD model and R model will give the \pi/h ratio
+                # Assign the density ratios using the DD model and (potentially) the return model
+
+                # If returns are sampled in the dd_loss using the r_model, then the DD model output does NOT need to be
+                # multiplied with the return model. If not, then the hindsight ratio is given by the product of the
+                # DD model and the return model.
+                take_r_product = args.agent.dd_return_sample_method == "r_model"
                 assign_hindsight_info(
                     buffer,
                     dd_model=dd_model,
                     r_model=r_model,
                     clip_ratios=args.agent.clip_ratios,
+                    take_r_product=take_r_product
                 )
 
             # Perform the actual PPO update.

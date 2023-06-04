@@ -136,7 +136,7 @@ class ReturnPredictor(nn.Module):
         else:
             raise NotImplementedError
 
-    def forward(self, inputs):
+    def forward(self, inputs, return_dists=False):
         """
         forward pass a bunch of inputs into the model
         """
@@ -145,6 +145,11 @@ class ReturnPredictor(nn.Module):
 
         embeds = self.cnn(inputs)
         out = self.net(embeds)  # B x 1
+
+        if return_dists:
+            std = self.std.to(self.device)
+            dists = Normal(out, std)
+            return dists
 
         return out
 

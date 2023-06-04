@@ -31,6 +31,7 @@ agent:
   # blow-up
   # Can always make these different if required
   dd_epochs: 10 # TUNE
+  dd_return_sample_method: "uniform"
   dd_f: "square"
   r_epochs: 10
   r_quant: false

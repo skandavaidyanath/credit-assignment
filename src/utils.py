@@ -171,11 +171,13 @@ def get_ret_probs(states, returns, r_model):
 
 
 def assign_hindsight_info(
-    buffer, h_model=None, dd_model=None, r_model=None, clip_ratios=True
+    buffer, h_model=None, dd_model=None, r_model=None, clip_ratios=True, take_r_product=True
 ):
     """
     Assigns hindsight logprobs when h_model is passed, otherwise, calculates
-    and assigns ratios directly using the dd_model and r_model.
+    and assigns ratios directly using the dd_model and r_model. If take_r_product is true, the dd_model output must be
+    multiplied with the r_model output; if not, the dd_model output can be directly used. This choice is determined by
+    how returns are sampled when updating the dd_model.
     """
     if h_model:
         assert (
@@ -200,17 +202,22 @@ def assign_hindsight_info(
                 buffer.returns[ep_ind],
                 dd_model,
             )
-            curr_ep_ret_probs = get_ret_probs(
-                buffer.states[ep_ind],
-                buffer.returns[ep_ind],
-                r_model,
-            )
-            curr_ep_hindsight_ratios = (
-                (curr_ep_density_ratios * curr_ep_ret_probs)
-                .detach()
-                .cpu()
-                .numpy()
-            )
+            if take_r_product:
+                curr_ep_ret_probs = get_ret_probs(
+                    buffer.states[ep_ind],
+                    buffer.returns[ep_ind],
+                    r_model,
+                )
+                curr_ep_hindsight_ratios = (
+                    (curr_ep_density_ratios * curr_ep_ret_probs)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                )
+            else:
+                curr_ep_hindsight_ratios = (
+                    curr_ep_density_ratios.detach().cpu().numpy()
+                )
             # clipping between 0 and 1. Clipping at 0 is fine but clipping at 1 is a
             # choice to think about because technically the ratios are unbounded above
             # TODO: This should not be required anymore after Sigmoid-ing the DD output?
@@ -239,7 +246,9 @@ def get_dualdice_update_return_samples(sample_method, r_model, states, r_min, r_
         num_samples = len(states)
         return_samples = np.random.uniform(low=r_min, high=r_max, size=(num_samples, 1))
     elif sample_method == "r_model":
-        raise NotImplementedError
+        states = torch.from_numpy(np.stack(states).astype(np.float32)).to(r_model.device)
+        return_dists = r_model.forward(states, return_dists=True)
+        return_samples = return_dists.sample().detach().numpy()
     else:
         raise NotImplementedError
 
