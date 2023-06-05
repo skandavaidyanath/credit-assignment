@@ -248,7 +248,7 @@ def get_dualdice_update_return_samples(sample_method, r_model, states, r_min, r_
     elif sample_method == "r_model":
         states = torch.from_numpy(np.stack(states).astype(np.float32)).to(r_model.device)
         return_dists = r_model.forward(states, return_dists=True)
-        return_samples = return_dists.sample().detach().numpy()
+        return_samples = return_dists.sample().detach().cpu().numpy()
     else:
         raise NotImplementedError
 
