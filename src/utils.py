@@ -248,8 +248,7 @@ def get_psi_return_samples(sample_method, r_model, states, r_min, r_max):
         states = torch.from_numpy(np.stack(states).astype(np.float32)).to(
             r_model.device
         )
-        return_dists = r_model.forward(states, return_dists=True)
-        return_samples = return_dists.sample().detach().cpu().numpy()
+        return_samples = r_model.forward(states, return_samples=True)
     elif sample_method == "zeros":
         # This is theoretically incorrect.
         num_samples = len(states)
