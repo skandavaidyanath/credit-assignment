@@ -35,7 +35,7 @@ from dualdice.return_buffer import ReturnBuffer
 from utils import (
     assign_hindsight_info,
     get_hindsight_actions,
-    get_dualdice_update_return_samples,
+    get_psi_return_samples,
     get_env,
 )
 from eval import eval
@@ -133,7 +133,6 @@ def train(args):
     # HCA model
     h_model, hca_buffer = None, None
     if args.agent.name in ["ppo-hca", "hca-dualdice"]:
-
         if args.env.type == "atari":
             hca_cnn = CNNBase(
                 num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
@@ -142,7 +141,9 @@ def train(args):
             hca_cnn = None
 
         h_model = HCAModel(
-            args.agent.hca_hidden_size + 1 if args.env.type == "atari" else input_dim + 1,  # +1 is for return-conditioned
+            args.agent.hca_hidden_size + 1
+            if args.env.type == "atari"
+            else input_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
             cnn_base=hca_cnn,
@@ -185,7 +186,7 @@ def train(args):
     dd_cnn, r_cnn = None, None
     if args.agent.name in ["hca-dualdice"]:
         dd_act_dim = action_dim if continuous else 1
-        
+
         if args.env.type == "atari":
             dd_cnn = CNNBase(
                 num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
@@ -195,7 +196,9 @@ def train(args):
             )
 
         dd_model = DualDICE(
-            state_dim=args.agent.hca_hidden_size if args.env.type == "atari" else input_dim,
+            state_dim=args.agent.hca_hidden_size
+            if args.env.type == "atari"
+            else input_dim,
             action_dim=dd_act_dim,
             cnn_base=dd_cnn,  # using different CNNs here not worried about compute
             f=args.agent.dd_f,
@@ -218,7 +221,9 @@ def train(args):
         )
 
         r_model = ReturnPredictor(
-            state_dim=args.agent.hca_hidden_size if args.env.type == "atari" else input_dim,
+            state_dim=args.agent.hca_hidden_size
+            if args.env.type == "atari"
+            else input_dim,
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
             cnn_base=r_cnn,  # using different CNNs here not worried about compute
@@ -373,7 +378,6 @@ def train(args):
         if args.agent.name in ["ppo-hca", "hca-dualdice"] and (
             time_for_ca_update or first_policy_update
         ):
-
             # normalize inputs if required
             if h_model.normalize_inputs:
                 (
@@ -444,18 +448,21 @@ def train(args):
                 logger.log(ret_stats, step=episode, wandb_prefix="training")
                 # print("=============================================")
 
-
                 # compute the hindsight actions for the dualdice buffer
                 h_actions = get_hindsight_actions(
                     h_model, dd_buffer.states, dd_buffer.returns
                 )
                 dd_buffer.h_actions.extend(h_actions)
 
-                # Compute the return samples used to estimate the second expectation in the DualDice Loss.
-                r_min, r_max = np.array(dd_buffer.returns).min(), np.array(dd_buffer.returns).max()
-                r_samples = get_dualdice_update_return_samples(args.agent.dd_return_sample_method,
-                                                               r_model, dd_buffer.states, r_min, r_max)
-                dd_buffer.return_samples.extend(r_samples)
+                # Compute the return samples used to estimate the second expectation in the DualDICE Loss.
+                r_min, r_max = (
+                    np.array(dd_buffer.returns).min(),
+                    np.array(dd_buffer.returns).max(),
+                )
+                r_samples = get_psi_return_samples(
+                    args.agent.psi, r_model, dd_buffer.states, r_min, r_max
+                )
+                dd_buffer.psi_returns.extend(r_samples)
 
                 # normalize inputs if required
                 if dd_model.normalize_inputs:
@@ -511,13 +518,12 @@ def train(args):
                 # If returns are sampled in the dd_loss using the r_model, then the DD model output does NOT need to be
                 # multiplied with the return model. If not, then the hindsight ratio is given by the product of the
                 # DD model and the return model.
-                take_r_product = args.agent.dd_return_sample_method == "r_model"
+                take_r_product = args.agent.psi != "r_model"
                 assign_hindsight_info(
                     buffer,
                     dd_model=dd_model,
                     r_model=r_model,
-                    clip_ratios=args.agent.clip_ratios,
-                    take_r_product=take_r_product
+                    take_r_product=take_r_product,
                 )
 
             # Perform the actual PPO update.
@@ -549,15 +555,18 @@ def train(args):
                 and args.agent.stop_hca
                 and episode >= args.agent.stop_hca
             ):
-                print("######################################")
+                print(
+                    "##################################################################"
+                )
                 print("STOPPING HCA, SWITCHING TO VANILLA PPO")
-                print("######################################")
+                print(
+                    "##################################################################"
+                )
                 args.agent.name = "ppo"
                 agent.adv = "gae"
 
         # logging
         if args.training.log_freq and episode % args.training.log_freq == 0:
-
             avg_reward = np.mean(total_rewards)
             avg_success = np.mean(total_successes)
             avg_ep_len = np.mean(ep_lens)

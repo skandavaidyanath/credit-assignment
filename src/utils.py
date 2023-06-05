@@ -171,7 +171,11 @@ def get_ret_probs(states, returns, r_model):
 
 
 def assign_hindsight_info(
-    buffer, h_model=None, dd_model=None, r_model=None, clip_ratios=True, take_r_product=True
+    buffer,
+    h_model=None,
+    dd_model=None,
+    r_model=None,
+    take_r_product=True,
 ):
     """
     Assigns hindsight logprobs when h_model is passed, otherwise, calculates
@@ -218,13 +222,6 @@ def assign_hindsight_info(
                 curr_ep_hindsight_ratios = (
                     curr_ep_density_ratios.detach().cpu().numpy()
                 )
-            # clipping between 0 and 1. Clipping at 0 is fine but clipping at 1 is a
-            # choice to think about because technically the ratios are unbounded above
-            # TODO: This should not be required anymore after Sigmoid-ing the DD output?
-            if clip_ratios:
-                curr_ep_hindsight_ratios = np.clip(
-                    curr_ep_hindsight_ratios, a_min=0.0, a_max=1.0
-                )
             buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
 
 
@@ -237,18 +234,26 @@ def get_hindsight_actions(h_model, states, returns):
     return actions
 
 
-def get_dualdice_update_return_samples(sample_method, r_model, states, r_min, r_max):
+def get_psi_return_samples(sample_method, r_model, states, r_min, r_max):
     """
     Get return samples to use for the second term in the dualdice loss. If sample_method == "uniform", sample a return
     from Uniform[r_min, r_max]. If sample_method == "r_model", sample the returns from r_model, conditioned on state.
     """
     if sample_method == "uniform":
         num_samples = len(states)
-        return_samples = np.random.uniform(low=r_min, high=r_max, size=(num_samples, 1))
+        return_samples = np.random.uniform(
+            low=r_min, high=r_max, size=(num_samples, 1)
+        )
     elif sample_method == "r_model":
-        states = torch.from_numpy(np.stack(states).astype(np.float32)).to(r_model.device)
+        states = torch.from_numpy(np.stack(states).astype(np.float32)).to(
+            r_model.device
+        )
         return_dists = r_model.forward(states, return_dists=True)
         return_samples = return_dists.sample().detach().numpy()
+    elif sample_method == "zeros":
+        # This is theoretically incorrect.
+        num_samples = len(states)
+        return_samples = np.zeros((num_samples, 1))
     else:
         raise NotImplementedError
 
