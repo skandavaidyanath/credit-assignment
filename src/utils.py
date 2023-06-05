@@ -249,7 +249,7 @@ def get_psi_return_samples(sample_method, r_model, states, r_min, r_max):
             r_model.device
         )
         return_dists = r_model.forward(states, return_dists=True)
-        return_samples = return_dists.sample().detach().numpy()
+        return_samples = return_dists.sample().detach().cpu().numpy()
     elif sample_method == "zeros":
         # This is theoretically incorrect.
         num_samples = len(states)
