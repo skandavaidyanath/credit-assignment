@@ -2,8 +2,8 @@ wandb/
 __pycache__/
 */__pycache__
 .vscode/
-.DS_Store/
-.DS_Store/
+.DS_Store
+*/.DS_Store
 checkpoints/
 hca_data/
 hca/checkpoints/

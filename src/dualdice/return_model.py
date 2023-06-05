@@ -34,7 +34,6 @@ class ReturnPredictor(nn.Module):
         normalize_targets=False,
         max_grad_norm=None,
     ):
-
         super(ReturnPredictor, self).__init__()
 
         self.state_dim = state_dim
@@ -47,7 +46,7 @@ class ReturnPredictor(nn.Module):
         self.normalize_inputs = normalize_inputs
         self.normalize_targets = normalize_targets
         self.max_grad_norm = max_grad_norm
-        
+
         self.device = torch.device(device)
 
         layers = []

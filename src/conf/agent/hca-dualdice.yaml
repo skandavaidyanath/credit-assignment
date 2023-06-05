@@ -25,13 +25,12 @@ agent:
   hca_noise_std: null
   smoothing_fn: null
   stop_hca: null
-  clip_ratios: false # clips ratios to be between 0 and 1
   # several of the above are assumed as defaults for DD
   # and return predictor training to avoid hyperparam choice
   # blow-up
   # Can always make these different if required
   dd_epochs: 10 # TUNE
-  dd_return_sample_method: "uniform"
+  psi: "uniform"
   dd_f: "square"
   r_epochs: 10
   r_quant: false
