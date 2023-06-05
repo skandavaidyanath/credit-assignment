@@ -8,7 +8,7 @@ import warnings
 # suppress D4RL warnings
 os.environ["D4RL_SUPPRESS_IMPORT_ERROR"] = "1"
 
-# suppress training split warnings in DualDICE training
+# suppress training split warnings in auxiliary models training
 warnings.filterwarnings(
     "ignore",
     "Length of split at index 1 is 0. This might result in an empty dataset",
