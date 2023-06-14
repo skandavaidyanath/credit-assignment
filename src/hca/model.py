@@ -28,7 +28,7 @@ class HCAModel(nn.Module):
         lr=3e-4,
         device="cpu",
         normalize_inputs=False,
-        normalize_return_inputs_only=False,
+        normalize_return_inputs=False,
         max_grad_norm=None,
         weight_training_samples=False,
         noise_std=None,
@@ -38,8 +38,8 @@ class HCAModel(nn.Module):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.continuous = continuous
-        self.normalize_inputs = normalize_inputs or normalize_return_inputs_only
-        self.normalize_return_inputs_only = normalize_return_inputs_only
+        self.normalize_inputs = normalize_inputs
+        self.normalize_return_inputs = normalize_return_inputs or normalize_inputs
         self.max_grad_norm = max_grad_norm
         self.noise_std = noise_std
 
@@ -138,10 +138,12 @@ class HCAModel(nn.Module):
         """
         forward pass a bunch of inputs into the model
         """
+
+        if self.normalize_return_inputs:
+            returns = (returns - self.return_mean) / (self.return_std + 1e-6)
         if self.normalize_inputs:
             # if self.normalize_return_inputs_only==True, then the non-return input mean and std will be 0 and 1 resp.
             states = (states - self.state_mean) / (self.state_std + 1e-6)
-            returns = (returns - self.return_mean) / (self.return_std + 1e-6)
 
         embeds = self.cnn(states)
         inputs = torch.concat([embeds, returns], dim=-1).float()

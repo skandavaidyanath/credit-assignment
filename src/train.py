@@ -155,7 +155,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
-            normalize_return_inputs_only=args.agent.hca_normalize_return_inputs_only,
+            normalize_return_inputs=args.agent.hca_normalize_return_inputs,
             max_grad_norm=args.agent.hca_max_grad_norm,
             weight_training_samples=args.agent.hca_weight_training_samples,
             noise_std=args.agent.hca_noise_std,
@@ -210,7 +210,7 @@ def train(args):
             lr=args.agent.hca_lr,
             device=args.training.device,
             normalize_inputs=args.agent.hca_normalize_inputs,
-            normalize_return_inputs_only=args.agent.hca_normalize_return_inputs_only,
+            normalize_return_inputs=args.agent.hca_normalize_return_inputs,
             max_grad_norm=args.agent.dd_max_grad_norm,
         )
 
@@ -379,15 +379,13 @@ def train(args):
             time_for_ca_update or first_policy_update
         ):
             # normalize inputs if required
-            if h_model.normalize_inputs:
+            if h_model.normalize_inputs or h_model.normalize_return_inputs:
                 (
                     h_state_mean,
                     h_state_std,
                     h_return_mean,
                     h_return_std,
-                ) = hca_buffer.get_input_stats(
-                    h_model.normalize_return_inputs_only
-                )
+                ) = hca_buffer.get_input_stats()
                 h_model.update_norm_stats(
                     h_state_mean,
                     h_state_std,
@@ -465,7 +463,7 @@ def train(args):
                 dd_buffer.psi_returns.extend(r_samples)
 
                 # normalize inputs if required
-                if dd_model.normalize_inputs:
+                if dd_model.normalize_inputs or dd_model.normalize_return_inputs:
                     (
                         dd_state_mean,
                         dd_state_std,
@@ -473,9 +471,7 @@ def train(args):
                         dd_action_std,
                         dd_return_mean,
                         dd_return_std,
-                    ) = dd_buffer.get_input_stats(
-                        dd_model.normalize_return_inputs_only
-                    )
+                    ) = dd_buffer.get_input_stats()
                     dd_model.update_norm_stats(
                         dd_state_mean,
                         dd_state_std,
