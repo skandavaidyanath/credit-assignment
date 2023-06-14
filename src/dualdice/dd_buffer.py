@@ -77,23 +77,14 @@ class DualDICEBuffer:
             val_dataloader = None
         return train_dataloader, val_dataloader
 
-    def get_input_stats(self, normalize_returns_only):
+    def get_input_stats(self):
         states = np.array(self.states)
         h_actions = np.array(self.h_actions).reshape((-1, self.action_dim))
         pi_actions = np.array(self.pi_actions).reshape((-1, self.action_dim))
         actions = np.concatenate((h_actions, pi_actions), 0)
         returns = np.array(self.returns).reshape((-1, 1))
-
-        if normalize_returns_only:
-            state_mean, state_std = np.zeros(states.shape[1]), np.ones(
-                states.shape[1]
-            )
-            action_mean, action_std = np.zeros(actions.shape[1]), np.ones(
-                actions.shape[1]
-            )
-        else:
-            state_mean, state_std = np.mean(states, 0), np.std(states, 0)
-            action_mean, action_std = np.mean(actions, 0), np.std(actions, 0)
+        state_mean, state_std = np.mean(states, 0), np.std(states, 0)
+        action_mean, action_std = np.mean(actions, 0), np.std(actions, 0)
         return_mean, return_std = np.mean(returns, 0), np.std(returns, 0)
 
         return (
