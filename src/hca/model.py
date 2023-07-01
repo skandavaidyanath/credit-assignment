@@ -309,8 +309,20 @@ class HCAModel(nn.Module):
 
     def save(self, checkpoint_path, args):
         torch.save(
-            {"model": self.net.state_dict(), "args": args}, checkpoint_path
+            {
+                "model": self.net.state_dict(),
+                "args": args,
+                "state_mean": self.state_mean,
+                "state_std": self.state_std,
+                "return_mean": self.return_mean,
+                "return_std": self.return_std,
+            },
+            checkpoint_path,
         )
 
     def load(self, checkpoint):
-        self.net.load_state_dict(checkpoint)
+        self.net.load_state_dict(checkpoint["model"])
+        self.state_mean = checkpoint["state_mean"]
+        self.state_std = checkpoint["state_std"]
+        self.return_mean = checkpoint["return_mean"]
+        self.retuen_std = checkpoint["return_std"]

@@ -22,6 +22,7 @@ class DualDICE(nn.Module):
         action_dim,
         cnn_base=None,
         f="square",
+        c=1,
         n_layers=2,
         hidden_size=64,
         activation_fn="relu",
@@ -33,17 +34,17 @@ class DualDICE(nn.Module):
         normalize_return_inputs_only=False,
         max_grad_norm=None,
     ):
-
         super(DualDICE, self).__init__()
 
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.f = f
+        self.c = c
         self.normalize_inputs = normalize_inputs or normalize_return_inputs_only
         # standardize only the return portion of the input.
         self.normalize_return_inputs_only = normalize_return_inputs_only
         self.max_grad_norm = max_grad_norm
-        
+
         self.device = torch.device(device)
 
         layers = []
@@ -56,7 +57,7 @@ class DualDICE(nn.Module):
                 m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
             )
             self.cnn = self.cnn.to(self.device)
-            hidden_size = hidden_size + action_dim + 1 # +1 for return
+            hidden_size = hidden_size + action_dim + 1  # +1 for return
         else:
             self.cnn = nn.Sequential(*[])
 
@@ -167,6 +168,7 @@ class DualDICE(nn.Module):
         embeds = self.cnn(states)
         inputs = torch.concat([embeds, actions, returns], dim=-1).float()
         out = self.net(inputs)  # B x 1
+        out = out * self.c
 
         return out
 
@@ -247,8 +249,24 @@ class DualDICE(nn.Module):
 
     def save(self, checkpoint_path, args):
         torch.save(
-            {"model": self.net.state_dict(), "args": args}, checkpoint_path
+            {
+                "model": self.net.state_dict(),
+                "args": args,
+                "state_mean": self.state_mean,
+                "state_std": self.state_std,
+                "action_mean": self.action_mean,
+                "action_std": self.action_std,
+                "return_mean": self.return_mean,
+                "return_std": self.return_std,
+            },
+            checkpoint_path,
         )
 
     def load(self, checkpoint):
-        self.net.load_state_dict(checkpoint)
+        self.net.load_state_dict(checkpoint["model"])
+        self.state_mean = checkpoint["state_mean"]
+        self.state_std = checkpoint["state_std"]
+        self.action_mean = checkpoint["action_mean"]
+        self.action_std = checkpoint["action_std"]
+        self.return_mean = checkpoint["return_mean"]
+        self.return_std = checkpoint["return_std"]

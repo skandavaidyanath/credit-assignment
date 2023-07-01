@@ -16,6 +16,9 @@ class DelayedRewardWrapper(gym.Wrapper):
         returned_reward = self.returns if done else 0.0
         return state, returned_reward, done, info
 
+    def render(self):
+        return self.env.render()
+
     @property
     def action_space(self):
         return self.env.action_space

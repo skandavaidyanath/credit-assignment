@@ -16,6 +16,7 @@ training:
   max_training_episodes: 100000 # some big number
   seed: 0
   checkpoint: ""
+  savedir: ""
 
 env:
   gamma: 0.99

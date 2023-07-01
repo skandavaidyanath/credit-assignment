@@ -286,8 +286,20 @@ class ReturnPredictor(nn.Module):
 
     def save(self, checkpoint_path, args):
         torch.save(
-            {"model": self.net.state_dict(), "args": args}, checkpoint_path
+            {
+                "model": self.net.state_dict(),
+                "args": args,
+                "input_mean": self.input_mean,
+                "input_std": self.input_std,
+                "target_mean": self.target_mean,
+                "target_std": self.target_std,
+            },
+            checkpoint_path,
         )
 
     def load(self, checkpoint):
-        self.net.load_state_dict(checkpoint)
+        self.net.load_state_dict(checkpoint["model"])
+        self.input_mean = checkpoint["input_mean"]
+        self.input_std = checkpoint["input_std"]
+        self.target_mean = checkpoint["target_mean"]
+        self.target_std = checkpoint["target_std"]

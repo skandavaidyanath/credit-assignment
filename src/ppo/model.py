@@ -358,4 +358,4 @@ class PPO:
         )
 
     def load(self, checkpoint):
-        self.policy.load_state_dict(checkpoint)
+        self.policy.load_state_dict(checkpoint["policy"])
