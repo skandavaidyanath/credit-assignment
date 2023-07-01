@@ -31,7 +31,7 @@ class DualDICE(nn.Module):
         lr=3e-4,
         device="cpu",
         normalize_inputs=False,
-        normalize_return_inputs_only=False,
+        normalize_return_inputs=False,
         max_grad_norm=None,
     ):
         super(DualDICE, self).__init__()
@@ -40,9 +40,12 @@ class DualDICE(nn.Module):
         self.action_dim = action_dim
         self.f = f
         self.c = c
-        self.normalize_inputs = normalize_inputs or normalize_return_inputs_only
-        # standardize only the return portion of the input.
-        self.normalize_return_inputs_only = normalize_return_inputs_only
+        # standardize the entire input (state, action, return).
+        self.normalize_inputs = normalize_inputs
+        # standardize the return portion of the input.
+        self.normalize_return_inputs = (
+            normalize_return_inputs or normalize_inputs
+        )
         self.max_grad_norm = max_grad_norm
 
         self.device = torch.device(device)
@@ -151,19 +154,15 @@ class DualDICE(nn.Module):
         else:
             raise NotImplementedError
 
-    def forward(self, states, actions, returns, for_h=True):
+    def forward(self, states, actions, returns):
         """
         forward pass a bunch of inputs into the model
         """
+        if self.normalize_return_inputs:
+            returns = (returns - self.return_mean) / (self.return_std + 1e-6)
         if self.normalize_inputs:
-            # Think about this: do we want to zero-center the returns for h inputs when pi input returns are 0?
-            # if self.normalize_return_inputs_only==True, then the non-return input mean and std will be 0 and 1 resp.
             states = (states - self.state_mean) / (self.state_std + 1e-6)
             actions = (actions - self.action_mean) / (self.action_std + 1e-6)
-            if for_h:
-                returns = (returns - self.return_mean) / (
-                    self.return_std + 1e-6
-                )
 
         embeds = self.cnn(states)
         inputs = torch.concat([embeds, actions, returns], dim=-1).float()
@@ -197,8 +196,8 @@ class DualDICE(nn.Module):
         pi_a = pi_a.to(self.device)
         pi_r = pi_r.to(self.device)
 
-        h_preds = self.forward(states, h_a, h_r, for_h=True)
-        pi_preds = self.forward(states, pi_a, pi_r, for_h=False)
+        h_preds = self.forward(states, h_a, h_r)
+        pi_preds = self.forward(states, pi_a, pi_r)
 
         loss = torch.mean(self._f(h_preds)) - torch.mean(pi_preds)
 
@@ -228,8 +227,8 @@ class DualDICE(nn.Module):
             pi_a = pi_a.to(self.device)
             pi_r = pi_r.to(self.device)
 
-            h_preds = self.forward(states, h_a, h_r, for_h=True)
-            pi_preds = self.forward(states, pi_a, pi_r, for_h=False)
+            h_preds = self.forward(states, h_a, h_r)
+            pi_preds = self.forward(states, pi_a, pi_r)
 
             loss = torch.mean(self._f(h_preds)) - torch.mean(pi_preds)
             losses.append(loss.item())
@@ -244,7 +243,7 @@ class DualDICE(nn.Module):
         states = states.to(self.device)  # B, D_s
         actions = actions.to(self.device)  # B, D_a
         returns = returns.to(self.device)  # B, 1
-        ratios = self.forward(states, actions, returns, for_h=True)  # B, 1
+        ratios = self.forward(states, actions, returns)  # B, 1
         return ratios
 
     def save(self, checkpoint_path, args):

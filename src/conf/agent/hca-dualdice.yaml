@@ -21,7 +21,7 @@ agent:
   hca_weight_training_samples: false
   refresh_hca: True
   hca_normalize_inputs: false # TUNE
-  hca_normalize_return_inputs_only: false # TUNE
+  hca_normalize_return_inputs: false # TUNE
   hca_noise_std: null
   smoothing_fn: null
   stop_hca: null

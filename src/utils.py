@@ -34,8 +34,11 @@ def get_env(args):
         )
     elif args.env.type == "atari":
         env = gym.make(args.env.name)
+        if args.env.max_steps:
+            env._max_episode_steps = args.env.max_steps
         env = AtariWrapper(env)
         env = PyTorchFrame(env)
+
     elif args.env.type == "blockworld":
         env = BlockWorldSingleEnv(
             gridlen=args.env.gridlen,
