@@ -93,8 +93,12 @@ def train(args):
 
     if args.training.save_model_freq:
         checkpoint_path = f"../checkpoints/{exp_name}_"
-        checkpoint_path += f"{datetime.datetime.now().replace(microsecond=0)}"
-        setattr(args, "savedir", checkpoint_path)
+        checkpoint_path += (
+            f"{datetime.datetime.now().replace(microsecond=0)}".replace(
+                " ", "_"
+            )
+        )
+        args.training.savedir = checkpoint_path
         os.makedirs(checkpoint_path, exist_ok=True)
 
     # Initialize Logger
@@ -202,6 +206,7 @@ def train(args):
             action_dim=dd_act_dim,
             cnn_base=dd_cnn,  # using different CNNs here not worried about compute
             f=args.agent.dd_f,
+            c=args.agent.dd_c,
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
@@ -632,9 +637,14 @@ def train(args):
             print(
                 "--------------------------------------------------------------------------------------------"
             )
-            print("saving model at : " + checkpoint_path)
-            agent.save(f"{checkpoint_path}/model_{episode}.pt", vars(args))
-            print("model saved")
+            print("saving model(s) at : " + checkpoint_path)
+            agent.save(f"{checkpoint_path}/ppo_{episode}.pt", args)
+            if args.agent.name in ["ppo-hca", "hca-dualdice"]:
+                h_model.save(f"{checkpoint_path}/hca_{episode}.pt", {})
+            if args.agent.name == "hca-dualdice":
+                dd_model.save(f"{checkpoint_path}/dd_{episode}.pt", {})
+                r_model.save(f"{checkpoint_path}/ret_{episode}.pt", {})
+            print("model(s) saved")
             print(
                 "Elapsed Time  : ",
                 datetime.datetime.now().replace(microsecond=0) - start_time,
@@ -666,9 +676,14 @@ def train(args):
             "--------------------------------------------------------------------------------------------"
         )
         print("Final Checkpoint Save!!")
-        print("saving model at : " + checkpoint_path)
-        agent.save(f"{checkpoint_path}/model_{episode}.pt", vars(args))
-        print("model saved")
+        print("saving model(s) at : " + checkpoint_path)
+        agent.save(f"{checkpoint_path}/ppo_{episode}.pt", args)
+        if args.agent.name in ["ppo-hca", "hca-dualdice"]:
+            h_model.save(f"{checkpoint_path}/hca_{episode}.pt", {})
+        if args.agent.name == "hca-dualdice":
+            dd_model.save(f"{checkpoint_path}/dd_{episode}.pt", {})
+            r_model.save(f"{checkpoint_path}/ret_{episode}.pt", {})
+        print("model(s) saved")
         print(
             "Elapsed Time  : ",
             datetime.datetime.now().replace(microsecond=0) - start_time,

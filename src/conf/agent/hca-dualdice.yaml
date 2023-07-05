@@ -32,6 +32,7 @@ agent:
   dd_epochs: 10 # TUNE
   psi: "uniform"
   dd_f: "square"
+  dd_c: 1
   r_epochs: 10
   r_quant: false
   r_num_classes: 100
