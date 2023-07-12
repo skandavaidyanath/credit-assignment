@@ -2,7 +2,6 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-import warnings
 
 from utils import weight_reset, get_grad_norm, model_init
 from arch.cnn import CNNBase
@@ -208,11 +207,6 @@ class DualDICE(nn.Module):
             torch.nn.utils.clip_grad_norm_(
                 self.net.parameters(), self.max_grad_norm
             )
-
-        # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
-        #     warnings.warn(
-        #         "DD model grad norm is over 100 but is not being clipped!"
-        #     )
 
         self.optimizer.step()
         return loss.item()

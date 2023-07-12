@@ -3,7 +3,6 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal, Categorical
 import torch.nn.functional as F
 import numpy as np
-import warnings
 
 from utils import weight_reset, get_grad_norm, model_init
 from arch.cnn import CNNBase
