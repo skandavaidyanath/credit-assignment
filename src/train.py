@@ -59,11 +59,6 @@ def train(args):
     if args.env.type == "gridworld":
         # gridworld env
         input_dim = env.observation_space["map"].shape[0] + 1
-    elif args.env.type == "atari":
-        # Atari env
-        state = env.reset()
-        input_dim = state.shape[0]
-        image_dim = state.shape
     else:
         input_dim = env.observation_space.shape[0]
 
@@ -120,12 +115,7 @@ def train(args):
         ), "Please provide a value loss coefficient >=0 when stopping HCA!"
 
     # Agent
-    if args.env.type == "atari":
-        ppo_cnn = CNNBase(
-            num_inputs=input_dim, hidden_size=args.agent.hidden_size
-        )
-    else:
-        ppo_cnn = None
+    ppo_cnn = None
     agent = PPO(
         input_dim, action_dim, args.agent.lr, continuous, device, args, ppo_cnn
     )
@@ -137,17 +127,10 @@ def train(args):
     # HCA model
     h_model, hca_buffer = None, None
     if args.agent.name in ["ppo-hca", "hca-dualdice"]:
-        if args.env.type == "atari":
-            hca_cnn = CNNBase(
-                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
-            )
-        else:
-            hca_cnn = None
+        hca_cnn = None
 
         h_model = HCAModel(
-            args.agent.hca_hidden_size + 1
-            if args.env.type == "atari"
-            else input_dim + 1,  # +1 is for return-conditioned
+            input_dim + 1,  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
             cnn_base=hca_cnn,
@@ -174,13 +157,13 @@ def train(args):
         # HCA Buffer
         if continuous:
             hca_buffer = HCABuffer(
-                state_dim=image_dim if args.env.type == "atari" else input_dim,
+                state_dim=input_dim,
                 action_dim=action_dim,
                 train_val_split=args.agent.hca_train_val_split,
             )
         else:
             hca_buffer = HCABuffer(
-                state_dim=image_dim if args.env.type == "atari" else input_dim,
+                state_dim=input_dim,
                 action_dim=1,
                 train_val_split=args.agent.hca_train_val_split,
             )
@@ -191,18 +174,8 @@ def train(args):
     if args.agent.name in ["hca-dualdice"]:
         dd_act_dim = action_dim if continuous else 1
 
-        if args.env.type == "atari":
-            dd_cnn = CNNBase(
-                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
-            )
-            r_cnn = CNNBase(
-                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
-            )
-
         dd_model = DualDICE(
-            state_dim=args.agent.hca_hidden_size
-            if args.env.type == "atari"
-            else input_dim,
+            input_dim,
             action_dim=dd_act_dim,
             cnn_base=dd_cnn,  # using different CNNs here not worried about compute
             f=args.agent.dd_f,
@@ -220,15 +193,13 @@ def train(args):
         )
 
         dd_buffer = DualDICEBuffer(
-            state_dim=image_dim if args.env.type == "atari" else input_dim,
+            state_dim=input_dim,
             action_dim=dd_act_dim,
             train_val_split=args.agent.hca_train_val_split,
         )
 
         r_model = ReturnPredictor(
-            state_dim=args.agent.hca_hidden_size
-            if args.env.type == "atari"
-            else input_dim,
+            state_dim=input_dim,
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
             cnn_base=r_cnn,  # using different CNNs here not worried about compute
@@ -468,7 +439,10 @@ def train(args):
                 dd_buffer.psi_returns.extend(r_samples)
 
                 # normalize inputs if required
-                if dd_model.normalize_inputs or dd_model.normalize_return_inputs:
+                if (
+                    dd_model.normalize_inputs
+                    or dd_model.normalize_return_inputs
+                ):
                     (
                         dd_state_mean,
                         dd_state_std,

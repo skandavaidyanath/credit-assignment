@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from utils import flatten, normalized_atan
+from utils import flatten
 from arch.actor_critic import ActorCritic
 
 
@@ -35,8 +35,6 @@ class PPO:
 
         self.MseLoss = nn.MSELoss()
 
-        self.smoothing_fn = args.agent.get("smoothing_fn", None)
-
     def select_action(self, state, greedy=False):
         with torch.no_grad():
             if len(state.shape) == 3:
@@ -52,7 +50,6 @@ class PPO:
         mc_returns,
         logprobs=None,
         hindsight_logprobs=None,
-        smoothing_fn=None,
         hindsight_ratios=None,
     ):
         # Estimate advantages according to Return-conditioned HCA
@@ -61,71 +58,30 @@ class PPO:
         if hindsight_logprobs is not None:
             assert (
                 hindsight_ratios is None
-            ), "Provide only one of hindsight logporbs or ratios"
-            smoothing_type = None if smoothing_fn is None else smoothing_fn[0]
+            ), "Provide only one of hindsight logprobs or ratios"
 
-            if smoothing_type == "exp":
-                # 1 - p/e^x
-                hindsight_ratios = torch.exp(
-                    logprobs.detach() - torch.exp(hindsight_logprobs).detach()
-                )
-                smoothed_hca = 1 - hindsight_ratios
-            elif smoothing_type == "fancy_exp":
-                # p - (1+p)/e^x
-                p = torch.exp(logprobs.detach())
-                h = torch.exp(hindsight_logprobs.detach())
-                smoothed_hca = p - (1 + p) / torch.exp(h)
-            else:
-                hindsight_ratios = torch.exp(
-                    logprobs.detach() - hindsight_logprobs.detach()
-                )
-                hca_terms = 1 - hindsight_ratios
-                if smoothing_type is None:
-                    smoothed_hca = hca_terms
-                elif smoothing_type == "clip":
-                    # clip(hca_terms, min=a, max=b)
-                    a, b = smoothing_fn[1], smoothing_fn[2]
-                    smoothed_hca = torch.clamp(hca_terms, min=a, max=b)
-                elif smoothing_type == "tanh":
-                    # a * tanh(c * (1 - p/h)) + b
-                    a, b, c = (
-                        smoothing_fn[1],
-                        smoothing_fn[2],
-                        smoothing_fn[3],
-                    )
-                    smoothed_hca = a * torch.tanh(c * hca_terms) + b
-                elif smoothing_type == "atan":
-                    # a * norm_atan(c * (1 - p/h)) + b
-                    a, b, c = (
-                        smoothing_fn[1],
-                        smoothing_fn[2],
-                        smoothing_fn[3],
-                    )
+            hindsight_ratios = torch.exp(
+                logprobs.detach() - hindsight_logprobs.detach()
+            )
+            hca_terms = 1 - hindsight_ratios
+            advantages = hca_terms * mc_returns
 
-                    smoothed_hca = a * normalized_atan(c * hca_terms) + b
-                else:
-                    raise NotImplementedError
-
-            advantages = smoothed_hca * mc_returns
-
-            smoothed_hca_mean = smoothed_hca.mean().item()
-            smoothed_hca_max = smoothed_hca.max().item()
-            smoothed_hca_min = smoothed_hca.min().item()
-            smoothed_hca_std = smoothed_hca.std().item()
+            hca_mean = hca_terms.mean().item()
+            hca_max = hca_terms.max().item()
+            hca_min = hca_terms.min().item()
+            hca_std = hca_terms.std().item()
 
             hindsight_stats = {
                 "ca_stat_type": "smoothed_hca_ratio",
-                "min": smoothed_hca_min,
-                "max": smoothed_hca_max,
-                "mean": smoothed_hca_mean,
-                "std": smoothed_hca_std,
+                "min": hca_min,
+                "max": hca_max,
+                "mean": hca_mean,
+                "std": hca_std,
             }
 
         elif hindsight_ratios is not None:
             assert (
-                logprobs is None
-                and hindsight_logprobs is None
-                and smoothing_fn is None
+                logprobs is None and hindsight_logprobs is None
             ), "Provide only one of hindsight logprobs or ratios"
             hca_terms = 1 - hindsight_ratios
             advantages = hca_terms * mc_returns
@@ -273,7 +229,6 @@ class PPO:
                         returns,
                         logprobs=logprobs,
                         hindsight_logprobs=hindsight_logprobs,
-                        smoothing_fn=self.smoothing_fn,
                         hindsight_ratios=None,
                     )
                 elif hindsight_ratios is not None:
@@ -281,7 +236,6 @@ class PPO:
                         returns,
                         logprobs=None,
                         hindsight_logprobs=None,
-                        smoothing_fn=None,
                         hindsight_ratios=hindsight_ratios,
                     )
                 else:
