@@ -107,26 +107,6 @@ class Logger:
             print(
                 f"Episode: {step} \t\t Average Reward: {stats.avg_rewards:.4f} \t\t Average Success: {stats.avg_success:.4f}"
             )
-        elif isinstance(stats, HCA_Stats):
-            # print(
-            #     f"HCA Train Stats --- Loss: {stats.hca_train_loss} | Logprobs: {stats.hca_train_logprobs} | Acc: {stats.hca_train_acc}"
-            # )
-            # print(
-            #     f"HCA Val Stats --- Loss: {stats.hca_val_loss} | Logprobs: {stats.hca_val_logprobs} | Acc: {stats.hca_val_acc}"
-            # )
-            pass
-        elif isinstance(stats, DD_Stats):
-            # print(f"DualDice Train Loss: {stats.dd_train_loss}")
-            # print(f"DualDice Val Loss: {stats.dd_val_loss}")
-            pass
-        elif isinstance(stats, Return_Stats):
-            # print(
-            #     f"Return Model Train Stats --- Loss: {stats.ret_train_loss} | Logprobs: {stats.ret_train_logprobs} | Acc: {stats.ret_train_acc}"
-            # )
-            # print(
-            #     f"Return model Val Stats --- Loss: {stats.ret_val_loss} | Logprobs: {stats.ret_val_logprobs} | Acc: {stats.ret_val_logprobs}"
-            # )
-            pass
         else:
             # stats is a dictionary during eval
             print("\t Episode: ", step)
