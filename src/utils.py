@@ -6,17 +6,11 @@ import gym
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
 
 def get_env(args):
-    if args.env.type == "d4rl":
-        env = gym.make(args.env.name)
-    elif args.env.type == "gridworld":
+    if args.env.type == "gridworld":
         env = GridWorld(
             args.env.puzzle_path,
             max_steps=args.env.max_steps,
         )
-    elif args.env.type == "atari":
-        env = gym.make(args.env.name)
-        if args.env.max_steps:
-            env._max_episode_steps = args.env.max_steps
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
         if args.env.max_steps:
