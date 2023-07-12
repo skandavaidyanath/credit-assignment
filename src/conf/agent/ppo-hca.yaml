@@ -20,6 +20,6 @@ agent:
   hca_weight_training_samples: false
   refresh_hca: True
   hca_normalize_inputs: False
-  hca_normalize_return_inputs_only: false
+  hca_normalize_return_inputs: false
   smoothing_fn: ["exp", 0.0, 0.0, 0.0]
   stop_hca: null
