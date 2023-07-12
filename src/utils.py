@@ -3,26 +3,7 @@ import torch
 from gridworld.gridworld_env import GridWorld
 import gym
 
-
-try:
-    import d4rl
-except:
-    print("D4RL is not installed!")
-try:
-    import lorl_env
-except:
-    print("Lorl env is not installed!")
-try:
-    from pushworld.gym_env import PushWorldEnv
-except:
-    print("PushWorldEnv is not installed!")
-from wrappers.lorl import LorlWrapper
-from wrappers.pw_wrapper import PushWorldWrapper
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
-from wrappers.atari_wrappers import AtariWrapper, PyTorchFrame
-from blockworld.blockworld import BlockWorldSingleEnv
-from combo_lock.combo_lock import DiabolicalCombinationLock
-
 
 def get_env(args):
     if args.env.type == "d4rl":
@@ -36,37 +17,10 @@ def get_env(args):
         env = gym.make(args.env.name)
         if args.env.max_steps:
             env._max_episode_steps = args.env.max_steps
-        env = AtariWrapper(env)
-        env = PyTorchFrame(env)
-
-    elif args.env.type == "blockworld":
-        env = BlockWorldSingleEnv(
-            gridlen=args.env.gridlen,
-            num_blocks=args.env.num_blocks,
-            num_colors=args.env.num_colors,
-            blocksize=args.env.blocksize,
-        )
-    elif args.env.type == "combo_lock":
-        env = DiabolicalCombinationLock(args)
-    elif args.env.type == "lorl":
-        env = LorlWrapper(
-            gym.make(args.env.name),
-            task=args.env.task,
-            use_state=args.env.use_state,
-            reward_multiplier=args.env.reward_multiplier,
-            sparse=args.env.sparse,
-            max_steps=args.env.max_steps,
-            normalize=args.env.normalize,
-        )
     elif args.env.type == "mujoco":
         env = gym.make(args.env.name)
         if args.env.max_steps:
             env._max_episode_steps = args.env.max_steps
-    elif args.env.type == "pushworld":
-        pw_env = PushWorldEnv(
-            puzzle_path=args.env.puzzle_path, max_steps=args.env.max_steps
-        )
-        env = PushWorldWrapper(pw_env, use_state=args.env.use_state)
     elif args.env.type == "gym":
         env = gym.make(args.env.name)
         if args.env.max_steps:
@@ -79,16 +33,6 @@ def get_env(args):
 
     return env
 
-
-# def flatten(x):
-#     """
-#     Flattens a list of lists into a numpy array
-#     """
-#     out = []
-#     for episode in x:
-#         for item in episode:
-#             out.append(item)
-#     return np.array(out, dtype=np.float32).squeeze()
 
 
 def flatten(x):
