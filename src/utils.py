@@ -5,6 +5,7 @@ import gym
 
 from wrappers.delayed_reward_wrapper import DelayedRewardWrapper
 
+
 def get_env(args):
     if args.env.type == "gridworld":
         env = GridWorld(
@@ -26,7 +27,6 @@ def get_env(args):
         env = DelayedRewardWrapper(env)
 
     return env
-
 
 
 def flatten(x):
@@ -189,7 +189,9 @@ def get_psi_return_samples(sample_method, r_model, states, r_min, r_max):
         states = torch.from_numpy(np.stack(states).astype(np.float32)).to(
             r_model.device
         )
-        return_samples = r_model.forward(states, return_samples=True).detach().cpu().numpy()
+        return_samples = (
+            r_model.forward(states, return_samples=True).detach().cpu().numpy()
+        )
     elif sample_method == "zeros":
         # This is theoretically incorrect.
         num_samples = len(states)
