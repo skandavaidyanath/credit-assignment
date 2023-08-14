@@ -1,5 +1,5 @@
 # Hindsight-DICE: Stable Credit Assignment for Deep Reinforcement Learning
-This repository contains the official code for [Hindsight-DICE: Stable Credit Assignment for Deep Reinforcement Learning](https://arxiv.org/abs/2307.11897). For full details of the H-DICE method, benchmark environmnets, baseline algorithms, experiments, and hyperparameter settings, please refer to the paper linked above. 
+This repository contains the official code for [Hindsight-DICE: Stable Credit Assignment for Deep Reinforcement Learning](https://arxiv.org/abs/2307.11897). For full details of the H-DICE method, benchmark environments, baseline algorithms, experiments, and hyperparameter settings, please refer to the paper linked above. 
 
 # Setup
 Our implementation of H-DICE and baseline methods uses PyTorch. After cloning this repository, please create and activate a Python 3.9 Conda environment by following the steps [here](https://www.google.com/search?q=create+a+conda+environment&rlz=1C5GCEM_enUS1067US1067&oq=create+a+conda+environment+&aqs=chrome..69i57j0i512l2j69i59i512j0i512l6.5051j0j7&sourceid=chrome&ie=UTF-8). Then use ```conda install --file requirements.txt``` to install required packages. Note that the packages in ```requirements.txt``` may not be comprehensive, and that you may need to install additional requirements when running code. 
