@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
+from torch.nn.utils.rnn import pad_packed_sequence
+
+from utils import flatten, lstm_preprocess_buffer_states
 
 
 class ActorCriticLSTM(nn.Module):
@@ -54,16 +57,14 @@ class ActorCriticLSTM(nn.Module):
             )
         self.actor = nn.Sequential(*layers)
 
-        self.critic = nn.Sequential(
-            nn.LSTM(
-                input_dim,
-                hidden_size,
-                num_layers=1,
-                bidirectional=False,
-                batch_first=True,
-            ),
-            nn.Linear(hidden_size, 1),
+        self.critic_lstm = nn.LSTM(
+            input_dim,
+            hidden_size,
+            num_layers=1,
+            bidirectional=False,
+            batch_first=True,
         )
+        self.critic_out = nn.Linear(hidden_size, 1)
 
     @property
     def std(self):
@@ -92,13 +93,45 @@ class ActorCriticLSTM(nn.Module):
 
         return action.detach(), action_logprob.detach()
 
-    def evaluate(self, state, action):
-        dist = self.forward(state)
+    def evaluate(self, states, actions):
+        # `states` is a list of list of numpy arrays straight from
+        # `buffer.states`
+        actor_states = flatten(states)
+        actor_states = (
+            torch.from_numpy(actor_states).detach().to(self.critic_out.weight.device)
+        )
+        critic_states, lens = lstm_preprocess_buffer_states(states)
+
+        # Actor stuff
+        dists = self.forward(actor_states)
         # For Single Action Environments.
         if self.continuous and self.action_dim == 1:
-            action = action.reshape(-1, self.action_dim)
-        action_logprobs = dist.log_prob(action)
-        dist_entropy = dist.entropy().mean()
-        state_values = self.critic(state)
+            actions = actions.reshape(-1, self.action_dim)
+        action_logprobs = dists.log_prob(actions)
+        dist_entropy = dists.entropy().mean()
+
+        # Critic stuff
+        packed_output, _ = self.critic_lstm(critic_states)
+        # Unpack the sequences
+        output, _ = pad_packed_sequence(packed_output, batch_first=True)
+
+        # Apply the fully connected layer to each timestep
+        batch_size, _, _ = output.size()
+
+        # Prepare the output tensor
+        state_values = []
+
+        # For each sequence in the batch, take the relevant timesteps
+        for i in range(batch_size):
+            # Extract timesteps that are not padded
+            relevant_timesteps = output[i, : lens[i]]
+            # Apply the fully connected layer
+            fc_output = self.critic_out(relevant_timesteps)
+            state_values.append(fc_output)
+
+        # Concatenate all the outputs from the batch
+        state_values = torch.cat(state_values, dim=0)
+
+        assert len(action_logprobs) == len(state_values)
 
         return action_logprobs, state_values, dist_entropy

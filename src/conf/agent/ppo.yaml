@@ -3,3 +3,4 @@
 agent:
   name: "ppo"
   adv: "gae"
+  use_lstm: true

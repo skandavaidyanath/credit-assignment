@@ -4,6 +4,7 @@ import numpy as np
 
 from utils import flatten, normalized_atan
 from arch.actor_critic import ActorCritic
+from arch.actor_critic_lstm import ActorCriticLSTM
 
 
 class PPO:
@@ -16,18 +17,32 @@ class PPO:
         self.entropy_coeff = args.agent.entropy_coeff
         self.value_loss_coeff = args.agent.value_loss_coeff
         self.adv = args.agent.adv
+        self.use_lstm = args.agent.use_lstm
         self.eps_clip = args.agent.eps_clip
         self.ppo_epochs = args.agent.ppo_epochs
         self.max_grad_norm = args.agent.max_grad_norm
 
-        self.policy = ActorCritic(
-            state_dim,
-            action_dim,
-            continuous=continuous,
-            n_layers=args.agent.n_layers,
-            hidden_size=args.agent.hidden_size,
-            activation_fn=args.agent.activation_fn,
-        ).to(device)
+        if self.use_lstm:
+            assert (
+                self.adv == "gae"
+            ), f"Can only use PPO w/ LSTM Critic with GAE advantage estimation but got {self.adv}"
+            self.policy = ActorCriticLSTM(
+                state_dim,
+                action_dim,
+                continuous=continuous,
+                n_layers=args.agent.n_layers,
+                hidden_size=args.agent.hidden_size,
+                activation_fn=args.agent.activation_fn,
+            ).to(device)
+        else:
+            self.policy = ActorCritic(
+                state_dim,
+                action_dim,
+                continuous=continuous,
+                n_layers=args.agent.n_layers,
+                hidden_size=args.agent.hidden_size,
+                activation_fn=args.agent.activation_fn,
+            ).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
 
         self.MseLoss = nn.MSELoss()
@@ -36,9 +51,6 @@ class PPO:
 
     def select_action(self, state, greedy=False):
         with torch.no_grad():
-            if len(state.shape) == 3:
-                # image input expand batch dim
-                state = np.expand_dims(state, 0)
             state = torch.FloatTensor(state).to(self.device)
             action, action_logprob = self.policy.act(state, greedy=greedy)
 
@@ -189,8 +201,6 @@ class PPO:
             returns = self.estimate_montecarlo_returns(batch_rewards, batch_terminals)
 
         # convert list to tensor
-        # removed the torch.squeezes from here.
-        # shouldn't be required with the new flatten function.
         old_states = torch.from_numpy(batch_states).detach().to(self.device)
         old_actions = torch.from_numpy(batch_actions).detach().to(self.device)
         old_logprobs = torch.from_numpy(batch_logprobs).detach().to(self.device)
@@ -212,9 +222,14 @@ class PPO:
         # Optimize policy for K epochs
         for _ in range(self.ppo_epochs):
             # Evaluating old actions and values
-            logprobs, state_values, dist_entropy = self.policy.evaluate(
-                old_states, old_actions
-            )
+            if self.use_lstm:
+                logprobs, state_values, dist_entropy = self.policy.evaluate(
+                    buffer.states, old_actions
+                )
+            else:
+                logprobs, state_values, dist_entropy = self.policy.evaluate(
+                    old_states, old_actions
+                )
 
             # match state_values tensor dimensions with rewards tensor
             state_values = torch.squeeze(state_values)

@@ -80,14 +80,14 @@ class ActorCritic(nn.Module):
 
         return action.detach(), action_logprob.detach()
 
-    def evaluate(self, state, action):
-        dist = self.forward(state)
+    def evaluate(self, states, actions):
+        dists = self.forward(states)
         # For Single Action Environments.
         if self.continuous and self.action_dim == 1:
-            action = action.reshape(-1, self.action_dim)
-        action_logprobs = dist.log_prob(action)
-        dist_entropy = dist.entropy().mean()
-        encoding = self.encoder(state)
+            actions = actions.reshape(-1, self.action_dim)
+        action_logprobs = dists.log_prob(actions)
+        dist_entropy = dists.entropy().mean()
+        encoding = self.encoder(states)
         state_values = self.critic(encoding)
 
         return action_logprobs, state_values, dist_entropy

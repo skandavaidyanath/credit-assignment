@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from gridworld.gridworld_env import GridWorld
 import gym
+from torch.nn.utils.rnn import pack_padded_sequence, pad_sequence
 
 
 try:
@@ -32,13 +33,6 @@ def get_env(args):
             args.env.puzzle_path,
             max_steps=args.env.max_steps,
         )
-    elif args.env.type == "atari":
-        env = gym.make(args.env.name)
-        if args.env.max_steps:
-            env._max_episode_steps = args.env.max_steps
-        env = AtariWrapper(env)
-        env = PyTorchFrame(env)
-
     elif args.env.type == "blockworld":
         env = BlockWorldSingleEnv(
             gridlen=args.env.gridlen,
@@ -80,17 +74,6 @@ def get_env(args):
     return env
 
 
-# def flatten(x):
-#     """
-#     Flattens a list of lists into a numpy array
-#     """
-#     out = []
-#     for episode in x:
-#         for item in episode:
-#             out.append(item)
-#     return np.array(out, dtype=np.float32).squeeze()
-
-
 def flatten(x):
     """
     Flattens a list of lists into a numpy array
@@ -100,14 +83,32 @@ def flatten(x):
     out = []
     for episode in x:
         for item in episode:
-            if isinstance(item, np.ndarray) and len(item.shape) == 3:
-                # image input
-                out.append(item)
-            elif isinstance(item, np.ndarray):
+            if isinstance(item, np.ndarray):
                 out.append(item.squeeze())
             else:
                 out.append(item)
     return np.stack(out, dtype=np.float32)
+
+
+def lstm_preprocess_buffer_states(buffer_states):
+    tensor_buffer = []
+    lens = []
+    for episode in buffer_states:
+        tensor_episode = []
+        for state in episode:
+            tensor_episode.append(torch.from_numpy(state.squeeze()).float())
+        tensor_episode = torch.stack(tensor_episode, dim=0)
+        tensor_buffer.append(tensor_episode)
+        lens.append(tensor_episode.shape[0])
+    return (
+        pack_padded_sequence(
+            pad_sequence(tensor_buffer, batch_first=True),
+            lengths=lens,
+            batch_first=True,
+            enforce_sorted=False,
+        ),
+        lens,
+    )
 
 
 def tensor_flatten(x):
@@ -199,9 +200,7 @@ def assign_hindsight_info(
             )
             buffer.hindsight_logprobs.append(curr_ep_hindsight_logprobs)
     else:
-        assert (
-            dd_model and r_model
-        ), "Either pass h_model or dd_model and r_model"
+        assert dd_model and r_model, "Either pass h_model or dd_model and r_model"
         for ep_ind in range(len(buffer)):
             curr_ep_density_ratios = get_density_ratios(
                 buffer.states[ep_ind],
@@ -216,15 +215,10 @@ def assign_hindsight_info(
                     r_model,
                 )
                 curr_ep_hindsight_ratios = (
-                    (curr_ep_density_ratios * curr_ep_ret_probs)
-                    .detach()
-                    .cpu()
-                    .numpy()
+                    (curr_ep_density_ratios * curr_ep_ret_probs).detach().cpu().numpy()
                 )
             else:
-                curr_ep_hindsight_ratios = (
-                    curr_ep_density_ratios.detach().cpu().numpy()
-                )
+                curr_ep_hindsight_ratios = curr_ep_density_ratios.detach().cpu().numpy()
             buffer.hindsight_ratios.append(curr_ep_hindsight_ratios)
 
 
@@ -244,14 +238,14 @@ def get_psi_return_samples(sample_method, r_model, states, r_min, r_max):
     """
     if sample_method == "uniform":
         num_samples = len(states)
-        return_samples = np.random.uniform(
-            low=r_min, high=r_max, size=(num_samples, 1)
-        )
+        return_samples = np.random.uniform(low=r_min, high=r_max, size=(num_samples, 1))
     elif sample_method == "r_model":
         states = torch.from_numpy(np.stack(states).astype(np.float32)).to(
             r_model.device
         )
-        return_samples = r_model.forward(states, return_samples=True).detach().cpu().numpy()
+        return_samples = (
+            r_model.forward(states, return_samples=True).detach().cpu().numpy()
+        )
     elif sample_method == "zeros":
         # This is theoretically incorrect.
         num_samples = len(states)
@@ -271,9 +265,7 @@ def get_grad_norm(model):
     else:
         device = parameters[0].grad.device
         total_norm = torch.norm(
-            torch.stack(
-                [torch.norm(p.grad.detach()).to(device) for p in parameters]
-            ),
+            torch.stack([torch.norm(p.grad.detach()).to(device) for p in parameters]),
             2.0,
         ).item()
     return total_norm
