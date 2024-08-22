@@ -22,8 +22,6 @@ import torch
 from ppo.model import PPO
 from ppo.buffer import RolloutBuffer
 
-from arch.cnn import CNNBase
-
 from hca.model import HCAModel
 from hca.buffer import HCABuffer, calculate_mc_returns
 
@@ -93,10 +91,8 @@ def train(args):
 
     if args.training.save_model_freq:
         checkpoint_path = f"../checkpoints/{exp_name}_"
-        checkpoint_path += (
-            f"{datetime.datetime.now().replace(microsecond=0)}".replace(
-                " ", "_"
-            )
+        checkpoint_path += f"{datetime.datetime.now().replace(microsecond=0)}".replace(
+            " ", "_"
         )
         args.training.savedir = checkpoint_path
         os.makedirs(checkpoint_path, exist_ok=True)
@@ -120,14 +116,13 @@ def train(args):
         ), "Please provide a value loss coefficient >=0 when stopping HCA!"
 
     # Agent
-    if args.env.type == "atari":
-        ppo_cnn = CNNBase(
-            num_inputs=input_dim, hidden_size=args.agent.hidden_size
-        )
-    else:
-        ppo_cnn = None
     agent = PPO(
-        input_dim, action_dim, args.agent.lr, continuous, device, args, ppo_cnn
+        input_dim,
+        action_dim,
+        args.agent.lr,
+        continuous,
+        device,
+        args,
     )
 
     if args.training.checkpoint:
@@ -137,20 +132,15 @@ def train(args):
     # HCA model
     h_model, hca_buffer = None, None
     if args.agent.name in ["ppo-hca", "hca-dualdice"]:
-        if args.env.type == "atari":
-            hca_cnn = CNNBase(
-                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
-            )
-        else:
-            hca_cnn = None
 
         h_model = HCAModel(
-            args.agent.hca_hidden_size + 1
-            if args.env.type == "atari"
-            else input_dim + 1,  # +1 is for return-conditioned
+            (
+                args.agent.hca_hidden_size + 1
+                if args.env.type == "atari"
+                else input_dim + 1
+            ),  # +1 is for return-conditioned
             action_dim,
             continuous=continuous,
-            cnn_base=hca_cnn,
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
@@ -167,9 +157,7 @@ def train(args):
         if args.agent.hca_checkpoint:
             hca_checkpoint = torch.load(args.agent.hca_checkpoint)
             h_model.load(hca_checkpoint["model"], strict=True)
-            print(
-                f"Successfully loaded hca model from {args.agent.hca_checkpoint}!"
-            )
+            print(f"Successfully loaded hca model from {args.agent.hca_checkpoint}!")
 
         # HCA Buffer
         if continuous:
@@ -187,24 +175,14 @@ def train(args):
 
     # DualDICE model
     dd_model, dd_buffer = None, None
-    dd_cnn, r_cnn = None, None
     if args.agent.name in ["hca-dualdice"]:
         dd_act_dim = action_dim if continuous else 1
 
-        if args.env.type == "atari":
-            dd_cnn = CNNBase(
-                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
-            )
-            r_cnn = CNNBase(
-                num_inputs=input_dim, hidden_size=args.agent.hca_hidden_size
-            )
-
         dd_model = DualDICE(
-            state_dim=args.agent.hca_hidden_size
-            if args.env.type == "atari"
-            else input_dim,
+            state_dim=(
+                args.agent.hca_hidden_size if args.env.type == "atari" else input_dim
+            ),
             action_dim=dd_act_dim,
-            cnn_base=dd_cnn,  # using different CNNs here not worried about compute
             f=args.agent.dd_f,
             c=args.agent.dd_c,
             n_layers=args.agent.hca_n_layers,
@@ -226,12 +204,11 @@ def train(args):
         )
 
         r_model = ReturnPredictor(
-            state_dim=args.agent.hca_hidden_size
-            if args.env.type == "atari"
-            else input_dim,
+            state_dim=(
+                args.agent.hca_hidden_size if args.env.type == "atari" else input_dim
+            ),
             quantize=args.agent.r_quant,
             num_classes=args.agent.r_num_classes,
-            cnn_base=r_cnn,  # using different CNNs here not worried about compute
             n_layers=args.agent.hca_n_layers,
             hidden_size=args.agent.hca_hidden_size,
             activation_fn=args.agent.hca_activation,
@@ -361,8 +338,7 @@ def train(args):
         # Determine whether the policy will be updated now or not.
         if args.agent.get("update_every_env_steps"):
             time_for_policy_update = (
-                env_steps_between_policy_updates
-                >= args.agent.update_every_env_steps
+                env_steps_between_policy_updates >= args.agent.update_every_env_steps
             )
         else:
             time_for_policy_update = episode % args.agent.update_every == 0
@@ -572,28 +548,14 @@ def train(args):
             avg_success = np.mean(total_successes)
             avg_ep_len = np.mean(ep_lens)
 
-            ca_stat_min = (
-                np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else np.nan
-            )
-            ca_stat_max = (
-                np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else np.nan
-            )
-            ca_stat_mean = (
-                np.mean(ca_stat_means) if len(ca_stat_means) > 0 else np.nan
-            )
-            ca_stat_std = (
-                np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else np.nan
-            )
+            ca_stat_min = np.mean(ca_stat_mins) if len(ca_stat_mins) > 0 else np.nan
+            ca_stat_max = np.mean(ca_stat_maxes) if len(ca_stat_maxes) > 0 else np.nan
+            ca_stat_mean = np.mean(ca_stat_means) if len(ca_stat_means) > 0 else np.nan
+            ca_stat_std = np.mean(ca_stat_stds) if len(ca_stat_stds) > 0 else np.nan
 
-            total_loss = (
-                np.nan if len(total_losses) == 0 else np.mean(total_losses)
-            )
-            action_loss = (
-                np.nan if len(action_losses) == 0 else np.mean(action_losses)
-            )
-            value_loss = (
-                np.nan if len(value_losses) == 0 else np.mean(value_losses)
-            )
+            total_loss = np.nan if len(total_losses) == 0 else np.mean(total_losses)
+            action_loss = np.nan if len(action_losses) == 0 else np.mean(action_losses)
+            value_loss = np.nan if len(value_losses) == 0 else np.mean(value_losses)
             entropy = np.nan if len(entropies) == 0 else np.mean(entropies)
 
             stats = PPO_Stats(
@@ -654,9 +616,7 @@ def train(args):
             )
 
         if args.training.eval_freq and episode % args.training.eval_freq == 0:
-            eval_avg_reward, eval_avg_success, eval_avg_ep_len = eval(
-                env, agent, args
-            )
+            eval_avg_reward, eval_avg_success, eval_avg_ep_len = eval(env, agent, args)
 
             print(" ============ Evaluating =============")
             logger.log(

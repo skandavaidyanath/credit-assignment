@@ -5,8 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 import warnings
 
-from utils import weight_reset, get_grad_norm, model_init
-from arch.cnn import CNNBase
+from utils import weight_reset
 
 
 class HCAModel(nn.Module):
@@ -19,7 +18,6 @@ class HCAModel(nn.Module):
         state_dim,
         action_dim,
         continuous=False,
-        cnn_base=None,
         n_layers=2,
         hidden_size=64,
         activation_fn="relu",
@@ -46,50 +44,36 @@ class HCAModel(nn.Module):
         self.device = torch.device(device)
 
         layers = []
-        if cnn_base is not None:
-            # if a CNN base is passed in, then use that instead of an MLP.
-            assert isinstance(cnn_base, CNNBase)
-            assert cnn_base.hidden_size == hidden_size
-            self.cnn = cnn_base
-            final_layer_init_ = lambda m: model_init(
-                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
-            )
-            hidden_size = hidden_size + 1  # +1 for the return
-            self.cnn = self.cnn.to(self.device)
+
+        if activation_fn == "tanh":
+            activation = nn.Tanh
+        elif activation_fn == "relu":
+            activation = nn.ReLU
         else:
-            self.cnn = nn.Sequential(*[])
+            raise NotImplementedError
 
-            if activation_fn == "tanh":
-                activation = nn.Tanh
-            elif activation_fn == "relu":
-                activation = nn.ReLU
+        if n_layers == 0:
+            hidden_size = state_dim
+        for i in range(n_layers):
+            if i == 0:
+                layers.append(nn.Linear(state_dim, hidden_size))
+                layers.append(activation())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
             else:
-                raise NotImplementedError
+                layers.append(nn.Linear(hidden_size, hidden_size))
+                layers.append(activation())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
 
-            if n_layers == 0:
-                hidden_size = state_dim
-            for i in range(n_layers):
-                if i == 0:
-                    layers.append(nn.Linear(state_dim, hidden_size))
-                    layers.append(activation())
-                    if dropout_p:
-                        layers.append(nn.Dropout(p=dropout_p))
-                else:
-                    layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation())
-                    if dropout_p:
-                        layers.append(nn.Dropout(p=dropout_p))
-
-            final_layer_init_ = lambda m: m
-
-        layers.append(final_layer_init_(nn.Linear(hidden_size, action_dim)))
+        layers.append(nn.Linear(hidden_size, action_dim))
 
         self.net = nn.Sequential(*layers).to(device)
 
         if continuous:
-            self.log_std = nn.Parameter(
-                torch.zeros(action_dim), requires_grad=True
-            ).to(self.device)
+            self.log_std = nn.Parameter(torch.zeros(action_dim), requires_grad=True).to(
+                self.device
+            )
         else:
             self.log_std = None
 
@@ -121,16 +105,10 @@ class HCAModel(nn.Module):
         self, state_mean, state_std, return_mean, return_std, refresh=True
     ):
         if refresh:  # re-calculate stats each time we train model
-            self.state_mean = (
-                torch.from_numpy(state_mean).to(self.device).float()
-            )
+            self.state_mean = torch.from_numpy(state_mean).to(self.device).float()
             self.state_std = torch.from_numpy(state_std).to(self.device).float()
-            self.return_mean = (
-                torch.from_numpy(return_mean).to(self.device).float()
-            )
-            self.return_std = (
-                torch.from_numpy(return_std).to(self.device).float()
-            )
+            self.return_mean = torch.from_numpy(return_mean).to(self.device).float()
+            self.return_std = torch.from_numpy(return_std).to(self.device).float()
         else:
             raise NotImplementedError
 
@@ -145,14 +123,13 @@ class HCAModel(nn.Module):
             # if self.normalize_return_inputs_only==True, then the non-return input mean and std will be 0 and 1 resp.
             states = (states - self.state_mean) / (self.state_std + 1e-6)
 
-        embeds = self.cnn(states)
-        inputs = torch.concat([embeds, returns], dim=-1).float()
+        inputs = torch.concat([states, returns], dim=-1).float()
         out = self.net(inputs)
         if self.noise_std and add_noise:
             # print(out.abs().max())
-            noise = torch.normal(
-                mean=0.0, std=self.noise_std, size=out.shape
-            ).to(out.device)
+            noise = torch.normal(mean=0.0, std=self.noise_std, size=out.shape).to(
+                out.device
+            )
             out += noise
         if self.continuous:
             std = torch.diag(self.std)
@@ -192,9 +169,7 @@ class HCAModel(nn.Module):
                 "hca_train_loss": np.mean(losses),
                 "hca_train_acc": np.mean(metrics),
             }
-        entropy_stats = {
-            "hca_train_" + k: np.mean(v) for k, v in entropy_stats.items()
-        }
+        entropy_stats = {"hca_train_" + k: np.mean(v) for k, v in entropy_stats.items()}
         results.update(entropy_stats)
 
         if val_dataloader is not None:
@@ -229,9 +204,7 @@ class HCAModel(nn.Module):
         loss.backward()
 
         if self.max_grad_norm:
-            torch.nn.utils.clip_grad_norm_(
-                self.net.parameters(), self.max_grad_norm
-            )
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.max_grad_norm)
 
         # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
         #     warnings.warn("Hindsight model grad norm is over 100 but is not being clipped!")
@@ -248,9 +221,7 @@ class HCAModel(nn.Module):
             actions = actions.to(self.device)
             preds, dists = self.forward(states, returns)
             if self.continuous:
-                loss = F.gaussian_nll_loss(
-                    preds, actions, dists.variance
-                ).item()
+                loss = F.gaussian_nll_loss(preds, actions, dists.variance).item()
                 log_probs = dists.log_prob(actions)
                 mean_logprobs = log_probs.mean().item()
                 losses.append(loss)

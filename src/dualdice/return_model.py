@@ -7,8 +7,7 @@ from torch.distributions import Normal
 import warnings
 
 from dualdice.return_buffer import digitize_returns
-from utils import weight_reset, get_grad_norm, model_init
-from arch.cnn import CNNBase
+from utils import weight_reset
 
 
 class ReturnPredictor(nn.Module):
@@ -22,7 +21,6 @@ class ReturnPredictor(nn.Module):
         state_dim,
         quantize=False,
         num_classes=10,  # this is used only when quantize is True
-        cnn_base=None,
         n_layers=2,
         hidden_size=64,
         activation_fn="relu",
@@ -50,39 +48,28 @@ class ReturnPredictor(nn.Module):
         self.device = torch.device(device)
 
         layers = []
-        if cnn_base is not None:
-            # if a CNN base is passed in, then use that instead of an MLP.
-            assert isinstance(cnn_base, CNNBase)
-            assert cnn_base.hidden_size == hidden_size
-            self.cnn = cnn_base
-            final_layer_init_ = lambda m: model_init(
-                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
-            )
-            self.cnn = self.cnn.to(self.device)
+
+        if activation_fn == "tanh":
+            activation = nn.Tanh
+        elif activation_fn == "relu":
+            activation = nn.ReLU
         else:
-            self.cnn = nn.Sequential(*[])
+            raise NotImplementedError
 
-            if activation_fn == "tanh":
-                activation = nn.Tanh
-            elif activation_fn == "relu":
-                activation = nn.ReLU
+        if n_layers == 0:
+            hidden_size = state_dim
+        for i in range(n_layers):
+            if i == 0:
+                layers.append(nn.Linear(state_dim, hidden_size))
+                layers.append(activation())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
             else:
-                raise NotImplementedError
-
-            if n_layers == 0:
-                hidden_size = state_dim
-            for i in range(n_layers):
-                if i == 0:
-                    layers.append(nn.Linear(state_dim, hidden_size))
-                    layers.append(activation())
-                    if dropout_p:
-                        layers.append(nn.Dropout(p=dropout_p))
-                else:
-                    layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation())
-                    if dropout_p:
-                        layers.append(nn.Dropout(p=dropout_p))
-            final_layer_init_ = lambda m: m
+                layers.append(nn.Linear(hidden_size, hidden_size))
+                layers.append(activation())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
+        final_layer_init_ = lambda m: m
 
         layers.append(final_layer_init_(nn.Linear(hidden_size, num_classes)))
 
@@ -142,8 +129,7 @@ class ReturnPredictor(nn.Module):
         if self.normalize_inputs:
             inputs = (inputs - self.input_mean) / (self.input_std + 1e-6)
 
-        embeds = self.cnn(inputs)
-        out = self.net(embeds)  # B x 1
+        out = self.net(inputs)  # B x 1
 
         if return_samples:
             std = self.std.to(self.device)
@@ -207,9 +193,7 @@ class ReturnPredictor(nn.Module):
         loss.backward()
 
         if self.max_grad_norm:
-            torch.nn.utils.clip_grad_norm_(
-                self.net.parameters(), self.max_grad_norm
-            )
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.max_grad_norm)
 
         # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
         #     warnings.warn("Return model grad norm is over 100 but is not being clipped!")
@@ -237,14 +221,10 @@ class ReturnPredictor(nn.Module):
                 metrics.append(accuracy)
             else:
                 if self.normalize_targets:
-                    returns = (returns - self.target_mean) / (
-                        self.target_std + 1e-6
-                    )
+                    returns = (returns - self.target_mean) / (self.target_std + 1e-6)
 
                 dists = Normal(preds, self.std)
-                loss = F.gaussian_nll_loss(
-                    preds, returns, dists.variance
-                ).item()
+                loss = F.gaussian_nll_loss(preds, returns, dists.variance).item()
                 log_probs = dists.log_prob(returns)
                 mean_logprobs = log_probs.mean().item()
                 losses.append(loss)
@@ -274,9 +254,7 @@ class ReturnPredictor(nn.Module):
             return_probs = torch.gather(preds, -1, quantized_returns)
         else:
             if self.normalize_targets:
-                returns = (returns - self.target_mean) / (
-                    self.target_std + 1e-6
-                )
+                returns = (returns - self.target_mean) / (self.target_std + 1e-6)
 
             # returns are real numbers
             std = self.std.to(self.device)

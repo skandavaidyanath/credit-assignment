@@ -4,8 +4,7 @@ import torch
 import torch.nn as nn
 import warnings
 
-from utils import weight_reset, get_grad_norm, model_init
-from arch.cnn import CNNBase
+from utils import weight_reset
 
 
 class DualDICE(nn.Module):
@@ -20,7 +19,6 @@ class DualDICE(nn.Module):
         self,
         state_dim,
         action_dim,
-        cnn_base=None,
         f="square",
         c=1,
         n_layers=2,
@@ -43,55 +41,37 @@ class DualDICE(nn.Module):
         # standardize the entire input (state, action, return).
         self.normalize_inputs = normalize_inputs
         # standardize the return portion of the input.
-        self.normalize_return_inputs = (
-            normalize_return_inputs or normalize_inputs
-        )
+        self.normalize_return_inputs = normalize_return_inputs or normalize_inputs
         self.max_grad_norm = max_grad_norm
 
         self.device = torch.device(device)
 
         layers = []
-        if cnn_base is not None:
-            # if a CNN base is passed in, then use that instead of an MLP.
-            assert isinstance(cnn_base, CNNBase)
-            assert cnn_base.hidden_size == hidden_size
-            self.cnn = cnn_base
-            final_layer_init_ = lambda m: model_init(
-                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
-            )
-            self.cnn = self.cnn.to(self.device)
-            hidden_size = hidden_size + action_dim + 1  # +1 for return
+
+        if activation_fn == "tanh":
+            activation = nn.Tanh
+        elif activation_fn == "relu":
+            activation = nn.ReLU
         else:
-            self.cnn = nn.Sequential(*[])
+            raise NotImplementedError
 
-            if activation_fn == "tanh":
-                activation = nn.Tanh
-            elif activation_fn == "relu":
-                activation = nn.ReLU
+        if n_layers == 0:
+            hidden_size = state_dim + action_dim + 1
+        for i in range(n_layers):
+            if i == 0:
+                layers.append(
+                    nn.Linear(state_dim + action_dim + 1, hidden_size)  # +1 for return
+                )
+                layers.append(activation())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
             else:
-                raise NotImplementedError
+                layers.append(nn.Linear(hidden_size, hidden_size))
+                layers.append(activation())
+                if dropout_p:
+                    layers.append(nn.Dropout(p=dropout_p))
 
-            if n_layers == 0:
-                hidden_size = state_dim + action_dim + 1
-            for i in range(n_layers):
-                if i == 0:
-                    layers.append(
-                        nn.Linear(
-                            state_dim + action_dim + 1, hidden_size
-                        )  # +1 for return
-                    )
-                    layers.append(activation())
-                    if dropout_p:
-                        layers.append(nn.Dropout(p=dropout_p))
-                else:
-                    layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation())
-                    if dropout_p:
-                        layers.append(nn.Dropout(p=dropout_p))
-
-            final_layer_init_ = lambda m: m
-
-        layers.append(final_layer_init_(nn.Linear(hidden_size, 1)))
+        layers.append(nn.Linear(hidden_size, 1))
         # this makes the output positive and within a stable range
         layers.append(nn.Sigmoid())
 
@@ -135,22 +115,12 @@ class DualDICE(nn.Module):
         refresh=True,
     ):
         if refresh:  # re-calculate stats each time we train model
-            self.state_mean = (
-                torch.from_numpy(state_mean).to(self.device).float()
-            )
+            self.state_mean = torch.from_numpy(state_mean).to(self.device).float()
             self.state_std = torch.from_numpy(state_std).to(self.device).float()
-            self.action_mean = (
-                torch.from_numpy(action_mean).to(self.device).float()
-            )
-            self.action_std = (
-                torch.from_numpy(action_std).to(self.device).float()
-            )
-            self.return_mean = (
-                torch.from_numpy(return_mean).to(self.device).float()
-            )
-            self.return_std = (
-                torch.from_numpy(return_std).to(self.device).float()
-            )
+            self.action_mean = torch.from_numpy(action_mean).to(self.device).float()
+            self.action_std = torch.from_numpy(action_std).to(self.device).float()
+            self.return_mean = torch.from_numpy(return_mean).to(self.device).float()
+            self.return_std = torch.from_numpy(return_std).to(self.device).float()
         else:
             raise NotImplementedError
 
@@ -164,17 +134,14 @@ class DualDICE(nn.Module):
             states = (states - self.state_mean) / (self.state_std + 1e-6)
             actions = (actions - self.action_mean) / (self.action_std + 1e-6)
 
-        embeds = self.cnn(states)
-        inputs = torch.concat([embeds, actions, returns], dim=-1).float()
+        inputs = torch.concat([states, actions, returns], dim=-1).float()
         out = self.net(inputs)  # B x 1
         out = out * self.c
 
         return out
 
     def update(self, buffer):
-        train_dataloader, val_dataloader = buffer.get_dataloader(
-            self.batch_size
-        )
+        train_dataloader, val_dataloader = buffer.get_dataloader(self.batch_size)
 
         losses = []
 
@@ -205,9 +172,7 @@ class DualDICE(nn.Module):
         loss.backward()
 
         if self.max_grad_norm:
-            torch.nn.utils.clip_grad_norm_(
-                self.net.parameters(), self.max_grad_norm
-            )
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.max_grad_norm)
 
         # if get_grad_norm(self.net) > 100.0 and not self.max_grad_norm:
         #     warnings.warn(

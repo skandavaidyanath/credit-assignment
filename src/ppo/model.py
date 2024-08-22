@@ -7,9 +7,7 @@ from arch.actor_critic import ActorCritic
 
 
 class PPO:
-    def __init__(
-        self, state_dim, action_dim, lr, continuous, device, args, cnn_base=None
-    ):
+    def __init__(self, state_dim, action_dim, lr, continuous, device, args):
         self.continuous = continuous
         self.device = device
 
@@ -29,7 +27,6 @@ class PPO:
             n_layers=args.agent.n_layers,
             hidden_size=args.agent.hidden_size,
             activation_fn=args.agent.activation_fn,
-            cnn_base=cnn_base,
         ).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
 
@@ -123,9 +120,7 @@ class PPO:
 
         elif hindsight_ratios is not None:
             assert (
-                logprobs is None
-                and hindsight_logprobs is None
-                and smoothing_fn is None
+                logprobs is None and hindsight_logprobs is None and smoothing_fn is None
             ), "Provide only one of hindsight logprobs or ratios"
             hca_terms = 1 - hindsight_ratios
             advantages = hca_terms * mc_returns
@@ -143,13 +138,9 @@ class PPO:
                 "std": hca_std,
             }
         else:
-            raise ValueError(
-                "Provide at least one of hindsight logprobs or ratios"
-            )
+            raise ValueError("Provide at least one of hindsight logprobs or ratios")
 
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-7
-        )
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-7)
         return advantages.to(self.device), hindsight_stats
 
     def estimate_montecarlo_returns(self, rewards, terminals, normalize=True):
@@ -158,9 +149,7 @@ class PPO:
         returns = np.zeros(batch_size)
         returns[batch_size - 1] = rewards[batch_size - 1]
         for t in reversed(range(batch_size - 1)):
-            returns[t] = rewards[t] + returns[t + 1] * self.gamma * (
-                1 - terminals[t]
-            )
+            returns[t] = rewards[t] + returns[t + 1] * self.gamma * (1 - terminals[t])
         returns = torch.tensor(returns, dtype=torch.float32)
         if normalize:
             returns = (returns - returns.mean()) / (returns.std() + 1e-7)
@@ -170,9 +159,7 @@ class PPO:
         # GAE estimates of Advantage
         batch_size = len(rewards)
         advantages = np.zeros(batch_size)
-        advantages[batch_size - 1] = (
-            rewards[batch_size - 1] - values[batch_size - 1]
-        )
+        advantages[batch_size - 1] = rewards[batch_size - 1] - values[batch_size - 1]
         for t in reversed(range(batch_size - 1)):
             delta = (
                 rewards[t]
@@ -183,13 +170,9 @@ class PPO:
                 self.gamma * self.lamda * advantages[t + 1] * (1 - terminals[t])
             )
 
-        advantages = torch.tensor(advantages, dtype=torch.float32).to(
-            self.device
-        )
+        advantages = torch.tensor(advantages, dtype=torch.float32).to(self.device)
         returns = advantages + values.detach()
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-7
-        )
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-7)
         return advantages.to(self.device), returns.to(self.device)
 
     def update(self, buffer):
@@ -203,9 +186,7 @@ class PPO:
 
         if self.adv != "gae":
             # normalized by default
-            returns = self.estimate_montecarlo_returns(
-                batch_rewards, batch_terminals
-            )
+            returns = self.estimate_montecarlo_returns(batch_rewards, batch_terminals)
 
         # convert list to tensor
         # removed the torch.squeezes from here.
@@ -216,9 +197,7 @@ class PPO:
         hindsight_logprobs = (
             torch.from_numpy(hindsight_logprobs).detach().to(self.device)
         )
-        hindsight_ratios = (
-            torch.from_numpy(hindsight_ratios).detach().to(self.device)
-        )
+        hindsight_ratios = torch.from_numpy(hindsight_ratios).detach().to(self.device)
 
         total_losses, action_losses, value_losses, entropies = [], [], [], []
 
@@ -265,10 +244,7 @@ class PPO:
                 # hca adv
                 # normalizing the MC returns seems to help stability
                 # and performance here
-                if (
-                    hindsight_logprobs is not None
-                    and len(hindsight_logprobs) > 0
-                ):
+                if hindsight_logprobs is not None and len(hindsight_logprobs) > 0:
                     advantages, ca_stats = self.estimate_hca_advantages(
                         returns,
                         logprobs=logprobs,
@@ -297,8 +273,7 @@ class PPO:
 
             surr1 = ratios * advantages
             surr2 = (
-                torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip)
-                * advantages
+                torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             )
 
             action_loss = -torch.min(surr1, surr2).mean()
@@ -345,17 +320,15 @@ class PPO:
             return (
                 np.mean(total_losses),
                 np.mean(action_losses),
-                np.mean(value_losses)
-                if self.value_loss_coeff > 0
-                else 0.0,  # sometimes using value loss here (by mistake?)
+                (
+                    np.mean(value_losses) if self.value_loss_coeff > 0 else 0.0
+                ),  # sometimes using value loss here (by mistake?)
                 np.mean(entropies),
                 ca_stats_dict,
             )
 
     def save(self, checkpoint_path, args):
-        torch.save(
-            {"policy": self.policy.state_dict(), "args": args}, checkpoint_path
-        )
+        torch.save({"policy": self.policy.state_dict(), "args": args}, checkpoint_path)
 
     def load(self, checkpoint):
         self.policy.load_state_dict(checkpoint["policy"])

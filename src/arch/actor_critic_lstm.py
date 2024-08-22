@@ -4,7 +4,7 @@ from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
 
 
-class ActorCritic(nn.Module):
+class ActorCriticLSTM(nn.Module):
     def __init__(
         self,
         input_dim,
@@ -14,7 +14,10 @@ class ActorCritic(nn.Module):
         hidden_size=64,
         activation_fn="tanh",
     ):
-        super(ActorCritic, self).__init__()
+        """
+        Default Actor Critic with a LSTM Critic function instead of FFN
+        """
+        super(ActorCriticLSTM, self).__init__()
 
         self.continuous = continuous
         self.action_dim = action_dim
@@ -29,28 +32,38 @@ class ActorCritic(nn.Module):
         else:
             raise NotImplementedError()
 
-        if n_layers == 0:
-            self.encoder = nn.Sequential(*[])
-            hidden_size = input_dim
-        else:
-            layers = []
-            for i in range(n_layers):
-                if i == 0:
-                    layers.append(nn.Linear(input_dim, hidden_size))
-                    layers.append(activation_fn)
-                else:
-                    layers.append(nn.Linear(hidden_size, hidden_size))
-                    layers.append(activation_fn)
-            self.encoder = nn.Sequential(*layers)
+        assert (
+            n_layers > 0
+        ), "Must have at least one hidden layer for LSTM critic model!"
 
-        self.critic = nn.Linear(hidden_size, 1)
+        layers = []
+        for i in range(n_layers):
+            if i == 0:
+                layers.append(nn.Linear(input_dim, hidden_size))
+                layers.append(activation_fn)
+            else:
+                layers.append(nn.Linear(hidden_size, hidden_size))
+                layers.append(activation_fn)
+
         if continuous:
-            self.actor = nn.Linear(hidden_size, action_dim)
+            layers.append(nn.Linear(hidden_size, action_dim))
         else:
-            self.actor = nn.Sequential(
-                nn.Linear(hidden_size, action_dim),
+            layers.append(nn.Linear(hidden_size, action_dim))
+            layers.append(
                 nn.Softmax(dim=-1),
             )
+        self.actor = nn.Sequential(*layers)
+
+        self.critic = nn.Sequential(
+            nn.LSTM(
+                input_dim,
+                hidden_size,
+                num_layers=1,
+                bidirectional=False,
+                batch_first=True,
+            ),
+            nn.Linear(hidden_size, 1),
+        )
 
     @property
     def std(self):
@@ -60,13 +73,12 @@ class ActorCritic(nn.Module):
             return torch.exp(self.log_std)
 
     def forward(self, state):
-        encoding = self.encoder(state)
         if self.continuous:
-            action_mean = self.actor(encoding)
+            action_mean = self.actor(state)
             std = torch.diag(self.std)
             dist = MultivariateNormal(action_mean, scale_tril=std)
         else:
-            action_probs = self.actor(encoding)
+            action_probs = self.actor(state)
             dist = Categorical(action_probs)
         return dist
 
@@ -87,7 +99,6 @@ class ActorCritic(nn.Module):
             action = action.reshape(-1, self.action_dim)
         action_logprobs = dist.log_prob(action)
         dist_entropy = dist.entropy().mean()
-        encoding = self.encoder(state)
-        state_values = self.critic(encoding)
+        state_values = self.critic(state)
 
         return action_logprobs, state_values, dist_entropy
